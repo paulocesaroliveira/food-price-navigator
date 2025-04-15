@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -92,21 +91,19 @@ const RecipeForm = ({
       name: "",
       image_url: "",
       category_id: "",
-      baseIngredients: [{ ingredient_id: "", quantity: 0, cost: 0 }],
-      portionIngredients: [{ ingredient_id: "", quantity: 0, cost: 0 }],
-      portions: 1,
+      baseIngredients: [{ ingredient_id: "", quantity: "0", cost: "0" }],
+      portionIngredients: [{ ingredient_id: "", quantity: "0", cost: "0" }],
+      portions: "1",
       notes: ""
     }
   });
 
-  // Use useFieldArray para gerenciar arrays de ingredientes
   const { fields: baseFields, append: appendBase, remove: removeBase } = 
     useFieldArray({ control: form.control, name: "baseIngredients" });
   
   const { fields: portionFields, append: appendPortion, remove: removePortion } = 
     useFieldArray({ control: form.control, name: "portionIngredients" });
 
-  // Calcular custos totais
   const baseIngredients = form.watch("baseIngredients");
   const portionIngredients = form.watch("portionIngredients");
   const portions = form.watch("portions");
@@ -122,16 +119,12 @@ const RecipeForm = ({
   );
   
   const totalCost = baseTotalCost + portionTotalCost;
-  const unitCost = portions > 0 ? totalCost / portions : 0;
+  const unitCost = portions > 0 ? totalCost / parseFloat(portions) : 0;
 
-  // Carregar dados da receita para edição
   useEffect(() => {
     if (editingRecipe) {
-      // Buscar ingredientes da receita do backend
       const fetchRecipeIngredients = async () => {
         try {
-          // Aqui você implementaria a chamada para buscar os ingredientes da receita
-          // Por enquanto, vamos apenas simular com os dados do editingRecipe
           setPreviewImage(editingRecipe.image_url || null);
           
           form.reset({
@@ -139,12 +132,20 @@ const RecipeForm = ({
             image_url: editingRecipe.image_url || "",
             category_id: editingRecipe.category_id || "",
             baseIngredients: editingRecipe.baseIngredients?.length > 0 
-              ? editingRecipe.baseIngredients 
-              : [{ ingredient_id: "", quantity: 0, cost: 0 }],
+              ? editingRecipe.baseIngredients.map((ing: any) => ({
+                  ...ing,
+                  quantity: String(ing.quantity),
+                  cost: String(ing.cost)
+                }))
+              : [{ ingredient_id: "", quantity: "0", cost: "0" }],
             portionIngredients: editingRecipe.portionIngredients?.length > 0 
-              ? editingRecipe.portionIngredients 
-              : [{ ingredient_id: "", quantity: 0, cost: 0 }],
-            portions: editingRecipe.portions,
+              ? editingRecipe.portionIngredients.map((ing: any) => ({
+                  ...ing,
+                  quantity: String(ing.quantity),
+                  cost: String(ing.cost)
+                }))
+              : [{ ingredient_id: "", quantity: "0", cost: "0" }],
+            portions: String(editingRecipe.portions),
             notes: editingRecipe.notes || ""
           });
         } catch (error) {
@@ -163,16 +164,15 @@ const RecipeForm = ({
         name: "",
         image_url: "",
         category_id: "",
-        baseIngredients: [{ ingredient_id: "", quantity: 0, cost: 0 }],
-        portionIngredients: [{ ingredient_id: "", quantity: 0, cost: 0 }],
-        portions: 1,
+        baseIngredients: [{ ingredient_id: "", quantity: "0", cost: "0" }],
+        portionIngredients: [{ ingredient_id: "", quantity: "0", cost: "0" }],
+        portions: "1",
         notes: ""
       });
       setPreviewImage(null);
     }
   }, [editingRecipe, form]);
 
-  // Calcular custo de um ingrediente quando a quantidade ou o ingrediente mudam
   const calculateIngredientCost = (
     ingredientId: string, 
     quantity: number
@@ -185,18 +185,16 @@ const RecipeForm = ({
     return (ingredient.unit_cost * quantity);
   };
 
-  // Atualizar custo do ingrediente quando ele muda
   const handleIngredientChange = (
     index: number, 
     ingredientId: string, 
     type: "baseIngredients" | "portionIngredients"
   ) => {
-    const quantity = form.getValues(`${type}.${index}.quantity`);
-    const cost = calculateIngredientCost(ingredientId, Number(quantity));
-    form.setValue(`${type}.${index}.cost`, cost);
+    const quantity = parseFloat(form.getValues(`${type}.${index}.quantity`));
+    const cost = calculateIngredientCost(ingredientId, quantity);
+    form.setValue(`${type}.${index}.cost`, String(cost));
   };
 
-  // Atualizar custo do ingrediente quando a quantidade muda
   const handleQuantityChange = (
     index: number, 
     value: number, 
@@ -204,10 +202,9 @@ const RecipeForm = ({
   ) => {
     const ingredientId = form.getValues(`${type}.${index}.ingredient_id`);
     const cost = calculateIngredientCost(ingredientId, value);
-    form.setValue(`${type}.${index}.cost`, cost);
+    form.setValue(`${type}.${index}.cost`, String(cost));
   };
 
-  // Manipular upload de imagem
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -228,17 +225,14 @@ const RecipeForm = ({
     }
   };
 
-  // Remover imagem
   const handleRemoveImage = () => {
     form.setValue("image_url", "");
     setPreviewImage(null);
   };
 
-  // Calcular percentuais para o gráfico
   const getIngredientPercentages = () => {
     if (totalCost === 0) return [];
 
-    // Combinar todos os ingredientes
     const allIngredients = [...baseIngredients, ...portionIngredients]
       .filter(item => item.ingredient_id && item.cost)
       .map(item => {
@@ -249,7 +243,6 @@ const RecipeForm = ({
         };
       });
 
-    // Agrupar por nome e somar custos
     const grouped = allIngredients.reduce((acc, item) => {
       if (!acc[item.name]) {
         acc[item.name] = { name: item.name, cost: 0 };
@@ -258,7 +251,6 @@ const RecipeForm = ({
       return acc;
     }, {} as Record<string, { name: string, cost: number }>);
 
-    // Converter para array e calcular percentuais
     return Object.values(grouped)
       .map(item => ({
         name: item.name,
@@ -272,18 +264,25 @@ const RecipeForm = ({
     try {
       setLoading(true);
       
-      // Filtrar ingredientes vazios
       const filteredBaseIngredients = data.baseIngredients.filter(
-        (i: any) => i.ingredient_id && i.quantity > 0
-      );
+        (i: any) => i.ingredient_id && parseFloat(i.quantity) > 0
+      ).map((i: any) => ({
+        ...i,
+        quantity: parseFloat(i.quantity),
+        cost: parseFloat(i.cost)
+      }));
       
       const filteredPortionIngredients = data.portionIngredients.filter(
-        (i: any) => i.ingredient_id && i.quantity > 0
-      );
+        (i: any) => i.ingredient_id && parseFloat(i.quantity) > 0
+      ).map((i: any) => ({
+        ...i,
+        quantity: parseFloat(i.quantity),
+        cost: parseFloat(i.cost)
+      }));
       
-      // Adicionar custos calculados
       const submitData = {
         ...data,
+        portions: parseInt(data.portions),
         baseIngredients: filteredBaseIngredients,
         portionIngredients: filteredPortionIngredients,
         total_cost: totalCost,
@@ -332,7 +331,6 @@ const RecipeForm = ({
                   <TabsTrigger value="costs">Custos e Rendimento</TabsTrigger>
                 </TabsList>
                 
-                {/* Tab: Informações Básicas */}
                 <TabsContent value="basic" className="space-y-4 pt-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
@@ -469,7 +467,6 @@ const RecipeForm = ({
                   </div>
                 </TabsContent>
                 
-                {/* Tab: Ingredientes Base */}
                 <TabsContent value="base" className="space-y-4 pt-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-medium">
@@ -479,7 +476,7 @@ const RecipeForm = ({
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => appendBase({ ingredient_id: "", quantity: 0, cost: 0 })}
+                      onClick={() => appendBase({ ingredient_id: "", quantity: "0", cost: "0" })}
                     >
                       <PlusCircle className="h-4 w-4 mr-2" />
                       Adicionar Ingrediente
@@ -601,7 +598,6 @@ const RecipeForm = ({
                             </TableRow>
                           ))}
                           
-                          {/* Total */}
                           <TableRow>
                             <TableCell colSpan={3} className="text-right font-medium">
                               Total de ingredientes base:
@@ -617,7 +613,6 @@ const RecipeForm = ({
                   </Card>
                 </TabsContent>
                 
-                {/* Tab: Ingredientes por Porção */}
                 <TabsContent value="portion" className="space-y-4 pt-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-medium">
@@ -627,7 +622,7 @@ const RecipeForm = ({
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => appendPortion({ ingredient_id: "", quantity: 0, cost: 0 })}
+                      onClick={() => appendPortion({ ingredient_id: "", quantity: "0", cost: "0" })}
                     >
                       <PlusCircle className="h-4 w-4 mr-2" />
                       Adicionar Ingrediente
@@ -749,7 +744,6 @@ const RecipeForm = ({
                             </TableRow>
                           ))}
                           
-                          {/* Total */}
                           <TableRow>
                             <TableCell colSpan={3} className="text-right font-medium">
                               Total de ingredientes por porção:
@@ -765,7 +759,6 @@ const RecipeForm = ({
                   </Card>
                 </TabsContent>
                 
-                {/* Tab: Custos e Rendimento */}
                 <TabsContent value="costs" className="space-y-6 pt-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
@@ -778,7 +771,7 @@ const RecipeForm = ({
                         }}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Número de Porções/Unidades</FormLabel>
+                            <FormLabel>N��mero de Porções/Unidades</FormLabel>
                             <FormControl>
                               <Input 
                                 type="number" 
@@ -847,7 +840,6 @@ const RecipeForm = ({
         </DialogContent>
       </Dialog>
       
-      {/* Dialog para gerenciamento de categorias */}
       <RecipeCategoryDialog
         open={showCategoryDialog}
         onClose={() => setShowCategoryDialog(false)}

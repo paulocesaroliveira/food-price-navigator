@@ -19,8 +19,9 @@ export interface Ingredient {
 }
 
 export interface RecipeIngredient {
-  id: string;
+  id?: string;
   ingredientId: string;
+  ingredient_id?: string; // For compatibility with existing code
   quantity: number;
   cost: number;
 }

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Card, 
@@ -51,6 +50,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Recipe } from "@/types";
 
 const Recipes = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -86,25 +86,23 @@ const Recipes = () => {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      // Primeiro, criar a receita básica
       const baseIngredients = data.baseIngredients || [];
       const portionIngredients = data.portionIngredients || [];
       
-      // Atualizar os dados para o formato correto da API
-      const recipeData = {
+      const recipeData: Omit<Recipe, "id"> = {
         name: data.name,
         image: data.image_url,
         categoryId: data.category_id,
         portions: data.portions,
         totalCost: data.total_cost,
         unitCost: data.unit_cost,
-        notes: data.notes
+        notes: data.notes,
+        baseIngredients: baseIngredients,
+        portionIngredients: portionIngredients
       };
       
-      // Criar a receita e obter o ID
       const recipe = await createRecipe(recipeData);
       
-      // Salvar os ingredientes
       await saveRecipeIngredients(
         recipe.id,
         baseIngredients,
@@ -120,11 +118,9 @@ const Recipes = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      // Primeiro, atualizar a receita básica
       const baseIngredients = data.baseIngredients || [];
       const portionIngredients = data.portionIngredients || [];
       
-      // Atualizar os dados para o formato correto da API
       const recipeData = {
         name: data.name,
         image: data.image_url,
@@ -135,10 +131,8 @@ const Recipes = () => {
         notes: data.notes
       };
       
-      // Atualizar a receita
       const recipe = await updateRecipe(id, recipeData);
       
-      // Atualizar os ingredientes
       await saveRecipeIngredients(
         id,
         baseIngredients,
@@ -170,7 +164,6 @@ const Recipes = () => {
     }
   });
 
-  // Filtrar receitas baseado no termo de busca e categoria
   const filteredRecipes = recipes.filter((recipe: any) => {
     const matchesSearch = recipe.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !categoryFilter || categoryFilter === "all" || recipe.category_id === categoryFilter;
@@ -342,7 +335,6 @@ const Recipes = () => {
         </CardContent>
       </Card>
 
-      {/* Formulário de receita */}
       <RecipeForm
         open={isFormOpen}
         onClose={handleCloseForm}
@@ -352,7 +344,6 @@ const Recipes = () => {
         ingredients={ingredients}
       />
 
-      {/* Diálogo de confirmação de exclusão */}
       <AlertDialog open={!!recipeToDelete} onOpenChange={(open) => !open && setRecipeToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
