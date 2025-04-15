@@ -1,4 +1,3 @@
-
 // Basic types
 export interface Category {
   id: string;
@@ -20,7 +19,7 @@ export interface Ingredient {
 
 export interface RecipeIngredient {
   id?: string;
-  ingredientId: string;
+  ingredientId?: string;
   ingredient_id?: string; // For compatibility with existing code
   quantity: number;
   cost: number;

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { 
   Card, 
@@ -50,7 +51,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Recipe } from "@/types";
+import { Recipe, RecipeIngredient } from "@/types";
 
 const Recipes = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -93,12 +94,20 @@ const Recipes = () => {
         name: data.name,
         image: data.image_url,
         categoryId: data.category_id,
-        portions: data.portions,
+        portions: parseInt(data.portions),
         totalCost: data.total_cost,
         unitCost: data.unit_cost,
         notes: data.notes,
-        baseIngredients: baseIngredients,
-        portionIngredients: portionIngredients
+        baseIngredients: baseIngredients.map((ing: any) => ({
+          ingredient_id: ing.ingredient_id,
+          quantity: parseFloat(ing.quantity),
+          cost: parseFloat(ing.cost)
+        })),
+        portionIngredients: portionIngredients.map((ing: any) => ({
+          ingredient_id: ing.ingredient_id,
+          quantity: parseFloat(ing.quantity),
+          cost: parseFloat(ing.cost)
+        }))
       };
       
       const recipe = await createRecipe(recipeData);
@@ -171,11 +180,8 @@ const Recipes = () => {
   });
 
   const handleOpenForm = (recipe?: any) => {
-    if (recipe) {
-      setEditingRecipe(recipe);
-    } else {
-      setEditingRecipe(null);
-    }
+    console.log("Opening form with recipe:", recipe);
+    setEditingRecipe(recipe);
     setIsFormOpen(true);
   };
 

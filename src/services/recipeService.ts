@@ -1,6 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { Recipe } from "@/types";
+import { Recipe, RecipeIngredient } from "@/types";
 
 export const fetchRecipes = async () => {
   const { data, error } = await supabase
@@ -48,6 +47,8 @@ export const fetchIngredients = async () => {
 };
 
 export const fetchRecipeWithIngredients = async (recipeId: string) => {
+  console.log("Fetching recipe with ID:", recipeId);
+  
   // Buscar a receita
   const { data: recipe, error: recipeError } = await supabase
     .from("recipes")
@@ -63,6 +64,8 @@ export const fetchRecipeWithIngredients = async (recipeId: string) => {
     throw recipeError;
   }
 
+  console.log("Recipe data:", recipe);
+
   // Buscar ingredientes base
   const { data: baseIngredients, error: baseIngredientsError } = await supabase
     .from("recipe_base_ingredients")
@@ -77,6 +80,8 @@ export const fetchRecipeWithIngredients = async (recipeId: string) => {
     throw baseIngredientsError;
   }
 
+  console.log("Base ingredients:", baseIngredients);
+
   // Buscar ingredientes por porção
   const { data: portionIngredients, error: portionIngredientsError } = await supabase
     .from("recipe_portion_ingredients")
@@ -90,6 +95,8 @@ export const fetchRecipeWithIngredients = async (recipeId: string) => {
     console.error("Erro ao buscar ingredientes por porção:", portionIngredientsError);
     throw portionIngredientsError;
   }
+
+  console.log("Portion ingredients:", portionIngredients);
 
   // Formatar dados para o frontend
   return {
@@ -251,7 +258,6 @@ export const saveRecipeIngredients = async (
   return true;
 };
 
-// Funções para gerenciar categorias de receitas
 export const createRecipeCategory = async (name: string) => {
   const { data, error } = await supabase
     .from("recipe_categories")

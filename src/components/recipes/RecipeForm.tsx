@@ -61,6 +61,7 @@ import {
 import { 
   IngredientCompositionChart 
 } from "@/components/recipes/IngredientCompositionChart";
+import { fetchRecipeWithIngredients } from "@/services/recipeService";
 
 interface RecipeFormProps {
   open: boolean;
@@ -119,34 +120,47 @@ const RecipeForm = ({
   );
   
   const totalCost = baseTotalCost + portionTotalCost;
-  const unitCost = portions > 0 ? totalCost / parseFloat(portions) : 0;
+  const unitCost = parseFloat(portions) > 0 ? totalCost / parseFloat(portions) : 0;
 
   useEffect(() => {
     if (editingRecipe) {
       const fetchRecipeIngredients = async () => {
         try {
-          setPreviewImage(editingRecipe.image_url || null);
+          setLoading(true);
+          
+          const completeRecipe = await fetchRecipeWithIngredients(editingRecipe.id);
+          
+          console.log("Complete recipe data:", completeRecipe);
+          
+          setPreviewImage(completeRecipe.image_url || null);
+          
+          const baseIngs = completeRecipe.baseIngredients?.length > 0 
+            ? completeRecipe.baseIngredients.map((ing: any) => ({
+                ingredient_id: ing.ingredient_id,
+                quantity: String(ing.quantity),
+                cost: String(ing.cost)
+              }))
+            : [{ ingredient_id: "", quantity: "0", cost: "0" }];
+          
+          const portionIngs = completeRecipe.portionIngredients?.length > 0 
+            ? completeRecipe.portionIngredients.map((ing: any) => ({
+                ingredient_id: ing.ingredient_id,
+                quantity: String(ing.quantity),
+                cost: String(ing.cost)
+              }))
+            : [{ ingredient_id: "", quantity: "0", cost: "0" }];
+          
+          console.log("Mapped base ingredients:", baseIngs);
+          console.log("Mapped portion ingredients:", portionIngs);
           
           form.reset({
-            name: editingRecipe.name,
-            image_url: editingRecipe.image_url || "",
-            category_id: editingRecipe.category_id || "",
-            baseIngredients: editingRecipe.baseIngredients?.length > 0 
-              ? editingRecipe.baseIngredients.map((ing: any) => ({
-                  ...ing,
-                  quantity: String(ing.quantity),
-                  cost: String(ing.cost)
-                }))
-              : [{ ingredient_id: "", quantity: "0", cost: "0" }],
-            portionIngredients: editingRecipe.portionIngredients?.length > 0 
-              ? editingRecipe.portionIngredients.map((ing: any) => ({
-                  ...ing,
-                  quantity: String(ing.quantity),
-                  cost: String(ing.cost)
-                }))
-              : [{ ingredient_id: "", quantity: "0", cost: "0" }],
-            portions: String(editingRecipe.portions),
-            notes: editingRecipe.notes || ""
+            name: completeRecipe.name,
+            image_url: completeRecipe.image_url || "",
+            category_id: completeRecipe.category_id || "",
+            baseIngredients: baseIngs,
+            portionIngredients: portionIngs,
+            portions: String(completeRecipe.portions),
+            notes: completeRecipe.notes || ""
           });
         } catch (error) {
           console.error("Erro ao buscar ingredientes da receita:", error);
@@ -155,6 +169,8 @@ const RecipeForm = ({
             description: "Não foi possível carregar os ingredientes da receita.",
             variant: "destructive"
           });
+        } finally {
+          setLoading(false);
         }
       };
       
@@ -171,7 +187,7 @@ const RecipeForm = ({
       });
       setPreviewImage(null);
     }
-  }, [editingRecipe, form]);
+  }, [editingRecipe, form, toast]);
 
   const calculateIngredientCost = (
     ingredientId: string, 
@@ -323,94 +339,99 @@ const RecipeForm = ({
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-              <Tabs defaultValue="basic" className="w-full">
-                <TabsList className="grid grid-cols-4">
-                  <TabsTrigger value="basic">Informações Básicas</TabsTrigger>
-                  <TabsTrigger value="base">Ingredientes Base</TabsTrigger>
-                  <TabsTrigger value="portion">Ingredientes por Porção</TabsTrigger>
-                  <TabsTrigger value="costs">Custos e Rendimento</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="basic" className="space-y-4 pt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        rules={{ required: "Nome é obrigatório" }}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Nome da Receita</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Ex: Brigadeiro de Chocolate" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="flex items-center justify-between">
+              {loading ? (
+                <div className="flex justify-center items-center py-20">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  <span className="ml-2 text-lg">Carregando dados da receita...</span>
+                </div>
+              ) : (
+                <Tabs defaultValue="basic" className="w-full">
+                  <TabsList className="grid grid-cols-4">
+                    <TabsTrigger value="basic">Informações Básicas</TabsTrigger>
+                    <TabsTrigger value="base">Ingredientes Base</TabsTrigger>
+                    <TabsTrigger value="portion">Ingredientes por Porção</TabsTrigger>
+                    <TabsTrigger value="costs">Custos e Rendimento</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="basic" className="space-y-4 pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
                         <FormField
                           control={form.control}
-                          name="category_id"
-                          rules={{ required: "Categoria é obrigatória" }}
+                          name="name"
+                          rules={{ required: "Nome é obrigatório" }}
                           render={({ field }) => (
-                            <FormItem className="flex-1 mr-2">
-                              <FormLabel>Categoria</FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
-                                defaultValue={field.value}
-                                value={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecione uma categoria" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {categories.map((category) => (
-                                    <SelectItem key={category.id} value={category.id}>
-                                      {category.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                            <FormItem>
+                              <FormLabel>Nome da Receita</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Ex: Brigadeiro de Chocolate" {...field} />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
                         
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="icon"
-                          className="mt-8"
-                          onClick={() => setShowCategoryDialog(true)}
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-between">
+                          <FormField
+                            control={form.control}
+                            name="category_id"
+                            rules={{ required: "Categoria é obrigatória" }}
+                            render={({ field }) => (
+                              <FormItem className="flex-1 mr-2">
+                                <FormLabel>Categoria</FormLabel>
+                                <Select 
+                                  onValueChange={field.onChange} 
+                                  defaultValue={field.value}
+                                  value={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecione uma categoria" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {categories.map((category) => (
+                                      <SelectItem key={category.id} value={category.id}>
+                                        {category.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="icon"
+                            className="mt-8"
+                            onClick={() => setShowCategoryDialog(true)}
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <FormField
+                          control={form.control}
+                          name="notes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Observações</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Notas sobre a receita..." 
+                                  className="min-h-32"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
                       
-                      <FormField
-                        control={form.control}
-                        name="notes"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Observações</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Notas sobre a receita..." 
-                                className="min-h-32"
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    <div>
                       <FormLabel>Imagem da Receita (opcional)</FormLabel>
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 mt-2">
                         {previewImage ? (
@@ -464,367 +485,367 @@ const RecipeForm = ({
                         )}
                       </div>
                     </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="base" className="space-y-4 pt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium">
-                      Ingredientes Base (usados na receita completa)
-                    </h3>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => appendBase({ ingredient_id: "", quantity: "0", cost: "0" })}
-                    >
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Adicionar Ingrediente
-                    </Button>
-                  </div>
+                  </TabsContent>
                   
-                  <Card>
-                    <CardContent className="p-0">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Ingrediente</TableHead>
-                            <TableHead>Quantidade</TableHead>
-                            <TableHead>Unidade</TableHead>
-                            <TableHead>Custo</TableHead>
-                            <TableHead className="w-[50px]"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {baseFields.map((field, index) => (
-                            <TableRow key={field.id}>
-                              <TableCell>
-                                <FormField
-                                  control={form.control}
-                                  name={`baseIngredients.${index}.ingredient_id`}
-                                  render={({ field }) => (
-                                    <FormItem className="space-y-0">
-                                      <Select
-                                        onValueChange={(value) => {
-                                          field.onChange(value);
-                                          handleIngredientChange(index, value, "baseIngredients");
-                                        }}
-                                        value={field.value}
-                                      >
-                                        <FormControl>
-                                          <SelectTrigger>
-                                            <SelectValue placeholder="Selecione" />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          {ingredients.map((ingredient) => (
-                                            <SelectItem key={ingredient.id} value={ingredient.id}>
-                                              {ingredient.name}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <FormField
-                                  control={form.control}
-                                  name={`baseIngredients.${index}.quantity`}
-                                  render={({ field }) => (
-                                    <FormItem className="space-y-0">
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          min="0"
-                                          step="0.01"
-                                          {...field}
-                                          onChange={(e) => {
-                                            field.onChange(e);
-                                            handleQuantityChange(
-                                              index,
-                                              parseFloat(e.target.value),
-                                              "baseIngredients"
-                                            );
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                {(() => {
-                                  const ingredientId = form.watch(`baseIngredients.${index}.ingredient_id`);
-                                  const ingredient = ingredients.find(i => i.id === ingredientId);
-                                  return ingredient?.unit || '-';
-                                })()}
-                              </TableCell>
-                              <TableCell>
-                                <FormField
-                                  control={form.control}
-                                  name={`baseIngredients.${index}.cost`}
-                                  render={({ field }) => (
-                                    <FormItem className="space-y-0">
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          min="0"
-                                          step="0.01"
-                                          {...field}
-                                          disabled
-                                          className="bg-muted"
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeBase(index)}
-                                  disabled={baseFields.length === 1}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          
-                          <TableRow>
-                            <TableCell colSpan={3} className="text-right font-medium">
-                              Total de ingredientes base:
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {formatCurrency(baseTotalCost)}
-                            </TableCell>
-                            <TableCell></TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="portion" className="space-y-4 pt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium">
-                      Ingredientes por Porção (usados em cada unidade)
-                    </h3>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => appendPortion({ ingredient_id: "", quantity: "0", cost: "0" })}
-                    >
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Adicionar Ingrediente
-                    </Button>
-                  </div>
-                  
-                  <Card>
-                    <CardContent className="p-0">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Ingrediente</TableHead>
-                            <TableHead>Quantidade</TableHead>
-                            <TableHead>Unidade</TableHead>
-                            <TableHead>Custo</TableHead>
-                            <TableHead className="w-[50px]"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {portionFields.map((field, index) => (
-                            <TableRow key={field.id}>
-                              <TableCell>
-                                <FormField
-                                  control={form.control}
-                                  name={`portionIngredients.${index}.ingredient_id`}
-                                  render={({ field }) => (
-                                    <FormItem className="space-y-0">
-                                      <Select
-                                        onValueChange={(value) => {
-                                          field.onChange(value);
-                                          handleIngredientChange(index, value, "portionIngredients");
-                                        }}
-                                        value={field.value}
-                                      >
-                                        <FormControl>
-                                          <SelectTrigger>
-                                            <SelectValue placeholder="Selecione" />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          {ingredients.map((ingredient) => (
-                                            <SelectItem key={ingredient.id} value={ingredient.id}>
-                                              {ingredient.name}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <FormField
-                                  control={form.control}
-                                  name={`portionIngredients.${index}.quantity`}
-                                  render={({ field }) => (
-                                    <FormItem className="space-y-0">
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          min="0"
-                                          step="0.01"
-                                          {...field}
-                                          onChange={(e) => {
-                                            field.onChange(e);
-                                            handleQuantityChange(
-                                              index,
-                                              parseFloat(e.target.value),
-                                              "portionIngredients"
-                                            );
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                {(() => {
-                                  const ingredientId = form.watch(`portionIngredients.${index}.ingredient_id`);
-                                  const ingredient = ingredients.find(i => i.id === ingredientId);
-                                  return ingredient?.unit || '-';
-                                })()}
-                              </TableCell>
-                              <TableCell>
-                                <FormField
-                                  control={form.control}
-                                  name={`portionIngredients.${index}.cost`}
-                                  render={({ field }) => (
-                                    <FormItem className="space-y-0">
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          min="0"
-                                          step="0.01"
-                                          {...field}
-                                          disabled
-                                          className="bg-muted"
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removePortion(index)}
-                                  disabled={portionFields.length === 1}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          
-                          <TableRow>
-                            <TableCell colSpan={3} className="text-right font-medium">
-                              Total de ingredientes por porção:
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {formatCurrency(portionTotalCost)}
-                            </TableCell>
-                            <TableCell></TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="costs" className="space-y-6 pt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="portions"
-                        rules={{ 
-                          required: "Número de porções é obrigatório",
-                          min: { value: 1, message: "Mínimo de 1 porção" }
-                        }}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>N��mero de Porções/Unidades</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                min={1} 
-                                {...field} 
-                                onChange={e => field.onChange(parseInt(e.target.value) || 1)} 
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Quantidade total produzida pela receita
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="border rounded-md p-4 space-y-3">
-                        <h4 className="font-medium">Resumo de Custos</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>Custo dos ingredientes base:</div>
-                          <div className="text-right font-medium">{formatCurrency(baseTotalCost)}</div>
-                          
-                          <div>Custo dos ingredientes por porção:</div>
-                          <div className="text-right font-medium">{formatCurrency(portionTotalCost)}</div>
-                          
-                          <div className="border-t pt-2 font-medium">Custo total da receita:</div>
-                          <div className="border-t pt-2 text-right font-medium">{formatCurrency(totalCost)}</div>
-                          
-                          <div className="font-medium">Custo por unidade/porção:</div>
-                          <div className="text-right font-medium text-primary">{formatCurrency(unitCost)}</div>
-                        </div>
-                      </div>
-                      
+                  <TabsContent value="base" className="space-y-4 pt-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium">
+                        Ingredientes Base (usados na receita completa)
+                      </h3>
                       <Button
                         type="button"
                         variant="outline"
-                        className="w-full"
-                        onClick={() => setShowChart(!showChart)}
+                        size="sm"
+                        onClick={() => appendBase({ ingredient_id: "", quantity: "0", cost: "0" })}
                       >
-                        <PercentIcon className="h-4 w-4 mr-2" />
-                        {showChart ? "Ocultar composição percentual" : "Ver composição percentual"}
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Adicionar Ingrediente
                       </Button>
                     </div>
                     
-                    {showChart && (
-                      <div className="border rounded-md p-4">
-                        <h4 className="font-medium mb-4">Composição percentual dos ingredientes</h4>
-                        <IngredientCompositionChart data={getIngredientPercentages()} />
+                    <Card>
+                      <CardContent className="p-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Ingrediente</TableHead>
+                              <TableHead>Quantidade</TableHead>
+                              <TableHead>Unidade</TableHead>
+                              <TableHead>Custo</TableHead>
+                              <TableHead className="w-[50px]"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {baseFields.map((field, index) => (
+                              <TableRow key={field.id}>
+                                <TableCell>
+                                  <FormField
+                                    control={form.control}
+                                    name={`baseIngredients.${index}.ingredient_id`}
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-0">
+                                        <Select
+                                          onValueChange={(value) => {
+                                            field.onChange(value);
+                                            handleIngredientChange(index, value, "baseIngredients");
+                                          }}
+                                          value={field.value}
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Selecione" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {ingredients.map((ingredient) => (
+                                              <SelectItem key={ingredient.id} value={ingredient.id}>
+                                                {ingredient.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <FormField
+                                    control={form.control}
+                                    name={`baseIngredients.${index}.quantity`}
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-0">
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            {...field}
+                                            onChange={(e) => {
+                                              field.onChange(e);
+                                              handleQuantityChange(
+                                                index,
+                                                parseFloat(e.target.value),
+                                                "baseIngredients"
+                                              );
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  {(() => {
+                                    const ingredientId = form.watch(`baseIngredients.${index}.ingredient_id`);
+                                    const ingredient = ingredients.find(i => i.id === ingredientId);
+                                    return ingredient?.unit || '-';
+                                  })()}
+                                </TableCell>
+                                <TableCell>
+                                  <FormField
+                                    control={form.control}
+                                    name={`baseIngredients.${index}.cost`}
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-0">
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            {...field}
+                                            disabled
+                                            className="bg-muted"
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeBase(index)}
+                                    disabled={baseFields.length === 1}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-right font-medium">
+                                Total de ingredientes base:
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {formatCurrency(baseTotalCost)}
+                              </TableCell>
+                              <TableCell></TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="portion" className="space-y-4 pt-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium">
+                        Ingredientes por Porção (usados em cada unidade)
+                      </h3>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => appendPortion({ ingredient_id: "", quantity: "0", cost: "0" })}
+                      >
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Adicionar Ingrediente
+                      </Button>
+                    </div>
+                    
+                    <Card>
+                      <CardContent className="p-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Ingrediente</TableHead>
+                              <TableHead>Quantidade</TableHead>
+                              <TableHead>Unidade</TableHead>
+                              <TableHead>Custo</TableHead>
+                              <TableHead className="w-[50px]"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {portionFields.map((field, index) => (
+                              <TableRow key={field.id}>
+                                <TableCell>
+                                  <FormField
+                                    control={form.control}
+                                    name={`portionIngredients.${index}.ingredient_id`}
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-0">
+                                        <Select
+                                          onValueChange={(value) => {
+                                            field.onChange(value);
+                                            handleIngredientChange(index, value, "portionIngredients");
+                                          }}
+                                          value={field.value}
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Selecione" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {ingredients.map((ingredient) => (
+                                              <SelectItem key={ingredient.id} value={ingredient.id}>
+                                                {ingredient.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <FormField
+                                    control={form.control}
+                                    name={`portionIngredients.${index}.quantity`}
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-0">
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            {...field}
+                                            onChange={(e) => {
+                                              field.onChange(e);
+                                              handleQuantityChange(
+                                                index,
+                                                parseFloat(e.target.value),
+                                                "portionIngredients"
+                                              );
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  {(() => {
+                                    const ingredientId = form.watch(`portionIngredients.${index}.ingredient_id`);
+                                    const ingredient = ingredients.find(i => i.id === ingredientId);
+                                    return ingredient?.unit || '-';
+                                  })()}
+                                </TableCell>
+                                <TableCell>
+                                  <FormField
+                                    control={form.control}
+                                    name={`portionIngredients.${index}.cost`}
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-0">
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            {...field}
+                                            disabled
+                                            className="bg-muted"
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removePortion(index)}
+                                    disabled={portionFields.length === 1}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-right font-medium">
+                                Total de ingredientes por porção:
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {formatCurrency(portionTotalCost)}
+                              </TableCell>
+                              <TableCell></TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="costs" className="space-y-6 pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="portions"
+                          rules={{ 
+                            required: "Número de porções é obrigatório",
+                            min: { value: 1, message: "Mínimo de 1 porção" }
+                          }}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>N��mero de Porções/Unidades</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  min={1} 
+                                  {...field} 
+                                  onChange={e => field.onChange(parseInt(e.target.value) || 1)} 
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Quantidade total produzida pela receita
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <div className="border rounded-md p-4 space-y-3">
+                          <h4 className="font-medium">Resumo de Custos</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>Custo dos ingredientes base:</div>
+                            <div className="text-right font-medium">{formatCurrency(baseTotalCost)}</div>
+                            
+                            <div>Custo dos ingredientes por porção:</div>
+                            <div className="text-right font-medium">{formatCurrency(portionTotalCost)}</div>
+                            
+                            <div className="border-t pt-2 font-medium">Custo total da receita:</div>
+                            <div className="border-t pt-2 text-right font-medium">{formatCurrency(totalCost)}</div>
+                            
+                            <div className="font-medium">Custo por unidade/porção:</div>
+                            <div className="text-right font-medium text-primary">{formatCurrency(unitCost)}</div>
+                          </div>
+                        </div>
+                        
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => setShowChart(!showChart)}
+                        >
+                          <PercentIcon className="h-4 w-4 mr-2" />
+                          {showChart ? "Ocultar composição percentual" : "Ver composição percentual"}
+                        </Button>
                       </div>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
+                      
+                      {showChart && (
+                        <div className="border rounded-md p-4">
+                          <h4 className="font-medium mb-4">Composição percentual dos ingredientes</h4>
+                          <IngredientCompositionChart data={getIngredientPercentages()} />
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              )}
               
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={onClose}>
