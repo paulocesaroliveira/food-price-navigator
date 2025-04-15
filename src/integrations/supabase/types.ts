@@ -9,7 +9,445 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      additional_costs: {
+        Row: {
+          created_at: string
+          id: string
+          is_per_unit: boolean
+          name: string
+          pricing_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_per_unit?: boolean
+          name: string
+          pricing_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_per_unit?: boolean
+          name?: string
+          pricing_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "additional_costs_pricing_id_fkey"
+            columns: ["pricing_id"]
+            isOneToOne: false
+            referencedRelation: "pricing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredient_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      ingredients: {
+        Row: {
+          brand: string
+          category_id: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          package_price: number
+          package_quantity: number
+          supplier: string | null
+          unit: string
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          brand: string
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          package_price: number
+          package_quantity: number
+          supplier?: string | null
+          unit: string
+          unit_cost: number
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          package_price?: number
+          package_quantity?: number
+          supplier?: string | null
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredients_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packaging: {
+        Row: {
+          bulk_price: number
+          bulk_quantity: number
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          notes: string | null
+          type: string
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          bulk_price: number
+          bulk_quantity: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          notes?: string | null
+          type: string
+          unit_cost: number
+          updated_at?: string
+        }
+        Update: {
+          bulk_price?: number
+          bulk_quantity?: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          notes?: string | null
+          type?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pricing: {
+        Row: {
+          applied_markup: number
+          created_at: string
+          desired_margin_percentage: number
+          id: string
+          minimum_recommended_price: number
+          platform_fee_percentage: number
+          price_with_commission: number
+          price_with_taxes: number
+          product_id: string
+          selling_price: number
+          tax_percentage: number
+          total_production_cost: number
+          unit_cost: number
+          unit_profit: number
+          updated_at: string
+          wastage_percentage: number
+        }
+        Insert: {
+          applied_markup: number
+          created_at?: string
+          desired_margin_percentage?: number
+          id?: string
+          minimum_recommended_price: number
+          platform_fee_percentage?: number
+          price_with_commission: number
+          price_with_taxes: number
+          product_id: string
+          selling_price: number
+          tax_percentage?: number
+          total_production_cost: number
+          unit_cost: number
+          unit_profit: number
+          updated_at?: string
+          wastage_percentage?: number
+        }
+        Update: {
+          applied_markup?: number
+          created_at?: string
+          desired_margin_percentage?: number
+          id?: string
+          minimum_recommended_price?: number
+          platform_fee_percentage?: number
+          price_with_commission?: number
+          price_with_taxes?: number
+          product_id?: string
+          selling_price?: number
+          tax_percentage?: number
+          total_production_cost?: number
+          unit_cost?: number
+          unit_profit?: number
+          updated_at?: string
+          wastage_percentage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_items: {
+        Row: {
+          cost: number
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          recipe_id: string
+        }
+        Insert: {
+          cost: number
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity: number
+          recipe_id: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          packaging_cost: number
+          packaging_id: string | null
+          total_cost: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          packaging_cost?: number
+          packaging_id?: string | null
+          total_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          packaging_cost?: number
+          packaging_id?: string | null
+          total_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_packaging_id_fkey"
+            columns: ["packaging_id"]
+            isOneToOne: false
+            referencedRelation: "packaging"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_base_ingredients: {
+        Row: {
+          cost: number
+          created_at: string
+          id: string
+          ingredient_id: string
+          quantity: number
+          recipe_id: string
+        }
+        Insert: {
+          cost: number
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          quantity: number
+          recipe_id: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          quantity?: number
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_base_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_base_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      recipe_portion_ingredients: {
+        Row: {
+          cost: number
+          created_at: string
+          id: string
+          ingredient_id: string
+          quantity: number
+          recipe_id: string
+        }
+        Insert: {
+          cost: number
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          quantity: number
+          recipe_id: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          quantity?: number
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_portion_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_portion_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipes: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          notes: string | null
+          portions: number
+          total_cost: number
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          notes?: string | null
+          portions: number
+          total_cost?: number
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          notes?: string | null
+          portions?: number
+          total_cost?: number
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
