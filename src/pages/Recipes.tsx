@@ -7,16 +7,24 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search, Loader2 } from "lucide-react";
+import { 
+  PlusCircle, 
+  Search, 
+  Loader2, 
+  FilterIcon,
+  Image as ImageIcon
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/utils/calculations";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   fetchRecipes, 
-  fetchRecipeCategories, 
+  fetchRecipeCategories,
+  fetchIngredients,
   createRecipe,
   updateRecipe,
-  deleteRecipe 
+  deleteRecipe,
+  saveRecipeIngredients
 } from "@/services/recipeService";
 import { useToast } from "@/hooks/use-toast";
 import RecipeForm from "@/components/recipes/RecipeForm";
@@ -30,9 +38,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Recipes = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
   const [recipeToDelete, setRecipeToDelete] = useState<string | null>(null);
@@ -55,15 +77,76 @@ const Recipes = () => {
     queryFn: fetchRecipeCategories
   });
 
+  const {
+    data: ingredients = []
+  } = useQuery({
+    queryKey: ["ingredients"],
+    queryFn: fetchIngredients
+  });
+
   const createMutation = useMutation({
-    mutationFn: (data: any) => createRecipe(data),
+    mutationFn: async (data: any) => {
+      // Primeiro, criar a receita básica
+      const baseIngredients = data.baseIngredients || [];
+      const portionIngredients = data.portionIngredients || [];
+      
+      // Atualizar os dados para o formato correto da API
+      const recipeData = {
+        name: data.name,
+        image: data.image_url,
+        categoryId: data.category_id,
+        portions: data.portions,
+        totalCost: data.total_cost,
+        unitCost: data.unit_cost,
+        notes: data.notes
+      };
+      
+      // Criar a receita e obter o ID
+      const recipe = await createRecipe(recipeData);
+      
+      // Salvar os ingredientes
+      await saveRecipeIngredients(
+        recipe.id,
+        baseIngredients,
+        portionIngredients
+      );
+      
+      return recipe;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
     }
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateRecipe(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      // Primeiro, atualizar a receita básica
+      const baseIngredients = data.baseIngredients || [];
+      const portionIngredients = data.portionIngredients || [];
+      
+      // Atualizar os dados para o formato correto da API
+      const recipeData = {
+        name: data.name,
+        image: data.image_url,
+        categoryId: data.category_id,
+        portions: data.portions,
+        totalCost: data.total_cost,
+        unitCost: data.unit_cost,
+        notes: data.notes
+      };
+      
+      // Atualizar a receita
+      const recipe = await updateRecipe(id, recipeData);
+      
+      // Atualizar os ingredientes
+      await saveRecipeIngredients(
+        id,
+        baseIngredients,
+        portionIngredients
+      );
+      
+      return recipe;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
     }
@@ -87,10 +170,12 @@ const Recipes = () => {
     }
   });
 
-  // Filtrar receitas baseado no termo de busca
-  const filteredRecipes = recipes.filter((recipe: any) => 
-    recipe.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar receitas baseado no termo de busca e categoria
+  const filteredRecipes = recipes.filter((recipe: any) => {
+    const matchesSearch = recipe.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !categoryFilter || categoryFilter === "all" || recipe.category_id === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const handleOpenForm = (recipe?: any) => {
     if (recipe) {
@@ -145,19 +230,35 @@ const Recipes = () => {
       
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle>Lista de Receitas</CardTitle>
-            <div className="flex items-center gap-3">
-              <div className="relative">
+            <div className="flex flex-col md:flex-row items-center gap-3">
+              <div className="relative w-full md:w-auto">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
                   placeholder="Buscar receita..."
-                  className="pl-9 w-[250px]"
+                  className="pl-9 w-full md:w-[250px]"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              <Select 
+                value={categoryFilter} 
+                onValueChange={setCategoryFilter}
+              >
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Todas as categorias" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as categorias</SelectItem>
+                  {categories.map((category: any) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
@@ -172,6 +273,7 @@ const Recipes = () => {
                 <thead>
                   <tr className="bg-muted border-b">
                     <th className="text-left p-3">Nome</th>
+                    <th className="text-left p-3">Imagem</th>
                     <th className="text-left p-3">Categoria</th>
                     <th className="text-left p-3">Porções</th>
                     <th className="text-left p-3">Custo Total</th>
@@ -184,6 +286,21 @@ const Recipes = () => {
                     filteredRecipes.map((recipe: any) => (
                       <tr key={recipe.id} className="border-b hover:bg-muted/50">
                         <td className="p-3">{recipe.name}</td>
+                        <td className="p-3">
+                          {recipe.image_url ? (
+                            <div className="h-10 w-10 rounded-md overflow-hidden">
+                              <img 
+                                src={recipe.image_url} 
+                                alt={recipe.name} 
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                              <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          )}
+                        </td>
                         <td className="p-3">{recipe.recipe_categories?.name}</td>
                         <td className="p-3">{recipe.portions}</td>
                         <td className="p-3">{formatCurrency(recipe.total_cost)}</td>
@@ -211,7 +328,7 @@ const Recipes = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      <td colSpan={7} className="p-8 text-center text-muted-foreground">
                         {recipes.length === 0 
                           ? "Nenhuma receita cadastrada. Adicione sua primeira receita!" 
                           : "Nenhuma receita encontrada com esse termo de busca."}
@@ -232,6 +349,7 @@ const Recipes = () => {
         onSubmit={handleSubmit}
         editingRecipe={editingRecipe}
         categories={categories}
+        ingredients={ingredients}
       />
 
       {/* Diálogo de confirmação de exclusão */}
