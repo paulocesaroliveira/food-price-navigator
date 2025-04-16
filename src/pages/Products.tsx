@@ -26,6 +26,22 @@ import { getPackagingList } from "@/services/packagingService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
+// Helper function to transform the API response to match our Recipe type
+const mapRecipesData = (recipesData: any[]): Recipe[] => {
+  return recipesData.map(recipe => ({
+    id: recipe.id,
+    name: recipe.name,
+    image: recipe.image_url,
+    categoryId: recipe.category_id,
+    baseIngredients: [],  // These aren't needed in the Products context
+    portionIngredients: [], // These aren't needed in the Products context
+    portions: recipe.portions,
+    totalCost: recipe.total_cost,
+    unitCost: recipe.unit_cost,
+    notes: recipe.notes
+  }));
+};
+
 const Products = () => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,14 +61,17 @@ const Products = () => {
     queryFn: getProductList,
   });
 
-  // Fetch recipes
+  // Fetch recipes and map them to our Recipe type
   const { 
-    data: recipes = [],
+    data: recipesData = [],
     isLoading: isLoadingRecipes
   } = useQuery({
     queryKey: ['recipes'],
     queryFn: fetchRecipes,
   });
+
+  // Transform the recipes data to match our type
+  const recipes: Recipe[] = mapRecipesData(recipesData);
 
   // Fetch packaging
   const { 
