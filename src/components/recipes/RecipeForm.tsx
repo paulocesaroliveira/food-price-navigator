@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -49,7 +50,8 @@ import {
   Upload,
   X,
   Loader2,
-  PercentIcon
+  PercentIcon,
+  Search
 } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +64,8 @@ import {
   IngredientCompositionChart 
 } from "@/components/recipes/IngredientCompositionChart";
 import { fetchRecipeWithIngredients } from "@/services/recipeService";
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface RecipeFormProps {
   open: boolean;
@@ -84,6 +88,10 @@ const RecipeForm = ({
   const [showChart, setShowChart] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [baseSearchTerm, setBaseSearchTerm] = useState("");
+  const [portionSearchTerm, setPortionSearchTerm] = useState("");
+  const [baseIngredientPopoverOpen, setBaseIngredientPopoverOpen] = useState<number | null>(null);
+  const [portionIngredientPopoverOpen, setPortionIngredientPopoverOpen] = useState<number | null>(null);
   const { toast } = useToast();
   const { uploadFile, isUploading } = useFileUpload();
   
@@ -119,8 +127,14 @@ const RecipeForm = ({
     0
   );
   
-  const totalCost = baseTotalCost + portionTotalCost;
-  const unitCost = parseFloat(portions) > 0 ? totalCost / parseFloat(portions) : 0;
+  // Calculate per-portion base cost
+  const basePerPortionCost = parseFloat(portions) > 0 ? baseTotalCost / parseFloat(portions) : 0;
+  
+  // Calculate per-unit total cost (base per portion + portion ingredients)
+  const unitCost = basePerPortionCost + (portionTotalCost / parseFloat(portions));
+  
+  // Calculate total recipe cost
+  const totalCost = baseTotalCost + (portionTotalCost * parseFloat(portions));
 
   useEffect(() => {
     if (editingRecipe) {
@@ -274,6 +288,12 @@ const RecipeForm = ({
         percentage: (item.cost / totalCost) * 100
       }))
       .sort((a, b) => b.cost - a.cost);
+  };
+
+  const filteredBaseIngredients = (searchTerm: string) => {
+    return ingredients.filter(ingredient => 
+      ingredient.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
   const handleSubmit = async (data: any) => {
@@ -508,7 +528,7 @@ const RecipeForm = ({
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Ingrediente</TableHead>
+                              <TableHead className="w-[40%]">Ingrediente</TableHead>
                               <TableHead>Quantidade</TableHead>
                               <TableHead>Unidade</TableHead>
                               <TableHead>Custo</TableHead>
@@ -524,26 +544,57 @@ const RecipeForm = ({
                                     name={`baseIngredients.${index}.ingredient_id`}
                                     render={({ field }) => (
                                       <FormItem className="space-y-0">
-                                        <Select
-                                          onValueChange={(value) => {
-                                            field.onChange(value);
-                                            handleIngredientChange(index, value, "baseIngredients");
-                                          }}
-                                          value={field.value}
+                                        <Popover 
+                                          open={baseIngredientPopoverOpen === index} 
+                                          onOpenChange={(open) => setBaseIngredientPopoverOpen(open ? index : null)}
                                         >
-                                          <FormControl>
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Selecione" />
-                                            </SelectTrigger>
-                                          </FormControl>
-                                          <SelectContent>
-                                            {ingredients.map((ingredient) => (
-                                              <SelectItem key={ingredient.id} value={ingredient.id}>
-                                                {ingredient.name}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
+                                          <PopoverTrigger asChild>
+                                            <FormControl>
+                                              <Button 
+                                                variant="outline" 
+                                                role="combobox" 
+                                                className="w-full justify-between"
+                                              >
+                                                {field.value
+                                                  ? ingredients.find(ingredient => ingredient.id === field.value)?.name || "Selecione"
+                                                  : "Selecione um ingrediente"}
+                                              </Button>
+                                            </FormControl>
+                                          </PopoverTrigger>
+                                          <PopoverContent className="p-0 w-[400px]" align="start">
+                                            <Command>
+                                              <CommandInput 
+                                                placeholder="Buscar ingrediente..." 
+                                                className="h-9" 
+                                                value={baseSearchTerm}
+                                                onValueChange={setBaseSearchTerm}
+                                              />
+                                              <CommandEmpty>Nenhum ingrediente encontrado.</CommandEmpty>
+                                              <CommandList className="max-h-[300px]">
+                                                <CommandGroup>
+                                                  {filteredBaseIngredients(baseSearchTerm).map(ingredient => (
+                                                    <CommandItem
+                                                      key={ingredient.id}
+                                                      value={ingredient.id}
+                                                      onSelect={() => {
+                                                        field.onChange(ingredient.id);
+                                                        handleIngredientChange(index, ingredient.id, "baseIngredients");
+                                                        setBaseIngredientPopoverOpen(null);
+                                                      }}
+                                                      className="flex flex-col items-start py-3"
+                                                    >
+                                                      <div className="font-medium">{ingredient.name}</div>
+                                                      <div className="text-xs text-muted-foreground flex w-full justify-between">
+                                                        <span>{ingredient.brand}</span>
+                                                        <span>Embalagem: {ingredient.package_quantity} {ingredient.unit}</span>
+                                                      </div>
+                                                    </CommandItem>
+                                                  ))}
+                                                </CommandGroup>
+                                              </CommandList>
+                                            </Command>
+                                          </PopoverContent>
+                                        </Popover>
                                         <FormMessage />
                                       </FormItem>
                                     )}
@@ -654,7 +705,7 @@ const RecipeForm = ({
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Ingrediente</TableHead>
+                              <TableHead className="w-[40%]">Ingrediente</TableHead>
                               <TableHead>Quantidade</TableHead>
                               <TableHead>Unidade</TableHead>
                               <TableHead>Custo</TableHead>
@@ -670,26 +721,57 @@ const RecipeForm = ({
                                     name={`portionIngredients.${index}.ingredient_id`}
                                     render={({ field }) => (
                                       <FormItem className="space-y-0">
-                                        <Select
-                                          onValueChange={(value) => {
-                                            field.onChange(value);
-                                            handleIngredientChange(index, value, "portionIngredients");
-                                          }}
-                                          value={field.value}
+                                        <Popover 
+                                          open={portionIngredientPopoverOpen === index} 
+                                          onOpenChange={(open) => setPortionIngredientPopoverOpen(open ? index : null)}
                                         >
-                                          <FormControl>
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Selecione" />
-                                            </SelectTrigger>
-                                          </FormControl>
-                                          <SelectContent>
-                                            {ingredients.map((ingredient) => (
-                                              <SelectItem key={ingredient.id} value={ingredient.id}>
-                                                {ingredient.name}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
+                                          <PopoverTrigger asChild>
+                                            <FormControl>
+                                              <Button 
+                                                variant="outline" 
+                                                role="combobox" 
+                                                className="w-full justify-between"
+                                              >
+                                                {field.value
+                                                  ? ingredients.find(ingredient => ingredient.id === field.value)?.name || "Selecione"
+                                                  : "Selecione um ingrediente"}
+                                              </Button>
+                                            </FormControl>
+                                          </PopoverTrigger>
+                                          <PopoverContent className="p-0 w-[400px]" align="start">
+                                            <Command>
+                                              <CommandInput 
+                                                placeholder="Buscar ingrediente..." 
+                                                className="h-9" 
+                                                value={portionSearchTerm}
+                                                onValueChange={setPortionSearchTerm}
+                                              />
+                                              <CommandEmpty>Nenhum ingrediente encontrado.</CommandEmpty>
+                                              <CommandList className="max-h-[300px]">
+                                                <CommandGroup>
+                                                  {filteredBaseIngredients(portionSearchTerm).map(ingredient => (
+                                                    <CommandItem
+                                                      key={ingredient.id}
+                                                      value={ingredient.id}
+                                                      onSelect={() => {
+                                                        field.onChange(ingredient.id);
+                                                        handleIngredientChange(index, ingredient.id, "portionIngredients");
+                                                        setPortionIngredientPopoverOpen(null);
+                                                      }}
+                                                      className="flex flex-col items-start py-3"
+                                                    >
+                                                      <div className="font-medium">{ingredient.name}</div>
+                                                      <div className="text-xs text-muted-foreground flex w-full justify-between">
+                                                        <span>{ingredient.brand}</span>
+                                                        <span>Embalagem: {ingredient.package_quantity} {ingredient.unit}</span>
+                                                      </div>
+                                                    </CommandItem>
+                                                  ))}
+                                                </CommandGroup>
+                                              </CommandList>
+                                            </Command>
+                                          </PopoverContent>
+                                        </Popover>
                                         <FormMessage />
                                       </FormItem>
                                     )}
@@ -791,13 +873,13 @@ const RecipeForm = ({
                           }}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>N��mero de Porções/Unidades</FormLabel>
+                              <FormLabel>Número de Porções/Unidades</FormLabel>
                               <FormControl>
                                 <Input 
                                   type="number" 
                                   min={1} 
                                   {...field} 
-                                  onChange={e => field.onChange(parseInt(e.target.value) || 1)} 
+                                  onChange={e => field.onChange(e.target.value)} 
                                 />
                               </FormControl>
                               <FormDescription>
@@ -809,19 +891,31 @@ const RecipeForm = ({
                         />
                         
                         <div className="border rounded-md p-4 space-y-3">
-                          <h4 className="font-medium">Resumo de Custos</h4>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>Custo dos ingredientes base:</div>
+                          <h4 className="font-medium mb-4">Detalhamento de Custos</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="text-gray-700">Custo total dos ingredientes base:</div>
                             <div className="text-right font-medium">{formatCurrency(baseTotalCost)}</div>
                             
-                            <div>Custo dos ingredientes por porção:</div>
+                            <div className="text-gray-700">Custo base por porção:</div>
+                            <div className="text-right font-medium">{formatCurrency(basePerPortionCost)}</div>
+                            
+                            <div className="text-gray-700">Custo dos ingredientes por porção:</div>
                             <div className="text-right font-medium">{formatCurrency(portionTotalCost)}</div>
                             
-                            <div className="border-t pt-2 font-medium">Custo total da receita:</div>
-                            <div className="border-t pt-2 text-right font-medium">{formatCurrency(totalCost)}</div>
+                            <div className="border-t pt-2 font-medium">Custo por unidade/porção:</div>
+                            <div className="border-t pt-2 text-right font-medium text-primary">{formatCurrency(unitCost)}</div>
                             
-                            <div className="font-medium">Custo por unidade/porção:</div>
-                            <div className="text-right font-medium text-primary">{formatCurrency(unitCost)}</div>
+                            <div className="font-medium">Custo total da receita ({portions} porções):</div>
+                            <div className="text-right font-medium text-primary">{formatCurrency(totalCost)}</div>
+                          </div>
+
+                          <div className="pt-2 mt-3 text-xs text-muted-foreground">
+                            <p className="mb-1">Fórmula de cálculo:</p>
+                            <ul className="list-disc pl-4 space-y-1">
+                              <li>Custo base por porção = Total ingredientes base ÷ Número de porções</li>
+                              <li>Custo por porção = Custo base por porção + Custo dos ingredientes por porção</li>
+                              <li>Custo total da receita = Total ingredientes base + (Ingredientes por porção × Nº de porções)</li>
+                            </ul>
                           </div>
                         </div>
                         

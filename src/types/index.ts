@@ -1,3 +1,4 @@
+
 // Basic types
 export interface Category {
   id: string;
