@@ -1,11 +1,12 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { 
   Card, 
   CardContent, 
   CardHeader, 
   CardTitle,
-  CardDescription 
+  CardDescription,
+  CardFooter 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -22,27 +23,97 @@ import {
   pricingResults 
 } from "@/utils/mockData";
 import { formatCurrency, formatPercentage } from "@/utils/calculations";
-import { FilePenLine, FileText, Calculator } from "lucide-react";
+import {
+  FilePenLine, 
+  FileText, 
+  Calculator, 
+  PlusCircle, 
+  X, 
+  DollarSign, 
+  PercentIcon, 
+  ShoppingBag, 
+  Tag, 
+  TrendingUp, 
+  BarChart3
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
+// Framer motion animations
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
 
 const Pricing = () => {
+  const [showSimulator, setShowSimulator] = useState(false);
+  const [simulatedPrice, setSimulatedPrice] = useState("32.50");
+  const [selectedProduct, setSelectedProduct] = useState("prod-1");
+  const { toast } = useToast();
+  
+  const calculatePrice = () => {
+    toast({
+      title: "Preço calculado com sucesso!",
+      description: "O preço do produto foi calculado com base nos parâmetros informados.",
+    });
+  };
+  
+  const toggleSimulator = () => {
+    setShowSimulator(!showSimulator);
+  };
+  
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Precificação</h1>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-semibold tracking-tight">Precificação</h1>
+          <p className="text-muted-foreground mt-1">
+            Calcule os preços dos seus produtos com base nos custos e margens desejadas
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1">
+            <FilePenLine className="h-4 w-4" />
+            <span className="hidden md:inline">Exportar</span> PDF
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1">
+            <FileText className="h-4 w-4" />
+            <span className="hidden md:inline">Exportar</span> Excel
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
-          <Card>
+          <Card className="shadow-soft animate-fade-in">
             <CardHeader>
-              <CardTitle>Produto e Custos</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 text-primary" />
+                Produto e Custos
+              </CardTitle>
               <CardDescription>Selecione o produto e configure os parâmetros de custo</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
+            <CardContent className="space-y-5">
+              <div className="input-group">
                 <Label htmlFor="product">Produto</Label>
-                <Select defaultValue="prod-1">
-                  <SelectTrigger>
+                <Select 
+                  defaultValue="prod-1" 
+                  value={selectedProduct}
+                  onValueChange={setSelectedProduct}
+                >
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecione um produto" />
                   </SelectTrigger>
                   <SelectContent>
@@ -55,160 +126,266 @@ const Pricing = () => {
                 </Select>
               </div>
               
-              <div className="space-y-2">
+              <div className="input-group">
                 <Label htmlFor="wastage">Porcentagem de perda (%)</Label>
-                <Input id="wastage" type="number" defaultValue="5" />
+                <div className="relative">
+                  <Input id="wastage" type="number" defaultValue="5" className="pl-7" />
+                  <PercentIcon className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
               
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-medium mb-2">Despesas adicionais</h4>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-5 gap-2">
-                    <div className="col-span-3">
-                      <Input defaultValue="Gás" placeholder="Nome" />
-                    </div>
-                    <div className="col-span-2">
-                      <Input type="number" defaultValue="0.50" placeholder="Valor" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-5 gap-2">
-                    <div className="col-span-3">
-                      <Input defaultValue="Energia" placeholder="Nome" />
-                    </div>
-                    <div className="col-span-2">
-                      <Input type="number" defaultValue="0.25" placeholder="Valor" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-5 gap-2">
-                    <div className="col-span-3">
-                      <Input defaultValue="Transporte" placeholder="Nome" />
-                    </div>
-                    <div className="col-span-2">
-                      <Input type="number" defaultValue="10" placeholder="Valor" />
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" className="w-full">
-                    Adicionar despesa
+              <Separator className="my-2" />
+              
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-medium">Despesas adicionais</h4>
+                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs">
+                    <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                    Adicionar
                   </Button>
                 </div>
+                
+                <motion.div 
+                  className="space-y-3"
+                  variants={container}
+                  initial="hidden"
+                  animate="show"
+                >
+                  {[
+                    { name: "Gás", value: "0.50" },
+                    { name: "Energia", value: "0.25" },
+                    { name: "Transporte", value: "10" }
+                  ].map((expense, index) => (
+                    <motion.div 
+                      key={index}
+                      variants={item}
+                      className="grid grid-cols-12 gap-2 bg-muted/40 p-2 rounded-lg"
+                    >
+                      <div className="col-span-7">
+                        <Input defaultValue={expense.name} placeholder="Nome" className="h-9" />
+                      </div>
+                      <div className="col-span-4">
+                        <div className="relative">
+                          <Input type="number" defaultValue={expense.value} placeholder="Valor" className="pl-6 h-9" />
+                          <span className="absolute left-2 top-2 text-muted-foreground text-xs">R$</span>
+                        </div>
+                      </div>
+                      <div className="col-span-1 flex items-center justify-center">
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="shadow-soft animate-fade-in">
             <CardHeader>
-              <CardTitle>Margem e Taxas</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Tag className="h-5 w-5 text-primary" />
+                Margem e Taxas
+              </CardTitle>
               <CardDescription>Configure margens de lucro e taxas aplicáveis</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
+              <div className="input-group">
                 <Label htmlFor="margin">Margem de lucro desejada (%)</Label>
-                <Input id="margin" type="number" defaultValue="40" />
+                <div className="relative">
+                  <Input id="margin" type="number" defaultValue="40" className="pl-7" />
+                  <PercentIcon className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="input-group">
                 <Label htmlFor="commission">Comissão de plataforma (%)</Label>
-                <Input id="commission" type="number" defaultValue="12" />
+                <div className="relative">
+                  <Input id="commission" type="number" defaultValue="12" className="pl-7" />
+                  <PercentIcon className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="input-group">
                 <Label htmlFor="tax">Percentual de imposto (%)</Label>
-                <Input id="tax" type="number" defaultValue="6" />
+                <div className="relative">
+                  <Input id="tax" type="number" defaultValue="6" className="pl-7" />
+                  <PercentIcon className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
-              
-              <Button className="w-full gap-2 mt-2">
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full gap-2 mt-2" onClick={calculatePrice}>
                 <Calculator className="h-4 w-4" />
                 Calcular preço
               </Button>
-            </CardContent>
+            </CardFooter>
           </Card>
         </div>
         
-        <div className="lg:col-span-2">
-          <Card className="h-full">
-            <CardHeader>
+        <motion.div 
+          className="lg:col-span-2"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="h-full shadow-card">
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Resultado da Precificação</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-primary" />
+                    Resultado da Precificação
+                  </CardTitle>
                   <CardDescription>Caixa Degustação 8 Brigadeiros</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <FilePenLine className="h-4 w-4" />
-                    PDF
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <FileText className="h-4 w-4" />
-                    Excel
-                  </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                variants={container}
+                initial="hidden"
+                animate="show"
+              >
                 <div className="space-y-4">
-                  <div className="border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground">Custo total da produção</div>
-                    <div className="text-2xl font-bold mt-1">{formatCurrency(pricingResults[0].totalProductionCost)}</div>
-                  </div>
+                  <motion.div variants={item}>
+                    <div className="pricing-result-card">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <DollarSign className="h-4 w-4" />
+                        Custo total da produção
+                      </div>
+                      <div className="text-2xl font-semibold mt-1">{formatCurrency(pricingResults[0].totalProductionCost)}</div>
+                    </div>
+                  </motion.div>
                   
-                  <div className="border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground">Custo por unidade</div>
-                    <div className="text-2xl font-bold mt-1">{formatCurrency(pricingResults[0].unitCost)}</div>
-                  </div>
+                  <motion.div variants={item}>
+                    <div className="pricing-result-card">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <DollarSign className="h-4 w-4" />
+                        Custo por unidade
+                      </div>
+                      <div className="text-2xl font-semibold mt-1">{formatCurrency(pricingResults[0].unitCost)}</div>
+                    </div>
+                  </motion.div>
                   
-                  <div className="border rounded-lg p-4 bg-green-50 border-green-200">
-                    <div className="text-sm text-green-700">Preço de venda ideal</div>
-                    <div className="text-3xl font-bold mt-1 text-green-800">{formatCurrency(pricingResults[0].sellingPrice)}</div>
-                  </div>
+                  <motion.div variants={item}>
+                    <div className={cn("pricing-result-card pricing-highlight shadow-soft", "bg-gradient-to-r from-green-50 to-green-100/50")}>
+                      <div className="flex items-center gap-2 text-sm text-green-700 mb-1">
+                        <Tag className="h-4 w-4" />
+                        Preço de venda ideal
+                      </div>
+                      <div className="text-3xl font-semibold mt-1 text-green-800">{formatCurrency(pricingResults[0].sellingPrice)}</div>
+                    </div>
+                  </motion.div>
                   
-                  <div className="border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground">Lucro por unidade</div>
-                    <div className="text-2xl font-bold mt-1 text-food-green">{formatCurrency(pricingResults[0].unitProfit)}</div>
-                  </div>
+                  <motion.div variants={item}>
+                    <div className="pricing-result-card">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <TrendingUp className="h-4 w-4" />
+                        Lucro por unidade
+                      </div>
+                      <div className="text-2xl font-semibold mt-1 text-food-green">{formatCurrency(pricingResults[0].unitProfit)}</div>
+                    </div>
+                  </motion.div>
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground">Markup aplicado</div>
-                    <div className="text-2xl font-bold mt-1">{formatPercentage(pricingResults[0].appliedMarkup)}</div>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground">Preço com comissão</div>
-                    <div className="text-2xl font-bold mt-1">{formatCurrency(pricingResults[0].priceWithCommission)}</div>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground">Preço com impostos</div>
-                    <div className="text-2xl font-bold mt-1">{formatCurrency(pricingResults[0].priceWithTaxes)}</div>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4 bg-amber-50 border-amber-200">
-                    <div className="text-sm text-amber-700">Preço mínimo recomendado</div>
-                    <div className="text-2xl font-bold mt-1 text-amber-800">{formatCurrency(pricingResults[0].minimumRecommendedPrice)}</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-6 border rounded-lg p-4 bg-blue-50 border-blue-200">
-                <h3 className="font-medium text-blue-800 mb-2">Simulador de Preço</h3>
-                <div className="grid grid-cols-7 gap-2 items-center">
-                  <div className="col-span-3">
-                    <div className="text-sm text-blue-700 mb-1">Se eu vender por:</div>
-                    <Input className="border-blue-300 bg-blue-50 focus:border-blue-400" defaultValue="32.50" />
-                  </div>
-                  <div className="col-span-4">
-                    <div className="text-sm text-blue-700 mb-1">Minha margem seria:</div>
-                    <div className="text-xl font-medium text-blue-800">
-                      43% (lucro: {formatCurrency(14.00)})
+                  <motion.div variants={item}>
+                    <div className="pricing-result-card">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <PercentIcon className="h-4 w-4" />
+                        Markup aplicado
+                      </div>
+                      <div className="text-2xl font-semibold mt-1">{formatPercentage(pricingResults[0].appliedMarkup)}</div>
                     </div>
-                  </div>
+                  </motion.div>
+                  
+                  <motion.div variants={item}>
+                    <div className="pricing-result-card">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <DollarSign className="h-4 w-4" />
+                        Preço com comissão
+                      </div>
+                      <div className="text-2xl font-semibold mt-1">{formatCurrency(pricingResults[0].priceWithCommission)}</div>
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div variants={item}>
+                    <div className="pricing-result-card">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <DollarSign className="h-4 w-4" />
+                        Preço com impostos
+                      </div>
+                      <div className="text-2xl font-semibold mt-1">{formatCurrency(pricingResults[0].priceWithTaxes)}</div>
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div variants={item}>
+                    <div className={cn("pricing-result-card", "bg-gradient-to-r from-amber-50 to-amber-100/50 text-amber-800 border-amber-200")}>
+                      <div className="flex items-center gap-2 text-sm text-amber-700 mb-1">
+                        <Tag className="h-4 w-4" />
+                        Preço mínimo recomendado
+                      </div>
+                      <div className="text-2xl font-semibold mt-1 text-amber-800">{formatCurrency(pricingResults[0].minimumRecommendedPrice)}</div>
+                    </div>
+                  </motion.div>
                 </div>
+              </motion.div>
+              
+              <div className="mt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={toggleSimulator} 
+                  className="w-full mb-4 gap-2"
+                >
+                  {showSimulator ? "Ocultar simulador" : "Mostrar simulador de preço"}
+                  <Calculator className="h-4 w-4" />
+                </Button>
+                
+                {showSimulator && (
+                  <motion.div 
+                    className="border rounded-xl p-5 bg-gradient-to-r from-blue-50 to-blue-100/30 border-blue-200 shadow-soft"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <h3 className="font-medium text-blue-800 mb-3 flex items-center gap-2">
+                      <Calculator className="h-4 w-4" />
+                      Simulador de Preço
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-center">
+                      <div className="md:col-span-3">
+                        <div className="text-sm text-blue-700 mb-1">Se eu vender por:</div>
+                        <div className="relative">
+                          <Input 
+                            className="border-blue-300 bg-blue-50/50 focus:border-blue-400 pl-8" 
+                            value={simulatedPrice}
+                            onChange={(e) => setSimulatedPrice(e.target.value)}
+                          />
+                          <span className="absolute left-3 top-2.5 text-blue-700 font-medium">R$</span>
+                        </div>
+                      </div>
+                      <div className="md:col-span-4">
+                        <div className="text-sm text-blue-700 mb-1">Minha margem seria:</div>
+                        <div className="flex gap-2 items-center">
+                          <div className="text-xl font-medium text-blue-800 bg-blue-100/50 rounded-lg px-3 py-1.5">
+                            43%
+                          </div>
+                          <div className="text-blue-700">
+                            (lucro: {formatCurrency(14.00)})
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
