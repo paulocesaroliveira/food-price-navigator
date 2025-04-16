@@ -57,12 +57,21 @@ export interface ProductItem {
   cost: number;
 }
 
+export interface ProductPackaging {
+  id?: string;
+  packagingId: string;
+  quantity: number;
+  cost: number;
+  isPrimary?: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
   items: ProductItem[];
   packagingId: string;
   packagingCost: number;
+  packagingItems?: ProductPackaging[];
   totalCost: number;
 }
 

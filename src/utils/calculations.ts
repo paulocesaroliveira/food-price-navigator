@@ -1,4 +1,3 @@
-
 /**
  * Calculates the unit cost of an ingredient
  */
@@ -30,6 +29,14 @@ export function calculateRecipeTotalCost(
 export function calculateRecipeUnitCost(totalCost: number, portions: number): number {
   if (portions <= 0) return 0;
   return totalCost / portions;
+}
+
+/**
+ * Calculates the base cost per portion
+ */
+export function calculateBasePerPortionCost(baseIngredientsCost: number, portions: number): number {
+  if (portions <= 0) return 0;
+  return baseIngredientsCost / portions;
 }
 
 /**

@@ -28,7 +28,7 @@ import { formatCurrency } from "@/utils/calculations";
 
 const productSchema = z.object({
   name: z.string().min(2, { message: "Nome é obrigatório" }),
-  packagingId: z.string().min(1, { message: "Embalagem é obrigatória" }),
+  packagingId: z.string().min(1, { message: "Embalagem principal é obrigatória" }),
 });
 
 type ProductFormProps = {
@@ -44,6 +44,14 @@ type ProductItemState = {
   recipeId: string;
   quantity: number;
   cost: number;
+};
+
+type ProductPackagingState = {
+  id?: string;
+  packagingId: string;
+  quantity: number;
+  cost: number;
+  isPrimary: boolean;
 };
 
 export const ProductForm = ({
@@ -62,6 +70,23 @@ export const ProductForm = ({
     })) || []
   );
 
+  const [packagingItems, setPackagingItems] = useState<ProductPackagingState[]>(
+    product?.packagingItems?.map(pkg => ({
+      id: pkg.id,
+      packagingId: pkg.packagingId,
+      quantity: pkg.quantity || 1,
+      cost: pkg.cost,
+      isPrimary: pkg.isPrimary || false,
+    })) || product ? [
+      {
+        packagingId: product.packagingId,
+        quantity: 1,
+        cost: product.packagingCost,
+        isPrimary: true
+      }
+    ] : []
+  );
+
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -71,27 +96,64 @@ export const ProductForm = ({
   });
 
   // Calculate costs
-  const [packagingCost, setPackagingCost] = useState<number>(product?.packagingCost || 0);
+  const [primaryPackagingCost, setPrimaryPackagingCost] = useState<number>(product?.packagingCost || 0);
+  const [additionalPackagingCost, setAdditionalPackagingCost] = useState<number>(0);
   const [itemsTotalCost, setItemsTotalCost] = useState<number>(0);
   const [totalCost, setTotalCost] = useState<number>(product?.totalCost || 0);
 
   // Update costs when items or packaging change
   useEffect(() => {
-    const total = items.reduce((acc, item) => acc + item.cost, 0);
-    setItemsTotalCost(total);
-    setTotalCost(total + packagingCost);
-  }, [items, packagingCost]);
+    const itemsTotal = items.reduce((acc, item) => {
+      // Get the recipe to ensure we have the correct unit cost
+      const recipe = recipes.find(r => r.id === item.recipeId);
+      const recipeCost = recipe ? recipe.unitCost * item.quantity : 0;
+      return acc + recipeCost;
+    }, 0);
+    
+    setItemsTotalCost(itemsTotal);
+    
+    const packagingTotal = packagingItems.reduce((acc, pkg) => acc + pkg.cost, 0);
+    setAdditionalPackagingCost(packagingTotal);
+    
+    setTotalCost(itemsTotal + primaryPackagingCost + packagingTotal);
+  }, [items, primaryPackagingCost, packagingItems, recipes]);
 
-  // Update packaging cost when packaging selection changes
+  // Update primary packaging cost when packaging selection changes
   useEffect(() => {
     const selectedPackagingId = form.watch("packagingId");
     if (selectedPackagingId) {
       const selectedPackaging = packaging.find(pkg => pkg.id === selectedPackagingId);
       if (selectedPackaging) {
-        setPackagingCost(selectedPackaging.unitCost);
+        setPrimaryPackagingCost(selectedPackaging.unitCost);
+        
+        // Update or add the primary packaging in the packagingItems
+        const primaryIndex = packagingItems.findIndex(pkg => pkg.isPrimary);
+        
+        if (primaryIndex >= 0) {
+          const updatedItems = [...packagingItems];
+          updatedItems[primaryIndex] = {
+            ...updatedItems[primaryIndex],
+            packagingId: selectedPackagingId,
+            cost: selectedPackaging.unitCost,
+            isPrimary: true
+          };
+          setPackagingItems(updatedItems);
+        } else {
+          setPackagingItems([
+            ...packagingItems,
+            {
+              packagingId: selectedPackagingId,
+              quantity: 1,
+              cost: selectedPackaging.unitCost,
+              isPrimary: true
+            }
+          ]);
+        }
       }
     } else {
-      setPackagingCost(0);
+      setPrimaryPackagingCost(0);
+      // Remove primary packaging if it exists
+      setPackagingItems(packagingItems.filter(pkg => !pkg.isPrimary));
     }
   }, [form.watch("packagingId"), packaging]);
 
@@ -141,6 +203,67 @@ export const ProductForm = ({
     setItems(newItems);
   };
 
+  const addPackaging = () => {
+    if (packaging.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Não há embalagens disponíveis.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Find the first non-primary packaging
+    const availablePackaging = packaging.find(pkg => 
+      !packagingItems.some(item => item.packagingId === pkg.id)
+    ) || packaging[0];
+    
+    const newPackaging: ProductPackagingState = {
+      packagingId: availablePackaging.id,
+      quantity: 1,
+      cost: availablePackaging.unitCost,
+      isPrimary: false,
+    };
+
+    setPackagingItems([...packagingItems, newPackaging]);
+  };
+
+  const removePackaging = (index: number) => {
+    // Don't allow removing primary packaging
+    if (packagingItems[index].isPrimary) {
+      toast({
+        title: "Erro",
+        description: "Não é possível remover a embalagem principal.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newItems = [...packagingItems];
+    newItems.splice(index, 1);
+    setPackagingItems(newItems);
+  };
+
+  const updatePackagingItem = (index: number, packagingId: string) => {
+    const pkg = packaging.find(p => p.id === packagingId);
+    if (!pkg) return;
+
+    const newItems = [...packagingItems];
+    newItems[index].packagingId = packagingId;
+    newItems[index].cost = pkg.unitCost * newItems[index].quantity;
+    setPackagingItems(newItems);
+  };
+
+  const updatePackagingQuantity = (index: number, quantity: number) => {
+    const pkg = packaging.find(p => p.id === packagingItems[index].packagingId);
+    if (!pkg) return;
+
+    const newItems = [...packagingItems];
+    newItems[index].quantity = quantity;
+    newItems[index].cost = pkg.unitCost * quantity;
+    setPackagingItems(newItems);
+  };
+
   const handleFormSubmit = (values: z.infer<typeof productSchema>) => {
     if (items.length === 0) {
       toast({
@@ -151,12 +274,33 @@ export const ProductForm = ({
       return;
     }
 
-    const selectedPackaging = packaging.find(pkg => pkg.id === values.packagingId);
+    const primaryPackaging = packagingItems.find(pkg => pkg.isPrimary);
+    
+    // Ensure primary packaging is included in packagingItems
+    if (!primaryPackaging) {
+      const selectedPackaging = packaging.find(pkg => pkg.id === values.packagingId);
+      if (selectedPackaging) {
+        packagingItems.push({
+          packagingId: values.packagingId,
+          quantity: 1,
+          cost: selectedPackaging.unitCost,
+          isPrimary: true
+        });
+      }
+    }
     
     onSubmit({
       ...values,
-      items,
-      packagingCost: selectedPackaging?.unitCost || 0,
+      items: items.map(item => {
+        // Ensure the cost uses the current recipe unit cost
+        const recipe = recipes.find(r => r.id === item.recipeId);
+        return {
+          ...item,
+          cost: recipe ? recipe.unitCost * item.quantity : item.cost
+        };
+      }),
+      packagingItems: packagingItems,
+      packagingCost: primaryPackagingCost,
       totalCost,
     });
   };
@@ -185,14 +329,14 @@ export const ProductForm = ({
               name="packagingId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Embalagem</FormLabel>
+                  <FormLabel>Embalagem Principal</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma embalagem" />
+                        <SelectValue placeholder="Selecione uma embalagem principal" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -207,6 +351,81 @@ export const ProductForm = ({
                 </FormItem>
               )}
             />
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-md font-medium">Embalagens Adicionais</h3>
+                <Button type="button" onClick={addPackaging} size="sm" variant="outline" className="gap-1">
+                  <PlusCircle className="h-4 w-4" />
+                  Adicionar Embalagem
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {packagingItems.filter(pkg => !pkg.isPrimary).length === 0 && (
+                  <p className="text-sm text-muted-foreground italic">
+                    Nenhuma embalagem adicional. Clique em "Adicionar Embalagem" para incluir embalagens extras.
+                  </p>
+                )}
+
+                {packagingItems.filter(pkg => !pkg.isPrimary).map((pkg, index) => {
+                  // Get the real index in the array, not just filtered index
+                  const realIndex = packagingItems.findIndex(p => p === pkg);
+                  return (
+                    <Card key={index}>
+                      <CardContent className="p-4">
+                        <div className="grid grid-cols-12 gap-2">
+                          <div className="col-span-6">
+                            <FormLabel className="text-xs">Embalagem</FormLabel>
+                            <Select 
+                              value={pkg.packagingId}
+                              onValueChange={(value) => updatePackagingItem(realIndex, value)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Selecione uma embalagem" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {packaging.map((p) => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    {p.name} - {formatCurrency(p.unitCost)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-3">
+                            <FormLabel className="text-xs">Quantidade</FormLabel>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={pkg.quantity}
+                              onChange={(e) => updatePackagingQuantity(realIndex, Number(e.target.value))}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <FormLabel className="text-xs">Custo</FormLabel>
+                            <div className="h-10 flex items-center px-2 border rounded-md bg-muted/50">
+                              {formatCurrency(pkg.cost)}
+                            </div>
+                          </div>
+                          <div className="col-span-1 flex items-end">
+                            <Button 
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removePackaging(realIndex)}
+                              className="text-destructive"
+                            >
+                              <MinusCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
 
             <div>
               <div className="flex justify-between items-center mb-2">
@@ -291,9 +510,16 @@ export const ProductForm = ({
                 </div>
                 
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium">Custo da Embalagem:</span>
-                  <span className="text-sm">{formatCurrency(packagingCost)}</span>
+                  <span className="text-sm font-medium">Custo da Embalagem Principal:</span>
+                  <span className="text-sm">{formatCurrency(primaryPackagingCost)}</span>
                 </div>
+                
+                {additionalPackagingCost > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium">Custo de Embalagens Adicionais:</span>
+                    <span className="text-sm">{formatCurrency(additionalPackagingCost)}</span>
+                  </div>
+                )}
                 
                 <div className="border-t pt-4 flex justify-between">
                   <span className="font-bold">Custo Total:</span>
