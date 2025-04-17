@@ -17,7 +17,11 @@ import {
   Settings,
   BarChart3,
   ChevronRight,
-  HelpCircle
+  HelpCircle,
+  Globe,
+  ShoppingCart,
+  Users,
+  Store
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,16 +35,20 @@ const AppSidebar = () => {
     { path: "/packaging", name: "Embalagens", icon: Package },
     { path: "/products", name: "Produtos", icon: ShoppingBag },
     { path: "/pricing", name: "Precificação", icon: DollarSign },
+    // Novas seções
+    { path: "/website", name: "Site Público", icon: Globe },
+    { path: "/orders", name: "Pedidos", icon: ShoppingCart },
+    { path: "/customers", name: "Clientes", icon: Users },
   ];
 
   return (
     <Sidebar className="bg-food-cream">
       <SidebarHeader>
         <div className="flex items-center gap-3 px-4 py-5">
-          <BarChart3 className="h-8 w-8 text-food-coral" />
+          <Store className="h-8 w-8 text-food-coral" />
           <div className="flex flex-col">
-            <span className="text-xl font-poppins font-semibold tracking-tight">FoodPrice</span>
-            <span className="text-xs text-food-dark/70">Gestão de Custos</span>
+            <span className="text-xl font-poppins font-semibold tracking-tight">TastyHub</span>
+            <span className="text-xs text-food-dark/70">Gestão de Confeitaria</span>
           </div>
         </div>
       </SidebarHeader>
@@ -75,8 +83,8 @@ const AppSidebar = () => {
             <span className="text-sm font-medium">Ajuda</span>
           </Link>
           <div className="px-4 py-4 mt-4 text-xs text-food-dark/60 text-center">
-            FoodPrice v1.0.0
-            <div className="mt-1">Gerenciamento de Custos</div>
+            TastyHub v1.0.0
+            <div className="mt-1">Gestão de Confeitaria</div>
           </div>
         </div>
       </SidebarFooter>

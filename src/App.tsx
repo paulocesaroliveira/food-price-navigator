@@ -14,6 +14,11 @@ import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import React from "react";
 
+// Novas páginas
+import Website from "./pages/Website";
+import Orders from "./pages/Orders";
+import Customers from "./pages/Customers";
+
 // Crie o queryClient fora do componente para evitar recriações em cada renderização
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +45,10 @@ const App = () => {
                 <Route path="/packaging" element={<Packaging />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/pricing" element={<Pricing />} />
+                {/* Novas rotas */}
+                <Route path="/website" element={<Website />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/customers" element={<Customers />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

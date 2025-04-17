@@ -78,6 +78,7 @@ export default {
 					vanilla: '#FAF3E0',  // Destaques neutros
 					white: '#FFFFFF',    // Cards e inputs
 					dark: '#333333',     // Texto principal
+					mint: '#2A9D8F',     // Nova cor para ações (verde menta)
 				}
 			},
 			borderRadius: {
