@@ -261,6 +261,51 @@ export type Database = {
           },
         ]
       }
+      product_packaging: {
+        Row: {
+          cost: number
+          created_at: string
+          id: string
+          is_primary: boolean
+          packaging_id: string
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          cost?: number
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          packaging_id: string
+          product_id: string
+          quantity?: number
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          packaging_id?: string
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_packaging_packaging_id_fkey"
+            columns: ["packaging_id"]
+            isOneToOne: false
+            referencedRelation: "packaging"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_packaging_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           created_at: string

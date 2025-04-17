@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductItem, ProductPackaging } from "@/types";
 import { calculateProductTotalCost } from "@/utils/calculations";
@@ -68,12 +69,15 @@ export const getProductList = async (): Promise<Product[]> => {
         isPrimary: pkg.is_primary,
       }));
 
+      // Find primary packaging
+      const primaryPackaging = formattedPackagingItems.find(pkg => pkg.isPrimary);
+      
       return {
         id: product.id,
         name: product.name,
         items: formattedItems,
-        packagingId: product.packaging_id,
-        packagingCost: product.packaging_cost,
+        packagingId: primaryPackaging?.packagingId || product.packaging_id,
+        packagingCost: primaryPackaging?.cost || product.packaging_cost,
         packagingItems: formattedPackagingItems,
         totalCost: product.total_cost,
       };
@@ -92,13 +96,16 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
     product.packagingItems.reduce((acc, pkg) => acc + pkg.cost, 0) : 0;
   const totalCost = itemsCost + packagingItemsCost;
 
+  // Find primary packaging
+  const primaryPackaging = product.packagingItems?.find(pkg => pkg.isPrimary);
+
   // Inserir o produto
   const { data, error } = await supabase
     .from("products")
     .insert({
       name: product.name,
-      packaging_id: product.packagingId,
-      packaging_cost: product.packagingCost,
+      packaging_id: primaryPackaging?.packagingId || product.packagingId,
+      packaging_cost: primaryPackaging?.cost || product.packagingCost,
       total_cost: totalCost,
     })
     .select()
@@ -177,13 +184,16 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
     product.packagingItems.reduce((acc, pkg) => acc + pkg.cost, 0) : 0;
   const totalCost = itemsCost + packagingItemsCost;
 
+  // Find primary packaging
+  const primaryPackaging = product.packagingItems?.find(pkg => pkg.isPrimary);
+
   // Atualizar o produto
   const { data, error } = await supabase
     .from("products")
     .update({
       name: product.name,
-      packaging_id: product.packagingId,
-      packaging_cost: product.packagingCost,
+      packaging_id: primaryPackaging?.packagingId || product.packagingId,
+      packaging_cost: primaryPackaging?.cost || product.packagingCost,
       total_cost: totalCost,
     })
     .eq("id", id)
@@ -278,6 +288,17 @@ export const deleteProduct = async (id: string): Promise<void> => {
     console.error("Erro ao remover itens do produto:", itemsError);
     throw new Error(itemsError.message);
   }
+  
+  // Remover as embalagens do produto
+  const { error: packagingError } = await supabase
+    .from("product_packaging")
+    .delete()
+    .eq("product_id", id);
+
+  if (packagingError) {
+    console.error("Erro ao remover embalagens do produto:", packagingError);
+    throw new Error(packagingError.message);
+  }
 
   // Remover o produto
   const { error } = await supabase
@@ -323,6 +344,24 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
         console.error("Erro ao buscar itens do produto:", itemsError);
         throw new Error(itemsError.message);
       }
+      
+      // Get additional packaging items
+      const { data: packagingItems, error: packagingError } = await supabase
+        .from("product_packaging")
+        .select(`
+          *,
+          packaging:packaging_id (
+            id,
+            name,
+            unit_cost
+          )
+        `)
+        .eq("product_id", product.id);
+
+      if (packagingError) {
+        console.error("Erro ao buscar embalagens do produto:", packagingError);
+        throw new Error(packagingError.message);
+      }
 
       const formattedItems = (items || []).map((item) => ({
         id: item.id,
@@ -330,13 +369,25 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
         quantity: item.quantity,
         cost: item.cost,
       }));
+      
+      const formattedPackagingItems = (packagingItems || []).map((pkg) => ({
+        id: pkg.id,
+        packagingId: pkg.packaging_id,
+        quantity: pkg.quantity,
+        cost: pkg.cost,
+        isPrimary: pkg.is_primary,
+      }));
+
+      // Find primary packaging
+      const primaryPackaging = formattedPackagingItems.find(pkg => pkg.isPrimary);
 
       return {
         id: product.id,
         name: product.name,
         items: formattedItems,
-        packagingId: product.packaging_id,
-        packagingCost: product.packaging_cost,
+        packagingId: primaryPackaging?.packagingId || product.packaging_id,
+        packagingCost: primaryPackaging?.cost || product.packaging_cost,
+        packagingItems: formattedPackagingItems,
         totalCost: product.total_cost,
       };
     })
