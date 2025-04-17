@@ -219,6 +219,103 @@ export type Database = {
           },
         ]
       }
+      pricing_configs: {
+        Row: {
+          actual_margin: number
+          base_cost: number
+          created_at: string
+          final_price: number
+          id: string
+          ideal_price: number
+          margin_percentage: number
+          name: string
+          packaging_cost: number
+          platform_fee_percentage: number
+          product_id: string
+          tax_percentage: number
+          total_unit_cost: number
+          unit_profit: number
+          updated_at: string
+          wastage_percentage: number
+        }
+        Insert: {
+          actual_margin?: number
+          base_cost?: number
+          created_at?: string
+          final_price?: number
+          id?: string
+          ideal_price?: number
+          margin_percentage?: number
+          name: string
+          packaging_cost?: number
+          platform_fee_percentage?: number
+          product_id: string
+          tax_percentage?: number
+          total_unit_cost?: number
+          unit_profit?: number
+          updated_at?: string
+          wastage_percentage?: number
+        }
+        Update: {
+          actual_margin?: number
+          base_cost?: number
+          created_at?: string
+          final_price?: number
+          id?: string
+          ideal_price?: number
+          margin_percentage?: number
+          name?: string
+          packaging_cost?: number
+          platform_fee_percentage?: number
+          product_id?: string
+          tax_percentage?: number
+          total_unit_cost?: number
+          unit_profit?: number
+          updated_at?: string
+          wastage_percentage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_configs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_expenses: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          pricing_config_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          pricing_config_id: string
+          value?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          pricing_config_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_expenses_pricing_config_id_fkey"
+            columns: ["pricing_config_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_items: {
         Row: {
           cost: number

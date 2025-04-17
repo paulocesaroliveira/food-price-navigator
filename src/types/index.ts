@@ -76,12 +76,23 @@ export interface Product {
 }
 
 export interface PricingConfiguration {
+  id: string;
+  name: string;
   productId: string;
+  baseCost: number;
+  packagingCost: number;
   wastagePercentage: number;
   additionalCosts: AdditionalCost[];
   desiredMarginPercentage: number;
   platformFeePercentage: number;
   taxPercentage: number;
+  totalUnitCost: number;
+  idealPrice: number;
+  finalPrice: number;
+  unitProfit: number;
+  actualMargin: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AdditionalCost {

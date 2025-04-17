@@ -1,3 +1,4 @@
+
 /**
  * Calculates the unit cost of an ingredient
  */
@@ -25,10 +26,12 @@ export function calculateRecipeTotalCost(
 
 /**
  * Calculates the unit cost of a recipe
+ * FIXED: Now correctly adds base per portion cost and portion ingredients cost
  */
-export function calculateRecipeUnitCost(totalCost: number, portions: number): number {
+export function calculateRecipeUnitCost(totalCost: number, portions: number, portionIngredientsTotalCost: number): number {
   if (portions <= 0) return 0;
-  return totalCost / portions;
+  const basePerPortionCost = (totalCost - portionIngredientsTotalCost) / portions;
+  return basePerPortionCost + (portionIngredientsTotalCost / portions);
 }
 
 /**
