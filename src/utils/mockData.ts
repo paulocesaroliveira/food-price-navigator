@@ -1,4 +1,3 @@
-
 import { 
   Ingredient, 
   Recipe, 
@@ -6,7 +5,8 @@ import {
   Category, 
   Product,
   PricingConfiguration,
-  PricingResult
+  PricingResult,
+  AdditionalCost
 } from "../types";
 
 // Mock Categories
@@ -181,7 +181,11 @@ export const products: Product[] = [
 // Mock Pricing Configuration
 export const pricingConfigurations: PricingConfiguration[] = [
   {
+    id: "pricing-1",
+    name: "Precificação Caixa Degustação",
     productId: "prod-1",
+    baseCost: 4.01,
+    packagingCost: 1.99,
     wastagePercentage: 5,
     additionalCosts: [
       { id: "add-1", name: "Gás", value: 0.50, isPerUnit: true },
@@ -191,6 +195,13 @@ export const pricingConfigurations: PricingConfiguration[] = [
     desiredMarginPercentage: 40,
     platformFeePercentage: 12,
     taxPercentage: 6,
+    totalUnitCost: 6.0,
+    idealPrice: 10.0,
+    finalPrice: 11.95,
+    unitProfit: 5.95,
+    actualMargin: 49.8,
+    createdAt: "2023-01-15T10:30:00Z",
+    updatedAt: "2023-01-15T10:30:00Z"
   }
 ];
 
