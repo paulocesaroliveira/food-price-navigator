@@ -44,6 +44,45 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          address1: string | null
+          address2: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          origin: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address1?: string | null
+          address2?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          origin: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address1?: string | null
+          address2?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          origin?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ingredient_categories: {
         Row: {
           created_at: string
@@ -111,6 +150,110 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "ingredient_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string
+          price_at_order: number
+          product_id: string
+          quantity: number
+          total_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id: string
+          price_at_order: number
+          product_id: string
+          quantity?: number
+          total_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string
+          price_at_order?: number
+          product_id?: string
+          quantity?: number
+          total_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          customer_id: string
+          delivery_address: string | null
+          delivery_type: string
+          id: string
+          notes: string | null
+          order_number: string
+          origin: string
+          scheduled_date: string | null
+          scheduled_time: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          delivery_address?: string | null
+          delivery_type: string
+          id?: string
+          notes?: string | null
+          order_number: string
+          origin: string
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          status: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          delivery_address?: string | null
+          delivery_type?: string
+          id?: string
+          notes?: string | null
+          order_number?: string
+          origin?: string
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
@@ -441,6 +584,59 @@ export type Database = {
           },
         ]
       }
+      published_products: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          is_featured: boolean
+          name: string
+          price: number
+          product_id: string
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_featured?: boolean
+          name: string
+          price: number
+          product_id: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_featured?: boolean
+          name?: string
+          price?: number
+          product_id?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "published_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipe_base_ingredients: {
         Row: {
           cost: number
@@ -589,6 +785,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      website_settings: {
+        Row: {
+          contact_facebook: string | null
+          contact_instagram: string | null
+          contact_whatsapp: string | null
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          domain: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          store_address: string | null
+          subdomain: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_facebook?: string | null
+          contact_instagram?: string | null
+          contact_whatsapp?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          domain?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          store_address?: string | null
+          subdomain?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_facebook?: string | null
+          contact_instagram?: string | null
+          contact_whatsapp?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          domain?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          store_address?: string | null
+          subdomain?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
