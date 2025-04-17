@@ -1,4 +1,3 @@
-
 /**
  * Calculates the unit cost of an ingredient
  */
@@ -60,82 +59,83 @@ export function calculateProductTotalCost(itemsTotalCost: number, packagingCost:
 /**
  * Calculates the total cost of production including wastage and additional costs
  */
-export function calculateTotalProductionCost(
-  productCost: number, 
+export const calculateTotalProductionCost = (
+  baseCost: number,
   wastagePercentage: number,
-  additionalCosts: { value: number; isPerUnit: boolean }[],
-  quantity: number = 1
-): number {
-  // Calculate wastage cost
+  additionalCosts: { value: number; isPerUnit: boolean }[]
+): number => {
+  // Add wastage to base cost
   const wastageMultiplier = 1 + (wastagePercentage / 100);
-  const costWithWastage = productCost * wastageMultiplier;
+  let totalCost = baseCost * wastageMultiplier;
   
-  // Calculate additional costs
-  const additionalCostsTotal = additionalCosts.reduce((total, cost) => {
-    if (cost.isPerUnit) {
-      return total + (cost.value * quantity);
-    }
-    return total + cost.value;
-  }, 0);
+  // Add additional costs
+  const additionalCostsTotal = additionalCosts.reduce((sum, cost) => sum + cost.value, 0);
+  totalCost += additionalCostsTotal;
   
-  return costWithWastage + additionalCostsTotal;
-}
+  return totalCost;
+};
 
 /**
  * Calculates the selling price based on desired margin
  */
-export function calculateSellingPrice(
-  totalCost: number, 
-  marginPercentage: number,
-  quantity: number = 1
-): number {
-  const unitCost = totalCost / quantity;
-  const marginMultiplier = 1 / (1 - (marginPercentage / 100));
-  return unitCost * marginMultiplier;
-}
+export const calculateSellingPrice = (
+  totalCost: number,
+  marginPercentage: number
+): number => {
+  // Apply margin to total cost
+  // Formula: sellingPrice = totalCost / (1 - margin/100)
+  const marginMultiplier = 1 - (marginPercentage / 100);
+  return totalCost / marginMultiplier;
+};
 
 /**
  * Calculates the price with platform commission
  */
-export function calculatePriceWithCommission(
-  sellingPrice: number, 
+export const calculatePriceWithCommission = (
+  basePrice: number,
   commissionPercentage: number
-): number {
-  const commissionMultiplier = 1 / (1 - (commissionPercentage / 100));
-  return sellingPrice * commissionMultiplier;
-}
+): number => {
+  // Apply commission to base price
+  // Formula: finalPrice = basePrice / (1 - commission/100)
+  if (commissionPercentage === 0) return basePrice;
+  
+  const commissionMultiplier = 1 - (commissionPercentage / 100);
+  return basePrice / commissionMultiplier;
+};
 
 /**
  * Calculates the price with taxes
  */
-export function calculatePriceWithTaxes(
-  sellingPrice: number, 
+export const calculatePriceWithTaxes = (
+  basePrice: number,
   taxPercentage: number
-): number {
+): number => {
+  // Apply tax to base price
+  // Formula: finalPrice = basePrice * (1 + tax/100)
   const taxMultiplier = 1 + (taxPercentage / 100);
-  return sellingPrice * taxMultiplier;
-}
+  return basePrice * taxMultiplier;
+};
 
 /**
  * Calculates the unit profit
  */
-export function calculateUnitProfit(
-  sellingPrice: number, 
-  unitCost: number
-): number {
-  return sellingPrice - unitCost;
-}
+export const calculateUnitProfit = (
+  sellingPrice: number,
+  totalCost: number
+): number => {
+  return sellingPrice - totalCost;
+};
 
 /**
  * Calculates the markup percentage
  */
-export function calculateMarkupPercentage(
-  sellingPrice: number, 
-  unitCost: number
-): number {
-  if (unitCost <= 0) return 0;
-  return ((sellingPrice / unitCost) - 1) * 100;
-}
+export const calculateMarkupPercentage = (
+  sellingPrice: number,
+  totalCost: number
+): number => {
+  if (totalCost === 0) return 0;
+  return ((sellingPrice - totalCost) / sellingPrice) * 100;
+};
 
 /**
  * Calculates minimum recommended price
@@ -151,16 +151,16 @@ export function calculateMinimumRecommendedPrice(
 /**
  * Formats currency to BRL
  */
-export function formatCurrency(value: number): string {
+export const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
   }).format(value);
-}
+};
 
 /**
  * Formats percentage
  */
-export function formatPercentage(value: number): string {
-  return `${value.toFixed(2)}%`;
-}
+export const formatPercentage = (value: number): string => {
+  return `${value.toFixed(1)}%`;
+};

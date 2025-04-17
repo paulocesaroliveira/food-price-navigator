@@ -34,13 +34,13 @@ const AppSidebar = () => {
   ];
 
   return (
-    <Sidebar>
+    <Sidebar className="bg-food-cream">
       <SidebarHeader>
         <div className="flex items-center gap-3 px-4 py-5">
-          <BarChart3 className="h-8 w-8 text-primary" />
+          <BarChart3 className="h-8 w-8 text-food-coral" />
           <div className="flex flex-col">
-            <span className="text-xl font-display font-semibold tracking-tight">FoodPrice</span>
-            <span className="text-xs text-sidebar-foreground/70">Gestão de Custos</span>
+            <span className="text-xl font-poppins font-semibold tracking-tight">FoodPrice</span>
+            <span className="text-xs text-food-dark/70">Gestão de Custos</span>
           </div>
         </div>
       </SidebarHeader>
@@ -56,8 +56,8 @@ const AppSidebar = () => {
                 location.pathname === item.path && "active"
               )}
             >
-              <item.icon className="h-5 w-5" />
-              <span className="flex-1">{item.name}</span>
+              <item.icon className={`h-5 w-5 ${location.pathname === item.path ? 'text-white' : 'text-food-coral'}`} />
+              <span className="flex-1 text-sm font-medium">{item.name}</span>
               <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-70 transition-opacity" />
             </Link>
           ))}
@@ -67,14 +67,14 @@ const AppSidebar = () => {
       <SidebarFooter>
         <div className="px-3 py-4 space-y-1">
           <Link to="/settings" className="sidebar-link">
-            <Settings className="h-5 w-5" />
-            <span>Configurações</span>
+            <Settings className="h-5 w-5 text-food-coral" />
+            <span className="text-sm font-medium">Configurações</span>
           </Link>
           <Link to="/help" className="sidebar-link">
-            <HelpCircle className="h-5 w-5" />
-            <span>Ajuda</span>
+            <HelpCircle className="h-5 w-5 text-food-coral" />
+            <span className="text-sm font-medium">Ajuda</span>
           </Link>
-          <div className="px-4 py-4 mt-4 text-xs text-sidebar-foreground/60 text-center">
+          <div className="px-4 py-4 mt-4 text-xs text-food-dark/60 text-center">
             FoodPrice v1.0.0
             <div className="mt-1">Gerenciamento de Custos</div>
           </div>

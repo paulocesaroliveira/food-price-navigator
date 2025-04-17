@@ -21,6 +21,8 @@ export default {
 		extend: {
 			fontFamily: {
 				inter: ['Inter', 'sans-serif'],
+				poppins: ['Poppins', 'sans-serif'],
+				quicksand: ['Quicksand', 'sans-serif'],
 				display: ['Playfair Display', 'serif'],
 			},
 			colors: {
@@ -68,16 +70,14 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				food: {
-					green: '#4CAF50',
-					teal: '#009688',
-					blue: '#2196F3',
-					purple: '#9C27B0',
-					pink: '#E91E63',
-					orange: '#FF9800',
-					amber: '#FFC107',
-					yellow: '#FFEB3B',
-					gray: '#607D8B',
-					red: '#F44336'
+					green: '#9AE6B4',    // Lucro positivo
+					red: '#F28482',      // Alerta/prejuízo
+					coral: '#E76F51',    // Cor primária
+					amber: '#F4A261',    // Hover primário
+					cream: '#FFF8F3',    // Fundo geral
+					vanilla: '#FAF3E0',  // Destaques neutros
+					white: '#FFFFFF',    // Cards e inputs
+					dark: '#333333',     // Texto principal
 				}
 			},
 			borderRadius: {
@@ -86,7 +86,7 @@ export default {
 				sm: 'calc(var(--radius) - 4px)'
 			},
 			boxShadow: {
-				'soft': '0 4px 15px rgba(0, 0, 0, 0.05)',
+				'soft': '0 2px 8px rgba(0, 0, 0, 0.05)',
 				'card': '0 10px 30px rgba(0, 0, 0, 0.08)',
 				'button': '0 4px 10px rgba(0, 0, 0, 0.1)',
 				'hover': '0 10px 40px rgba(0, 0, 0, 0.12)',

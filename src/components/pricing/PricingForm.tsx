@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import AdditionalCostsEditor from "./AdditionalCostsEditor";
-import { ShoppingBag, PercentIcon, Calculator, Tag, Save } from "lucide-react";
+import { ShoppingBag, PercentIcon, Calculator, Tag, Save, TrendingUp, Wallet, HelpCircle } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/utils/calculations";
 import { calculatePricingResults } from "@/services/pricingService";
 import { v4 as uuidv4 } from "uuid";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PricingFormProps {
   product: Product;
@@ -93,134 +94,193 @@ const PricingForm: React.FC<PricingFormProps> = ({
 
   return (
     <div className="grid md:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <ShoppingBag className="h-5 w-5 text-primary" />
+      <Card className="border rounded-xl shadow-soft bg-food-white">
+        <CardHeader className="bg-gradient-to-r from-food-vanilla to-food-cream">
+          <CardTitle className="flex items-center gap-2 text-xl font-poppins">
+            <ShoppingBag className="h-5 w-5 text-food-coral" />
             {product.name}
           </CardTitle>
           <CardDescription>Configuração de precificação</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-5 pt-5">
           <div className="space-y-4">
             <div>
-              <Label htmlFor="config-name">Nome da precificação</Label>
+              <Label htmlFor="config-name" className="font-medium font-poppins text-food-dark">
+                Nome da precificação
+              </Label>
               <Input
                 id="config-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ex: Precificação padrão"
+                className="mt-1 border-food-vanilla focus-visible:ring-food-coral"
               />
             </div>
             
-            <div>
-              <Label htmlFor="base-cost">Custo base</Label>
-              <div className="relative">
-                <Input
-                  id="base-cost"
-                  type="number"
-                  value={baseCost}
-                  onChange={(e) => setBaseCost(parseFloat(e.target.value) || 0)}
-                  className="pl-7"
-                />
-                <span className="absolute left-2.5 top-2.5 text-muted-foreground">R$</span>
+            <div className="p-4 bg-food-vanilla/30 rounded-xl space-y-4">
+              <h3 className="font-poppins font-medium text-food-dark flex items-center">
+                <Wallet className="w-4 h-4 mr-2 text-food-coral" />
+                Custos Base
+              </h3>
+              
+              <div>
+                <Label htmlFor="base-cost" className="text-sm flex items-center">
+                  Custo base
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="ml-1 cursor-help">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="w-[200px] text-xs">
+                          Custo total da receita sem incluir embalagem
+                          ou despesas adicionais.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="base-cost"
+                    type="number"
+                    value={baseCost}
+                    onChange={(e) => setBaseCost(parseFloat(e.target.value) || 0)}
+                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
+                  />
+                  <span className="absolute left-2.5 top-[9px] text-muted-foreground">R$</span>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Custo total da receita
-              </p>
+              
+              <div>
+                <Label htmlFor="packaging-cost" className="text-sm">Custo da embalagem</Label>
+                <div className="relative">
+                  <Input
+                    id="packaging-cost"
+                    type="number"
+                    value={packagingCost}
+                    onChange={(e) => setPackagingCost(parseFloat(e.target.value) || 0)}
+                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
+                  />
+                  <span className="absolute left-2.5 top-[9px] text-muted-foreground">R$</span>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="wastage" className="text-sm flex items-center">
+                  Porcentagem de perda
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="ml-1 cursor-help">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="w-[200px] text-xs">
+                          Percentual de perda, quebra ou desperdício 
+                          durante a produção.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="wastage"
+                    type="number"
+                    value={wastagePercentage}
+                    onChange={(e) => setWastagePercentage(parseFloat(e.target.value) || 0)}
+                    min="0"
+                    max="100"
+                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
+                  />
+                  <PercentIcon className="absolute left-2.5 top-[9px] h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
             </div>
             
-            <div>
-              <Label htmlFor="packaging-cost">Custo da embalagem</Label>
-              <div className="relative">
-                <Input
-                  id="packaging-cost"
-                  type="number"
-                  value={packagingCost}
-                  onChange={(e) => setPackagingCost(parseFloat(e.target.value) || 0)}
-                  className="pl-7"
-                />
-                <span className="absolute left-2.5 top-2.5 text-muted-foreground">R$</span>
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="wastage">Porcentagem de perda (%)</Label>
-              <div className="relative">
-                <Input
-                  id="wastage"
-                  type="number"
-                  value={wastagePercentage}
-                  onChange={(e) => setWastagePercentage(parseFloat(e.target.value) || 0)}
-                  min="0"
-                  max="100"
-                  className="pl-7"
-                />
-                <PercentIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              </div>
-            </div>
-            
-            <Separator />
+            <Separator className="bg-food-vanilla" />
             
             <AdditionalCostsEditor
               costs={additionalCosts}
               onChange={setAdditionalCosts}
             />
             
-            <Separator />
+            <Separator className="bg-food-vanilla" />
             
-            <div>
-              <Label htmlFor="margin">Margem de lucro desejada (%)</Label>
-              <div className="relative">
-                <Input
-                  id="margin"
-                  type="number"
-                  value={marginPercentage}
-                  onChange={(e) => setMarginPercentage(parseFloat(e.target.value) || 0)}
-                  min="0"
-                  max="100"
-                  className="pl-7"
-                />
-                <PercentIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="p-4 bg-food-vanilla/30 rounded-xl space-y-4">
+              <h3 className="font-poppins font-medium text-food-dark flex items-center">
+                <TrendingUp className="w-4 h-4 mr-2 text-food-coral" />
+                Margem e Taxas
+              </h3>
+              
+              <div>
+                <Label htmlFor="margin" className="text-sm flex items-center">
+                  Margem de lucro desejada
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="ml-1 cursor-help">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="w-[200px] text-xs">
+                          Percentual de lucro desejado sobre o custo total.
+                          Recomendado: mínimo de 30%.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="margin"
+                    type="number"
+                    value={marginPercentage}
+                    onChange={(e) => setMarginPercentage(parseFloat(e.target.value) || 0)}
+                    min="0"
+                    max="100"
+                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
+                  />
+                  <PercentIcon className="absolute left-2.5 top-[9px] h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="platform-fee">Comissão de plataforma (%)</Label>
-              <div className="relative">
-                <Input
-                  id="platform-fee"
-                  type="number"
-                  value={platformFeePercentage}
-                  onChange={(e) => setPlatformFeePercentage(parseFloat(e.target.value) || 0)}
-                  min="0"
-                  max="100"
-                  className="pl-7"
-                />
-                <PercentIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              
+              <div>
+                <Label htmlFor="platform-fee" className="text-sm">Comissão de plataforma</Label>
+                <div className="relative">
+                  <Input
+                    id="platform-fee"
+                    type="number"
+                    value={platformFeePercentage}
+                    onChange={(e) => setPlatformFeePercentage(parseFloat(e.target.value) || 0)}
+                    min="0"
+                    max="100"
+                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
+                  />
+                  <PercentIcon className="absolute left-2.5 top-[9px] h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="tax">Impostos (%)</Label>
-              <div className="relative">
-                <Input
-                  id="tax"
-                  type="number"
-                  value={taxPercentage}
-                  onChange={(e) => setTaxPercentage(parseFloat(e.target.value) || 0)}
-                  min="0"
-                  max="100"
-                  className="pl-7"
-                />
-                <PercentIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              
+              <div>
+                <Label htmlFor="tax" className="text-sm">Impostos</Label>
+                <div className="relative">
+                  <Input
+                    id="tax"
+                    type="number"
+                    value={taxPercentage}
+                    onChange={(e) => setTaxPercentage(parseFloat(e.target.value) || 0)}
+                    min="0"
+                    max="100"
+                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
+                  />
+                  <PercentIcon className="absolute left-2.5 top-[9px] h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
             </div>
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="bg-food-vanilla/30 rounded-b-xl">
           <Button
-            className="w-full gap-2"
+            className="w-full gap-2 bg-food-coral hover:bg-food-amber text-white transition-colors"
             onClick={handleSave}
             disabled={isLoading || isSaving}
           >
@@ -230,10 +290,10 @@ const PricingForm: React.FC<PricingFormProps> = ({
         </CardFooter>
       </Card>
       
-      <Card className="bg-gradient-to-br from-card to-muted/30">
+      <Card className="border rounded-xl shadow-soft bg-gradient-to-br from-food-white to-food-cream/30">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Calculator className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-xl font-poppins">
+            <Calculator className="h-5 w-5 text-food-coral" />
             Resultado da Precificação
           </CardTitle>
           <CardDescription>
@@ -244,43 +304,49 @@ const PricingForm: React.FC<PricingFormProps> = ({
           {pricingResults && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="pricing-result-card bg-muted/50 p-4 rounded-lg">
+                <div className="bg-food-vanilla/30 p-4 rounded-xl shadow-soft">
                   <div className="text-sm text-muted-foreground mb-1">Custo total unitário</div>
-                  <div className="text-2xl font-semibold">{formatCurrency(pricingResults.unitCost)}</div>
+                  <div className="text-2xl font-semibold font-poppins">{formatCurrency(pricingResults.unitCost)}</div>
                 </div>
                 
-                <div className="pricing-result-card bg-green-50 border border-green-200 p-4 rounded-lg">
+                <div className="bg-food-green/20 border border-food-green/30 p-4 rounded-xl shadow-soft">
                   <div className="text-sm text-green-700 mb-1 flex items-center gap-1">
                     <Tag className="h-4 w-4" />
                     Preço ideal com margem
                   </div>
-                  <div className="text-3xl font-semibold text-green-800">{formatCurrency(pricingResults.sellingPrice)}</div>
+                  <div className="text-3xl font-semibold font-poppins text-green-800">{formatCurrency(pricingResults.sellingPrice)}</div>
                 </div>
                 
-                <div className="pricing-result-card bg-muted/50 p-4 rounded-lg">
+                <div className="bg-food-vanilla/30 p-4 rounded-xl shadow-soft">
                   <div className="text-sm text-muted-foreground mb-1">Preço com comissão</div>
-                  <div className="text-2xl font-semibold">{formatCurrency(pricingResults.priceWithCommission)}</div>
+                  <div className="text-2xl font-semibold font-poppins">{formatCurrency(pricingResults.priceWithCommission)}</div>
                 </div>
                 
-                <div className="pricing-result-card bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                  <div className="text-sm text-blue-700 mb-1">Preço final (com impostos)</div>
-                  <div className="text-2xl font-semibold text-blue-800">{formatCurrency(pricingResults.priceWithTaxes)}</div>
+                <div className="bg-food-amber/20 border border-food-amber/30 p-4 rounded-xl shadow-soft">
+                  <div className="text-sm text-amber-700 mb-1">Preço final (com impostos)</div>
+                  <div className="text-2xl font-semibold font-poppins text-amber-800">{formatCurrency(pricingResults.priceWithTaxes)}</div>
                 </div>
                 
-                <div className="pricing-result-card bg-muted/50 p-4 rounded-lg">
+                <div className="bg-food-green/10 p-4 rounded-xl shadow-soft">
                   <div className="text-sm text-muted-foreground mb-1">Lucro por unidade</div>
-                  <div className="text-2xl font-semibold text-green-600">{formatCurrency(pricingResults.unitProfit)}</div>
+                  <div className="text-2xl font-semibold font-poppins text-green-600">{formatCurrency(pricingResults.unitProfit)}</div>
                 </div>
                 
-                <div className="pricing-result-card bg-muted/50 p-4 rounded-lg">
+                <div className={`p-4 rounded-xl shadow-soft ${
+                  pricingResults.appliedMarkup > 30 
+                    ? 'bg-food-green/20 border border-food-green/30' 
+                    : pricingResults.appliedMarkup < 15
+                      ? 'bg-food-red/20 border border-food-red/30'
+                      : 'bg-food-vanilla border border-food-vanilla/50'
+                }`}>
                   <div className="text-sm text-muted-foreground mb-1">Markup aplicado</div>
-                  <div className="text-2xl font-semibold">{formatPercentage(pricingResults.appliedMarkup)}</div>
+                  <div className="text-2xl font-semibold font-poppins">{formatPercentage(pricingResults.appliedMarkup)}</div>
                 </div>
               </div>
               
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+              <div className="bg-food-amber/20 border border-food-amber/20 p-4 rounded-xl shadow-soft">
                 <div className="text-sm text-amber-700 mb-1">Preço mínimo recomendado</div>
-                <div className="text-xl font-semibold text-amber-800">
+                <div className="text-xl font-semibold font-poppins text-amber-800">
                   {formatCurrency(pricingResults.minimumRecommendedPrice)}
                 </div>
                 <p className="text-xs text-amber-600 mt-1">

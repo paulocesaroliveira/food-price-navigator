@@ -18,7 +18,8 @@ import {
   Calculator, 
   Plus, 
   ArrowLeft,
-  History
+  History,
+  Download
 } from "lucide-react";
 import ProductSelector from "@/components/pricing/ProductSelector";
 import PricingForm from "@/components/pricing/PricingForm";
@@ -180,12 +181,14 @@ const Pricing = () => {
   const handleViewConfig = (id: string) => {
     setCurrentConfigId(id);
     setMode(PricingMode.VIEW);
+    setTab("create");
   };
   
   // Handle edit config
   const handleEditConfig = (id: string) => {
     setCurrentConfigId(id);
     setMode(PricingMode.EDIT);
+    setTab("create");
   };
   
   // Handle duplicate config
@@ -226,20 +229,28 @@ const Pricing = () => {
   };
   
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="space-y-6 max-w-[1200px] mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-food-vanilla/30 p-4 rounded-xl">
         <div>
-          <h1 className="text-3xl font-display font-semibold tracking-tight">Precificação</h1>
+          <h1 className="text-3xl font-poppins font-semibold tracking-tight text-food-dark">Precificação</h1>
           <p className="text-muted-foreground mt-1">
             Calcule os preços dos seus produtos com base nos custos e margens desejadas
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-1">
-            <FilePenLine className="h-4 w-4" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1 border-food-coral text-food-coral hover:bg-food-cream hover:text-food-coral"
+          >
+            <Download className="h-4 w-4" />
             <span className="hidden md:inline">Exportar</span> PDF
           </Button>
-          <Button variant="outline" size="sm" className="gap-1">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1 border-food-coral text-food-coral hover:bg-food-cream hover:text-food-coral"
+          >
             <FileText className="h-4 w-4" />
             <span className="hidden md:inline">Exportar</span> Excel
           </Button>
@@ -247,12 +258,20 @@ const Pricing = () => {
       </div>
       
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="create" onClick={() => setMode(PricingMode.LIST)}>
+        <TabsList className="bg-food-vanilla/50 p-1">
+          <TabsTrigger 
+            value="create" 
+            onClick={() => setMode(PricingMode.LIST)}
+            className="data-[state=active]:bg-food-white data-[state=active]:text-food-coral"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Nova Precificação
           </TabsTrigger>
-          <TabsTrigger value="history" onClick={viewHistory}>
+          <TabsTrigger 
+            value="history" 
+            onClick={viewHistory}
+            className="data-[state=active]:bg-food-white data-[state=active]:text-food-coral"
+          >
             <History className="h-4 w-4 mr-2" />
             Histórico
           </TabsTrigger>
@@ -260,17 +279,17 @@ const Pricing = () => {
         
         <TabsContent value="create" className="space-y-4">
           {mode === PricingMode.LIST && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="h-5 w-5 text-primary" />
+            <Card className="border shadow-soft rounded-xl bg-food-white">
+              <CardHeader className="bg-gradient-to-r from-food-vanilla to-food-cream rounded-t-xl">
+                <CardTitle className="flex items-center gap-2 font-poppins text-food-dark">
+                  <Plus className="h-5 w-5 text-food-coral" />
                   Selecione os produtos
                 </CardTitle>
                 <CardDescription>
                   Escolha um ou mais produtos para calcular o preço
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-6">
                 <ProductSelector 
                   onProductsSelected={handleProductsSelected}
                   selectedProducts={selectedProducts}
@@ -279,7 +298,7 @@ const Pricing = () => {
                 {selectedProducts.length > 0 && (
                   <Button 
                     onClick={() => setMode(PricingMode.CREATE)}
-                    className="w-full mt-4"
+                    className="w-full mt-4 bg-food-coral hover:bg-food-amber text-white transition-colors"
                   >
                     <Calculator className="h-4 w-4 mr-2" />
                     Calcular Preço ({selectedProducts.length} produtos)
@@ -296,12 +315,12 @@ const Pricing = () => {
                   variant="outline" 
                   size="sm" 
                   onClick={goBack}
-                  className="mr-2"
+                  className="mr-2 border-food-cream hover:bg-food-cream hover:text-food-coral"
                 >
                   <ArrowLeft className="h-4 w-4 mr-1" />
                   Voltar
                 </Button>
-                <h2 className="text-xl font-semibold">Nova Precificação</h2>
+                <h2 className="text-xl font-semibold font-poppins text-food-dark">Nova Precificação</h2>
               </div>
               
               <PricingForm
@@ -319,12 +338,12 @@ const Pricing = () => {
                   variant="outline" 
                   size="sm" 
                   onClick={goBack}
-                  className="mr-2"
+                  className="mr-2 border-food-cream hover:bg-food-cream hover:text-food-coral"
                 >
                   <ArrowLeft className="h-4 w-4 mr-1" />
                   Voltar
                 </Button>
-                <h2 className="text-xl font-semibold">
+                <h2 className="text-xl font-semibold font-poppins text-food-dark">
                   {mode === PricingMode.VIEW ? "Visualizar" : "Editar"} Precificação
                 </h2>
               </div>
@@ -352,16 +371,21 @@ const Pricing = () => {
       </Tabs>
       
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-food-white rounded-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Precificação</AlertDialogTitle>
+            <AlertDialogTitle className="font-poppins text-food-dark">Excluir Precificação</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir esta precificação? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={executeDeleteConfig} className="bg-destructive text-destructive-foreground">
+            <AlertDialogCancel className="border-food-vanilla hover:bg-food-vanilla hover:text-food-dark">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={executeDeleteConfig} 
+              className="bg-food-red hover:bg-food-red/80 text-white"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

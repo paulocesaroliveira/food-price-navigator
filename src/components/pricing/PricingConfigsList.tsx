@@ -29,10 +29,12 @@ import {
   Copy, 
   Trash, 
   MoreVertical,
-  FileText
+  FileText,
+  HelpCircle
 } from "lucide-react";
 import { formatCurrency } from "@/utils/calculations";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PricingConfigsListProps {
   configs: PricingConfiguration[];
@@ -63,17 +65,17 @@ const PricingConfigsList: React.FC<PricingConfigsListProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-primary" />
+    <Card className="border shadow-soft bg-food-white rounded-xl overflow-hidden">
+      <CardHeader className="bg-gradient-to-r from-food-vanilla to-food-cream">
+        <CardTitle className="flex items-center gap-2 font-poppins text-food-dark">
+          <FileText className="h-5 w-5 text-food-coral" />
           Precificações Salvas
         </CardTitle>
         <CardDescription>
           Histórico de precificações calculadas
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         {isLoading ? (
           <div className="text-center py-8">Carregando precificações...</div>
         ) : configs.length === 0 ? (
@@ -82,49 +84,77 @@ const PricingConfigsList: React.FC<PricingConfigsListProps> = ({
           </div>
         ) : (
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-food-vanilla/30">
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Preço final</TableHead>
-                <TableHead>Margem</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="font-poppins">Nome</TableHead>
+                <TableHead className="font-poppins">Data</TableHead>
+                <TableHead className="font-poppins">Preço final</TableHead>
+                <TableHead className="font-poppins">
+                  <div className="flex items-center">
+                    Margem
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="ml-1 cursor-help">
+                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="w-[150px] text-xs">
+                            Margem real calculada após todos os custos e impostos.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </TableHead>
+                <TableHead className="text-right font-poppins">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {configs.map((config) => (
-                <TableRow key={config.id}>
+                <TableRow key={config.id} className="hover:bg-food-vanilla/10">
                   <TableCell className="font-medium">{config.name}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {formatDate(config.createdAt)}
                   </TableCell>
-                  <TableCell>{formatCurrency(config.finalPrice)}</TableCell>
-                  <TableCell>{config.actualMargin.toFixed(1)}%</TableCell>
+                  <TableCell className="font-semibold text-food-dark">
+                    {formatCurrency(config.finalPrice)}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-0.5 rounded-full text-sm font-medium ${
+                      config.actualMargin > 30 
+                        ? 'bg-food-green/20 text-green-800' 
+                        : config.actualMargin < 15
+                          ? 'bg-food-red/20 text-red-800'
+                          : 'bg-food-vanilla text-amber-800'
+                    }`}>
+                      {config.actualMargin.toFixed(1)}%
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-food-dark hover:bg-food-vanilla hover:text-food-coral">
                           <MoreVertical className="h-4 w-4" />
                           <span className="sr-only">Menu</span>
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onView(config.id)}>
+                      <DropdownMenuContent align="end" className="bg-food-white border-food-vanilla">
+                        <DropdownMenuItem onClick={() => onView(config.id)} className="cursor-pointer text-food-dark hover:text-food-coral">
                           <Eye className="mr-2 h-4 w-4" />
                           Visualizar
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onEdit(config.id)}>
+                        <DropdownMenuItem onClick={() => onEdit(config.id)} className="cursor-pointer text-food-dark hover:text-food-coral">
                           <Edit className="mr-2 h-4 w-4" />
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDuplicate(config.id)}>
+                        <DropdownMenuItem onClick={() => onDuplicate(config.id)} className="cursor-pointer text-food-dark hover:text-food-coral">
                           <Copy className="mr-2 h-4 w-4" />
                           Duplicar
                         </DropdownMenuItem>
-                        <Separator className="my-1" />
+                        <Separator className="my-1 bg-food-vanilla" />
                         <DropdownMenuItem 
                           onClick={() => onDelete(config.id)}
-                          className="text-destructive focus:text-destructive"
+                          className="text-food-red focus:text-food-red cursor-pointer"
                         >
                           <Trash className="mr-2 h-4 w-4" />
                           Excluir

@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,44 +7,44 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 20 100% 97%;     /* #FFF8F3 - cream background */
+    --foreground: 0 0% 20%;        /* #333333 - dark text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: 0 0% 100%;             /* #FFFFFF - white cards */
+    --card-foreground: 0 0% 20%;   /* #333333 - dark text */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;          /* #FFFFFF - white popovers */
+    --popover-foreground: 0 0% 20%; /* #333333 - dark text */
 
-    --primary: 215 100% 50%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 14 71% 61%;         /* #E76F51 - coral primary */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF - white text on primary */
 
-    --secondary: 338 95% 56%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 29 89% 67%;      /* #F4A261 - amber secondary */
+    --secondary-foreground: 0 0% 20%; /* #333333 - dark text on secondary */
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 25% 40%;
+    --muted: 37 77% 94%;          /* #FAF3E0 - vanilla muted */
+    --muted-foreground: 0 0% 40%; /* #666666 - muted text */
 
-    --accent: 25 95% 50%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 29 89% 67%;         /* #F4A261 - amber accent */
+    --accent-foreground: 0 0% 20%; /* #333333 - dark text on accent */
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 1 71% 73%;     /* #F28482 - red destructive */
+    --destructive-foreground: 0 0% 100%; /* #FFFFFF - white text on destructive */
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 215 100% 50%;
+    --border: 20 33% 92%;         /* Lighter version of cream */
+    --input: 20 33% 92%;          /* Lighter version of cream */
+    --ring: 14 71% 61%;           /* #E76F51 - coral ring */
 
-    --radius: 0.75rem;
+    --radius: 1rem;               /* 16px border radius */
 
-    --sidebar-background: 218 45% 16%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 215 100% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 22%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 216 28% 24%;
-    --sidebar-ring: 215 100% 50%;
+    --sidebar-background: 20 100% 97%; /* #FFF8F3 - cream sidebar */
+    --sidebar-foreground: 0 0% 20%;    /* #333333 - dark text */
+    --sidebar-primary: 14 71% 61%;     /* #E76F51 - coral primary */
+    --sidebar-primary-foreground: 0 0% 100%; /* #FFFFFF - white text */
+    --sidebar-accent: 29 89% 67%;       /* #F4A261 - amber accent */
+    --sidebar-accent-foreground: 0 0% 20%; /* #333333 - dark text */
+    --sidebar-border: 20 33% 92%;       /* Lighter version of cream */
+    --sidebar-ring: 14 71% 61%;         /* #E76F51 - coral ring */
   }
 
   .dark {
@@ -57,16 +57,16 @@
     --popover: 219 35% 10%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 215 100% 50%;
+    --primary: 14 71% 61%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 338 95% 56%;
+    --secondary: 29 89% 67%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 217 33% 18%;
     --muted-foreground: 215 25% 65%;
 
-    --accent: 25 95% 50%;
+    --accent: 29 89% 67%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62% 30%;
@@ -74,16 +74,16 @@
 
     --border: 217 33% 20%;
     --input: 217 33% 20%;
-    --ring: 215 100% 50%;
+    --ring: 14 71% 61%;
     
     --sidebar-background: 219 35% 10%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 215 100% 50%;
+    --sidebar-primary: 14 71% 61%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 217 33% 18%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 20%;
-    --sidebar-ring: 215 100% 50%;
+    --sidebar-ring: 14 71% 61%;
   }
 }
 
@@ -98,17 +98,17 @@
   }
   
   h1, h2, h3 {
-    @apply font-display tracking-tight;
+    @apply font-poppins font-semibold tracking-tight;
   }
 }
 
 @layer components {
   .stats-card {
-    @apply bg-white rounded-xl p-6 shadow-soft border border-gray-50 hover:shadow-card transition-all duration-300;
+    @apply bg-food-white rounded-xl p-6 shadow-soft border border-gray-50 hover:shadow-card transition-all duration-300;
   }
   
   .stats-value {
-    @apply text-2xl font-semibold text-gray-900;
+    @apply text-2xl font-semibold text-food-dark;
   }
   
   .stats-label {
@@ -116,11 +116,11 @@
   }
   
   .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all duration-200;
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-food-amber text-food-dark hover:text-food-dark transition-all duration-200 font-poppins;
   }
   
   .sidebar-link.active {
-    @apply bg-sidebar-primary text-sidebar-primary-foreground font-medium;
+    @apply bg-food-coral text-white font-medium;
   }
   
   .card-hover {
@@ -132,7 +132,7 @@
   }
   
   .highlight-number {
-    @apply text-2xl font-semibold text-primary;
+    @apply text-2xl font-semibold text-food-coral;
   }
   
   .stat-card {
@@ -140,11 +140,19 @@
   }
   
   .pricing-result-card {
-    @apply border rounded-xl p-5 transition-all hover:shadow-soft;
+    @apply bg-food-white border rounded-xl p-5 transition-all hover:shadow-soft;
   }
   
   .pricing-highlight {
-    @apply bg-green-50 border-green-200 text-green-800;
+    @apply bg-food-green/20 border-food-green/30 text-green-800;
+  }
+  
+  .pricing-alert {
+    @apply bg-food-red/20 border-food-red/30 text-red-800;
+  }
+  
+  .pricing-neutral {
+    @apply bg-food-vanilla border-food-vanilla/50 text-amber-800;
   }
   
   .input-group {
