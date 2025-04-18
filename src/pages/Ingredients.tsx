@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -24,7 +25,8 @@ import {
   Tags,
   X,
   FileEdit,
-  Loader2
+  Loader2,
+  Image as ImageIcon
 } from "lucide-react";
 import { formatCurrency } from "@/utils/calculations";
 import { useToast } from "@/components/ui/use-toast";
