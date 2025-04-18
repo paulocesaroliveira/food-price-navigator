@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { type Order, type OrderItem, type Customer } from "@/types";
 import { toast } from "@/hooks/use-toast";
-import { Customer } from "./customerService";
 
 export interface OrderItem {
   id: string;
@@ -89,7 +89,61 @@ export async function getOrderById(id: string) {
   }
 }
 
-// Define a type that specifically matches what Supabase expects for order insertion
+export const getOrderList = async (): Promise<Order[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(`
+        *,
+        customer:customer_id(*),
+        items:order_items(*, product:product_id(name))
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data || []) as unknown as Order[];
+  } catch (error: any) {
+    console.error("Error fetching orders:", error.message);
+    toast({
+      title: "Error",
+      description: `Could not fetch orders: ${error.message}`,
+      variant: "destructive",
+    });
+    return [];
+  }
+};
+
+export const getOrderDetails = async (orderId: string): Promise<Order | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(`
+        *,
+        customer:customer_id(*),
+        items:order_items(*, product:product_id(name))
+      `)
+      .eq("id", orderId)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data as unknown as Order;
+  } catch (error: any) {
+    console.error("Error fetching order details:", error.message);
+    toast({
+      title: "Error",
+      description: `Could not fetch order details: ${error.message}`,
+      variant: "destructive",
+    });
+    return null;
+  }
+};
+
 type OrderInsert = {
   customer_id: string;
   delivery_type: string;
@@ -108,14 +162,11 @@ export async function createOrder(
   items: Omit<OrderItem, "id" | "order_id" | "created_at">[]
 ) {
   try {
-    // Create an object that satisfies Supabase's requirements
-    // We set order_number to an empty string as it will be overwritten by the DB trigger
     const orderData: OrderInsert = {
       ...order,
       order_number: "" // This will be replaced by the database trigger
     };
 
-    // Insert the order
     const { data: newOrderData, error: orderError } = await supabase
       .from("orders")
       .insert([orderData])
@@ -127,7 +178,6 @@ export async function createOrder(
 
     const newOrder = newOrderData[0] as Order;
 
-    // Insert the items if there are any
     if (items.length > 0) {
       const itemsWithOrderId = items.map(item => ({
         ...item,

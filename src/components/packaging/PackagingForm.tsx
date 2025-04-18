@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -41,7 +40,7 @@ export const PackagingForm = ({
   const [imageUrl, setImageUrl] = useState<string | null>(
     packaging?.image || null
   );
-  const { uploadFile, isUploading } = useFileUpload();
+  const { uploadFile, isUploading, setUploading } = useFileUpload();
 
   const form = useForm<z.infer<typeof packagingSchema>>({
     resolver: zodResolver(packagingSchema),
@@ -60,20 +59,21 @@ export const PackagingForm = ({
   const unitCost = bulkQuantity && bulkPrice ? bulkPrice / bulkQuantity : 0;
 
   const handleImageUpload = async (file: File) => {
+    setUploading(true);
     try {
-      const url = await uploadFile(file, "packaging");
-      if (url) {
-        setImageUrl(url);
+      const result = await uploadFile(file, "packaging");
+      if (result) {
+        form.setValue("imageUrl", result.url);
       }
-      return url;
     } catch (error) {
-      console.error("Erro ao fazer upload da imagem:", error);
+      console.error("Error uploading image:", error);
       toast({
-        title: "Erro no upload",
+        title: "Erro ao fazer upload",
         description: "Não foi possível fazer o upload da imagem.",
         variant: "destructive",
       });
-      return null;
+    } finally {
+      setUploading(false);
     }
   };
 
