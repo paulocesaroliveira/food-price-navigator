@@ -161,7 +161,7 @@ export interface Order {
   items?: OrderItem[];
 }
 
-// Adding Customer type to our types index
+// Customer type definition
 export interface Customer {
   id: string;
   name: string;

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -24,6 +25,7 @@ const packagingSchema = z.object({
   bulkQuantity: z.coerce.number().positive({ message: "Quantidade deve ser maior que 0" }),
   bulkPrice: z.coerce.number().positive({ message: "Preço deve ser maior que 0" }),
   notes: z.string().optional(),
+  imageUrl: z.string().optional(),
 });
 
 type PackagingFormProps = {
@@ -38,7 +40,7 @@ export const PackagingForm = ({
   onCancel,
 }: PackagingFormProps) => {
   const [imageUrl, setImageUrl] = useState<string | null>(
-    packaging?.image || null
+    packaging?.imageUrl || null
   );
   const { uploadFile, isUploading, setUploading } = useFileUpload();
 
@@ -50,6 +52,7 @@ export const PackagingForm = ({
       bulkQuantity: packaging?.bulkQuantity || 0,
       bulkPrice: packaging?.bulkPrice || 0,
       notes: packaging?.notes || "",
+      imageUrl: packaging?.imageUrl || "",
     },
   });
 
@@ -61,9 +64,10 @@ export const PackagingForm = ({
   const handleImageUpload = async (file: File) => {
     setUploading(true);
     try {
-      const result = await uploadFile(file, "packaging");
-      if (result) {
-        form.setValue("imageUrl", result.url);
+      const url = await uploadFile(file, "packaging");
+      if (url) {
+        setImageUrl(url);
+        form.setValue("imageUrl", url);
       }
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -184,11 +188,23 @@ export const PackagingForm = ({
           </div>
           
           <div>
-            <ImageUpload
-              currentImage={imageUrl}
-              onUpload={handleImageUpload}
-              isUploading={isUploading}
-              label="Imagem da Embalagem (opcional)"
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Imagem da Embalagem (opcional)</FormLabel>
+                  <FormControl>
+                    <ImageUpload
+                      currentImage={imageUrl}
+                      onUpload={handleImageUpload}
+                      isUploading={isUploading}
+                      label="Imagem da Embalagem (opcional)"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </div>
         </div>

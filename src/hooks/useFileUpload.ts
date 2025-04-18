@@ -37,5 +37,5 @@ export const useFileUpload = () => {
     }
   };
 
-  return { uploadFile, isUploading };
+  return { uploadFile, isUploading, setUploading };
 };

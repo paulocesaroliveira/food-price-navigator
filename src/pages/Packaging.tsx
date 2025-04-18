@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { Packaging } from "@/types";
 import { createPackaging, getPackagingList, updatePackaging, deletePackaging, searchPackaging } from "@/services/packagingService";
-import { uploadFile } from "@/integrations/supabase/storage";
+import { useFileUpload } from "@/hooks/useFileUpload";
 import { PackagingForm } from "@/components/packaging/PackagingForm";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -27,9 +28,14 @@ const PackagingPage = () => {
 
   const fetchPackagingList = async () => {
     setLoading(true);
-    const data = await getPackagingList();
-    setPackagingList(data);
-    setLoading(false);
+    try {
+      const data = await getPackagingList();
+      setPackagingList(data);
+    } catch (error) {
+      console.error("Erro ao buscar embalagens:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -39,8 +45,12 @@ const PackagingPage = () => {
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (searchQuery) {
-        const results = await searchPackaging(searchQuery);
-        setPackagingList(results);
+        try {
+          const results = await searchPackaging(searchQuery);
+          setPackagingList(results);
+        } catch (error) {
+          console.error("Erro ao buscar embalagens:", error);
+        }
       } else {
         fetchPackagingList();
       }
@@ -68,6 +78,33 @@ const PackagingPage = () => {
         setDeleteDialogOpen(false);
         setPackagingToDelete(null);
       }
+    }
+  };
+
+  const handleSubmitPackaging = async (formData: Omit<Packaging, "id" | "unitCost">) => {
+    try {
+      if (editingPackaging) {
+        await updatePackaging(editingPackaging.id, formData);
+        toast({
+          title: "Sucesso",
+          description: "Embalagem atualizada com sucesso!",
+        });
+      } else {
+        await createPackaging(formData as Omit<Packaging, "id">);
+        toast({
+          title: "Sucesso",
+          description: "Embalagem criada com sucesso!",
+        });
+      }
+      fetchPackagingList();
+      setDialogOpen(false);
+      setEditingPackaging(null);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Ocorreu um erro ao salvar a embalagem.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -207,11 +244,9 @@ const PackagingPage = () => {
           </DialogHeader>
 
           <PackagingForm
-            editingPackaging={editingPackaging}
-            onClose={() => {
-              setDialogOpen(false);
-              fetchPackagingList();
-            }}
+            packaging={editingPackaging || undefined}
+            onSubmit={handleSubmitPackaging}
+            onCancel={() => setDialogOpen(false)}
           />
         </DialogContent>
       </Dialog>
