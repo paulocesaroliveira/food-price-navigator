@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Card, 
@@ -271,8 +270,8 @@ const Recipes = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-muted border-b">
-                    <th className="text-left p-3">Nome</th>
                     <th className="text-left p-3">Imagem</th>
+                    <th className="text-left p-3">Nome</th>
                     <th className="text-left p-3">Categoria</th>
                     <th className="text-left p-3">Porções</th>
                     <th className="text-left p-3">Custo Total</th>
@@ -284,7 +283,6 @@ const Recipes = () => {
                   {filteredRecipes.length > 0 ? (
                     filteredRecipes.map((recipe: any) => (
                       <tr key={recipe.id} className="border-b hover:bg-muted/50">
-                        <td className="p-3">{recipe.name}</td>
                         <td className="p-3">
                           {recipe.image_url ? (
                             <div className="h-10 w-10 rounded-md overflow-hidden">
@@ -300,6 +298,7 @@ const Recipes = () => {
                             </div>
                           )}
                         </td>
+                        <td className="p-3">{recipe.name}</td>
                         <td className="p-3">{recipe.recipe_categories?.name}</td>
                         <td className="p-3">{recipe.portions}</td>
                         <td className="p-3">{formatCurrency(recipe.total_cost)}</td>

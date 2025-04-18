@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -68,7 +67,6 @@ const Ingredients = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Função para buscar categorias
   const { data: categories = [] } = useQuery({
     queryKey: ['ingredientCategories'],
     queryFn: async () => {
@@ -82,7 +80,6 @@ const Ingredients = () => {
     }
   });
 
-  // Função para buscar ingredientes
   const { data: ingredients = [], isLoading, refetch } = useQuery({
     queryKey: ['ingredients', searchTerm, selectedCategory],
     queryFn: async () => {
@@ -125,7 +122,6 @@ const Ingredients = () => {
     try {
       setIsDeleting(true);
       
-      // Verifica se o ingrediente está sendo usado em alguma receita
       const baseIngredients = await supabase
         .from('recipe_base_ingredients')
         .select('id')
@@ -151,7 +147,6 @@ const Ingredients = () => {
         return;
       }
       
-      // Exclui o ingrediente
       const { error } = await supabase
         .from('ingredients')
         .delete()
@@ -326,6 +321,7 @@ const Ingredients = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Imagem</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Categoria</TableHead>
                       <TableHead>Marca</TableHead>
@@ -339,6 +335,21 @@ const Ingredients = () => {
                   <TableBody>
                     {ingredients.map((ingredient) => (
                       <TableRow key={ingredient.id}>
+                        <TableCell>
+                          {ingredient.image_url ? (
+                            <div className="h-10 w-10 rounded-md overflow-hidden">
+                              <img 
+                                src={ingredient.image_url} 
+                                alt={ingredient.name} 
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                              <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium">{ingredient.name}</TableCell>
                         <TableCell>{ingredient.ingredient_categories?.name}</TableCell>
                         <TableCell>{ingredient.brand}</TableCell>
@@ -377,14 +388,12 @@ const Ingredients = () => {
         </Card>
       )}
       
-      {/* Diálogo de gerenciar categorias */}
       <CategoryDialog 
         open={showCategoryDialog} 
         onOpenChange={setShowCategoryDialog}
         onCategoriesChange={handleCategoriesChange}
       />
       
-      {/* Diálogo de confirmação de exclusão */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
