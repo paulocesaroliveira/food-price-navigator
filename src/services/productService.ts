@@ -391,12 +391,18 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
       }));
 
       const primaryPackaging = formattedPackagingItems.find(pkg => pkg.isPrimary);
+      
+      const { data: categoryData } = await supabase
+        .from("product_categories")
+        .select("id, name")
+        .eq("id", product.category_id)
+        .single();
 
       return {
         id: product.id,
         name: product.name,
         categoryId: product.category_id,
-        category: product.product_categories,
+        category: categoryData || null,
         items: formattedItems,
         packagingId: primaryPackaging?.packagingId || product.packaging_id,
         packagingCost: primaryPackaging?.cost || product.packaging_cost,

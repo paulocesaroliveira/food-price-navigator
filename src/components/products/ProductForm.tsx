@@ -59,7 +59,7 @@ type ProductItemState = {
   recipeId: string;
   quantity: number;
   cost: number;
-  recipe?: Recipe | null;
+  recipe?: Partial<Recipe> | null;
 };
 
 type ProductPackagingState = {
@@ -86,7 +86,7 @@ export const ProductForm = ({
       recipeId: item.recipeId,
       quantity: item.quantity,
       cost: item.cost,
-      recipe: item.recipe
+      recipe: item.recipe as Partial<Recipe> | null
     })) || []
   );
 
@@ -489,7 +489,7 @@ export const ProductForm = ({
                           </div>
                         ) : (
                           packagingItems.filter(pkg => !pkg.isPrimary).map((pkg, index) => {
-                            const realIndex = packagingItems.findIndex(p => p === pkg);
+                            const realIndex = packagingItems.findIndex(pkg => pkg === pkg);
                             return (
                               <Card key={index} className="border border-muted">
                                 <CardContent className="p-3">
@@ -553,7 +553,7 @@ export const ProductForm = ({
                 <div className="space-y-4">
                   <Card>
                     <CardContent className="pt-6">
-                      <div className="flex items-center justify-center mb-2">
+                      <div className="flex justify-center items-center mb-2">
                         {getPrimaryPackagingImage() ? (
                           <div className="relative w-40 h-40 rounded-md overflow-hidden">
                             <img
@@ -841,10 +841,10 @@ export const ProductForm = ({
                             return (
                               <div key={index} className="p-3 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  {pkgInfo?.image_url ? (
+                                  {pkgInfo?.imageUrl ? (
                                     <div className="h-8 w-8 rounded-md overflow-hidden">
                                       <img
-                                        src={pkgInfo.image_url}
+                                        src={pkgInfo.imageUrl}
                                         alt={pkgInfo.name}
                                         className="h-full w-full object-cover"
                                       />

@@ -1,4 +1,3 @@
-
 // Basic types
 export interface Category {
   id: string;
@@ -43,7 +42,7 @@ export interface Packaging {
   id: string;
   name: string;
   image?: string;
-  imageUrl?: string; // Add this field for compatibility
+  imageUrl?: string; // This field is needed for compatibility
   type: string;
   bulkQuantity: number;
   bulkPrice: number;
@@ -72,12 +71,7 @@ export type Product = {
 export interface ProductItem {
   id?: string;
   recipeId: string;
-  recipe?: {
-    id: string;
-    name: string;
-    image_url?: string;
-    unit_cost: number;
-  } | null;
+  recipe?: Partial<Recipe> | null; // Make recipe a partial type for compatibility
   quantity: number;
   cost: number;
 }
