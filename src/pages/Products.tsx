@@ -185,10 +185,17 @@ const Products = () => {
   }, [searchQuery, queryClient, refetchProducts]);
 
   const handleCreateProduct = (data: any) => {
+    if (data.categoryId === "_none") {
+      data.categoryId = null;
+    }
     createProductMutation.mutate(data);
   };
 
   const handleUpdateProduct = (data: any) => {
+    if (data.categoryId === "_none") {
+      data.categoryId = null;
+    }
+    
     if (currentProduct) {
       updateProductMutation.mutate({
         id: currentProduct.id,

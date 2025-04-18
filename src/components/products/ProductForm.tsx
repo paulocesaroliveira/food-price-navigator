@@ -406,7 +406,7 @@ export const ProductForm = ({
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                      <SelectItem value="">Sem categoria</SelectItem>
+                                      <SelectItem value="_none">Sem categoria</SelectItem>
                                       {categories.map((category) => (
                                         <SelectItem key={category.id} value={category.id}>
                                           {category.name}
@@ -566,7 +566,7 @@ export const ProductForm = ({
                           <div className="flex flex-col items-center justify-center w-40 h-40 bg-muted rounded-md">
                             <Image className="h-12 w-12 text-muted-foreground mb-2 opacity-40" />
                             <p className="text-xs text-muted-foreground text-center px-2">
-                              A imagem será baseada na embalagem principal
+                              A imagem será baseada na embalagem principal selecionada.
                             </p>
                           </div>
                         )}
