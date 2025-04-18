@@ -1,4 +1,3 @@
-
 // Basic types
 export interface Category {
   id: string;
@@ -50,6 +49,24 @@ export interface Packaging {
   notes?: string;
 }
 
+export type ProductCategory = {
+  id: string;
+  name: string;
+};
+
+export type Product = {
+  id: string;
+  name: string;
+  categoryId?: string;
+  category?: ProductCategory | null;
+  items: ProductItem[];
+  packagingId?: string;
+  packagingCost: number;
+  packagingItems?: ProductPackaging[];
+  totalCost: number;
+  imageUrl?: string | null;
+};
+
 export interface ProductItem {
   id: string;
   recipeId: string;
@@ -63,16 +80,6 @@ export interface ProductPackaging {
   quantity: number;
   cost: number;
   isPrimary?: boolean;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  items: ProductItem[];
-  packagingId: string;
-  packagingCost: number;
-  packagingItems?: ProductPackaging[];
-  totalCost: number;
 }
 
 export interface PricingConfiguration {

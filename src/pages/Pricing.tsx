@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Card, 
@@ -9,21 +9,25 @@ import {
   CardDescription 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Product, PricingConfiguration } from "@/types";
 import { 
-  FilePenLine, 
-  FileText, 
   Calculator, 
   Plus, 
   ArrowLeft,
-  History,
-  Download
+  Search,
+  Package,
+  FileText,
+  Download,
+  DollarSign,
+  Edit,
+  Trash2,
+  Copy,
+  Filter,
+  X
 } from "lucide-react";
-import ProductSelector from "@/components/pricing/ProductSelector";
 import PricingForm from "@/components/pricing/PricingForm";
-import PricingConfigsList from "@/components/pricing/PricingConfigsList";
 import { 
   getPricingConfigs, 
   getPricingConfig, 
@@ -32,7 +36,7 @@ import {
   deletePricingConfig,
   duplicatePricingConfig 
 } from "@/services/pricingService";
-import { getProductList } from "@/services/productService";
+import { getProductList, searchProducts } from "@/services/productService";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -43,43 +47,58 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell
+} from "@/components/ui/table";
+import { formatCurrency } from "@/utils/calculations";
 
 enum PricingMode {
   LIST = "list",
-  HISTORY = "history",
   CREATE = "create",
-  VIEW = "view",
   EDIT = "edit"
 }
 
 const Pricing = () => {
-  const [tab, setTab] = useState("create");
+  const [searchTerm, setSearchTerm] = useState("");
   const [mode, setMode] = useState<PricingMode>(PricingMode.LIST);
-  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+  const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
   const [currentConfigId, setCurrentConfigId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [configToDelete, setConfigToDelete] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   // Fetch products
-  const { data: products = [], isLoading: isLoadingProducts } = useQuery({
+  const { data: products = [], isLoading: isLoadingProducts, refetch: refetchProducts } = useQuery({
     queryKey: ["products"],
     queryFn: getProductList
   });
   
-  // Fetch pricing configs
-  const { data: pricingConfigs = [], isLoading: isLoadingConfigs } = useQuery({
+  // Get all pricing configs to check if a product already has pricing
+  const { data: allPricingConfigs = [], isLoading: isLoadingConfigs } = useQuery({
     queryKey: ["pricing-configs"],
     queryFn: () => getPricingConfigs()
   });
   
-  // Fetch current config if in VIEW or EDIT mode
+  // Fetch current config if in EDIT mode
   const { data: currentConfig, isLoading: isLoadingCurrentConfig } = useQuery({
     queryKey: ["pricing-config", currentConfigId],
     queryFn: () => currentConfigId ? getPricingConfig(currentConfigId) : null,
-    enabled: !!currentConfigId && (mode === PricingMode.VIEW || mode === PricingMode.EDIT)
+    enabled: !!currentConfigId
   });
   
   // Create pricing config mutation
@@ -91,7 +110,8 @@ const Pricing = () => {
         description: "A configuração de preço foi salva com sucesso.",
       });
       queryClient.invalidateQueries({ queryKey: ["pricing-configs"] });
-      setMode(PricingMode.HISTORY);
+      setPricingDialogOpen(false);
+      setCurrentProduct(null);
     },
     onError: (error) => {
       toast({
@@ -113,7 +133,10 @@ const Pricing = () => {
       });
       queryClient.invalidateQueries({ queryKey: ["pricing-configs"] });
       queryClient.invalidateQueries({ queryKey: ["pricing-config", currentConfigId] });
-      setMode(PricingMode.HISTORY);
+      setPricingDialogOpen(false);
+      setCurrentProduct(null);
+      setCurrentConfigId(null);
+      setIsEditing(false);
     },
     onError: (error) => {
       toast({
@@ -133,6 +156,7 @@ const Pricing = () => {
         description: "A configuração de preço foi excluída com sucesso.",
       });
       queryClient.invalidateQueries({ queryKey: ["pricing-configs"] });
+      setDeleteDialogOpen(false);
     },
     onError: (error) => {
       toast({
@@ -163,43 +187,76 @@ const Pricing = () => {
     }
   });
   
-  // Handle product selection
-  const handleProductsSelected = (products: Product[]) => {
-    setSelectedProducts(products);
-  };
-  
   // Handle save pricing
   const handleSavePricing = async (config: Omit<PricingConfiguration, "id" | "createdAt" | "updatedAt">) => {
-    if (mode === PricingMode.EDIT && currentConfigId) {
+    if (isEditing && currentConfigId) {
       updateMutation.mutate({ id: currentConfigId, config });
     } else {
       createMutation.mutate(config);
     }
   };
   
-  // Handle view config
-  const handleViewConfig = (id: string) => {
-    setCurrentConfigId(id);
-    setMode(PricingMode.VIEW);
-    setTab("create");
-  };
+  // Search products
+  useEffect(() => {
+    const searchTimer = setTimeout(async () => {
+      if (searchTerm) {
+        try {
+          const results = await searchProducts(searchTerm);
+          queryClient.setQueryData(['products'], results);
+        } catch (error: any) {
+          toast({
+            title: "Erro",
+            description: `Erro na busca: ${error.message}`,
+            variant: "destructive",
+          });
+        }
+      } else {
+        refetchProducts();
+      }
+    }, 300);
+
+    return () => clearTimeout(searchTimer);
+  }, [searchTerm, queryClient, refetchProducts]);
   
-  // Handle edit config
-  const handleEditConfig = (id: string) => {
-    setCurrentConfigId(id);
-    setMode(PricingMode.EDIT);
-    setTab("create");
+  // Handle edit pricing
+  const openPricingDialog = (product: Product) => {
+    setCurrentProduct(product);
+    
+    // Check if product already has a pricing config
+    const existingConfig = allPricingConfigs.find(config => config.productId === product.id);
+    
+    if (existingConfig) {
+      setCurrentConfigId(existingConfig.id);
+      setIsEditing(true);
+    } else {
+      setCurrentConfigId(null);
+      setIsEditing(false);
+    }
+    
+    setPricingDialogOpen(true);
   };
   
   // Handle duplicate config
-  const handleDuplicateConfig = (id: string) => {
-    duplicateMutation.mutate({ id });
+  const handleDuplicateConfig = (productId: string) => {
+    const config = allPricingConfigs.find(config => config.productId === productId);
+    if (config) {
+      duplicateMutation.mutate({ id: config.id });
+    }
   };
   
   // Handle delete config
-  const confirmDeleteConfig = (id: string) => {
-    setConfigToDelete(id);
-    setDeleteDialogOpen(true);
+  const confirmDeleteConfig = (productId: string) => {
+    const config = allPricingConfigs.find(config => config.productId === productId);
+    if (config) {
+      setConfigToDelete(config.id);
+      setDeleteDialogOpen(true);
+    } else {
+      toast({
+        title: "Erro",
+        description: "Não foi possível encontrar a configuração de preço para este produto",
+        variant: "destructive"
+      });
+    }
   };
   
   const executeDeleteConfig = () => {
@@ -210,22 +267,19 @@ const Pricing = () => {
     }
   };
   
-  // Find the product for current config
-  const findProductForConfig = () => {
-    if (!currentConfig) return null;
-    return products.find(p => p.id === currentConfig.productId);
+  // Check if a product has pricing
+  const productHasPricing = (productId: string) => {
+    return allPricingConfigs.some(config => config.productId === productId);
   };
   
-  // Reset to list mode
-  const goBack = () => {
-    setMode(PricingMode.LIST);
-    setCurrentConfigId(null);
+  // Get pricing config for a product
+  const getPricingForProduct = (productId: string) => {
+    return allPricingConfigs.find(config => config.productId === productId);
   };
   
-  // Switch to history mode
-  const viewHistory = () => {
-    setMode(PricingMode.HISTORY);
-    setCurrentConfigId(null);
+  // Clear search
+  const clearSearch = () => {
+    setSearchTerm("");
   };
   
   return (
@@ -257,119 +311,189 @@ const Pricing = () => {
         </div>
       </div>
       
-      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList className="bg-food-vanilla/50 p-1">
-          <TabsTrigger 
-            value="create" 
-            onClick={() => setMode(PricingMode.LIST)}
-            className="data-[state=active]:bg-food-white data-[state=active]:text-food-coral"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Precificação
-          </TabsTrigger>
-          <TabsTrigger 
-            value="history" 
-            onClick={viewHistory}
-            className="data-[state=active]:bg-food-white data-[state=active]:text-food-coral"
-          >
-            <History className="h-4 w-4 mr-2" />
-            Histórico
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="create" className="space-y-4">
-          {mode === PricingMode.LIST && (
-            <Card className="border shadow-soft rounded-xl bg-food-white">
-              <CardHeader className="bg-gradient-to-r from-food-vanilla to-food-cream rounded-t-xl">
-                <CardTitle className="flex items-center gap-2 font-poppins text-food-dark">
-                  <Plus className="h-5 w-5 text-food-coral" />
-                  Selecione os produtos
-                </CardTitle>
-                <CardDescription>
-                  Escolha um ou mais produtos para calcular o preço
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 p-6">
-                <ProductSelector 
-                  onProductsSelected={handleProductsSelected}
-                  selectedProducts={selectedProducts}
-                />
-                
-                {selectedProducts.length > 0 && (
-                  <Button 
-                    onClick={() => setMode(PricingMode.CREATE)}
-                    className="w-full mt-4 bg-food-coral hover:bg-food-amber text-white transition-colors"
-                  >
-                    <Calculator className="h-4 w-4 mr-2" />
-                    Calcular Preço ({selectedProducts.length} produtos)
-                  </Button>
+      <Card className="border shadow-soft rounded-xl bg-food-white">
+        <CardHeader className="bg-gradient-to-r from-food-vanilla to-food-cream rounded-t-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <CardTitle className="font-poppins text-food-dark">
+              Produtos para Precificação
+            </CardTitle>
+            <CardDescription>
+              Selecione um produto para calcular ou editar seu preço de venda
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar produto..."
+                className="pl-9 w-[200px] md:w-[250px]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button 
+                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                  onClick={clearSearch}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoadingProducts || isLoadingConfigs ? (
+            <div className="flex justify-center py-8">
+              <p>Carregando produtos...</p>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-8">
+              <Package className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+              <h3 className="mt-4 text-lg font-semibold">Nenhum produto encontrado</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {searchTerm ? (
+                  <>
+                    Nenhum produto corresponde à sua busca.
+                    <Button variant="link" onClick={clearSearch} className="p-0 h-auto text-sm underline ml-1">
+                      Limpar busca
+                    </Button>
+                  </>
+                ) : (
+                  "Adicione produtos na seção 'Produtos' para poder precificá-los."
                 )}
-              </CardContent>
-            </Card>
-          )}
-          
-          {mode === PricingMode.CREATE && selectedProducts.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={goBack}
-                  className="mr-2 border-food-cream hover:bg-food-cream hover:text-food-coral"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  Voltar
-                </Button>
-                <h2 className="text-xl font-semibold font-poppins text-food-dark">Nova Precificação</h2>
-              </div>
-              
-              <PricingForm
-                product={selectedProducts[0]}
-                onSave={handleSavePricing}
-                isLoading={createMutation.isPending}
-              />
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Produto</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Custo</TableHead>
+                    <TableHead>Preço Sugerido</TableHead>
+                    <TableHead>Preço Final</TableHead>
+                    <TableHead>Margem</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((product) => {
+                    const pricing = getPricingForProduct(product.id);
+                    const hasPricing = !!pricing;
+                    
+                    return (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {product.imageUrl ? (
+                              <div className="h-10 w-10 rounded-md overflow-hidden">
+                                <img 
+                                  src={product.imageUrl} 
+                                  alt={product.name} 
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                                <Package className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <span className="font-medium">{product.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{product.category?.name || "Sem categoria"}</TableCell>
+                        <TableCell>{formatCurrency(product.totalCost)}</TableCell>
+                        <TableCell>
+                          {hasPricing ? formatCurrency(pricing.idealPrice) : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {hasPricing ? (
+                            <span className="font-medium">{formatCurrency(pricing.finalPrice)}</span>
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {hasPricing ? `${pricing.actualMargin.toFixed(1)}%` : "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                              onClick={() => openPricingDialog(product)}
+                            >
+                              {hasPricing ? (
+                                <>
+                                  <Edit className="h-4 w-4" />
+                                  <span className="hidden sm:inline">Editar</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Calculator className="h-4 w-4" />
+                                  <span className="hidden sm:inline">Precificar</span>
+                                </>
+                              )}
+                            </Button>
+                            
+                            {hasPricing && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="gap-1 text-amber-600 hover:text-amber-800 hover:bg-amber-50"
+                                  onClick={() => handleDuplicateConfig(product.id)}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                  <span className="hidden sm:inline">Duplicar</span>
+                                </Button>
+                                
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="gap-1 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                  onClick={() => confirmDeleteConfig(product.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="hidden sm:inline">Excluir</span>
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
-          
-          {(mode === PricingMode.VIEW || mode === PricingMode.EDIT) && currentConfig && (
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={goBack}
-                  className="mr-2 border-food-cream hover:bg-food-cream hover:text-food-coral"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  Voltar
-                </Button>
-                <h2 className="text-xl font-semibold font-poppins text-food-dark">
-                  {mode === PricingMode.VIEW ? "Visualizar" : "Editar"} Precificação
-                </h2>
-              </div>
-              
-              <PricingForm
-                product={findProductForConfig() || products[0]}
-                config={currentConfig}
-                onSave={(config) => handleSavePricing(config)}
-                isLoading={isLoadingCurrentConfig || updateMutation.isPending}
-              />
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="history">
-          <PricingConfigsList
-            configs={pricingConfigs}
-            onView={handleViewConfig}
-            onEdit={handleEditConfig}
-            onDuplicate={handleDuplicateConfig}
-            onDelete={confirmDeleteConfig}
-            isLoading={isLoadingConfigs}
-          />
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
       
+      {/* Pricing Dialog */}
+      <Dialog open={pricingDialogOpen} onOpenChange={setPricingDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              {isEditing ? "Editar Precificação" : "Nova Precificação"}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {pricingDialogOpen && currentProduct && (
+            <PricingForm
+              product={currentProduct}
+              config={currentConfig || undefined}
+              onSave={handleSavePricing}
+              isLoading={isLoadingCurrentConfig || createMutation.isPending || updateMutation.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete confirmation dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-food-white rounded-xl">
           <AlertDialogHeader>

@@ -7,11 +7,11 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search, Edit, Trash, Package } from "lucide-react";
+import { PlusCircle, Search, Edit, Trash, Package, Image as ImageIcon, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/utils/calculations";
-import { Product, Recipe, Packaging } from "@/types";
+import { Product, Recipe, Packaging, ProductCategory } from "@/types";
 import { 
   Dialog, 
   DialogContent, 
@@ -20,11 +20,26 @@ import {
 } from "@/components/ui/dialog";
 import { ProductForm } from "@/components/products/ProductForm";
 import { DeleteProductDialog } from "@/components/products/DeleteProductDialog";
-import { getProductList, createProduct, updateProduct, deleteProduct, searchProducts } from "@/services/productService";
+import { 
+  getProductList, 
+  createProduct, 
+  updateProduct, 
+  deleteProduct, 
+  searchProducts,
+  getProductCategories
+} from "@/services/productService";
 import { fetchRecipes } from "@/services/recipeService";
 import { getPackagingList } from "@/services/packagingService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell
+} from "@/components/ui/table";
 
 // Helper function to transform the API response to match our Recipe type
 const mapRecipesData = (recipesData: any[]): Recipe[] => {
@@ -80,6 +95,16 @@ const Products = () => {
   } = useQuery({
     queryKey: ['packaging'],
     queryFn: getPackagingList,
+  });
+
+  // Fetch product categories
+  const {
+    data: categories = [],
+    isLoading: isLoadingCategories,
+    refetch: refetchCategories
+  } = useQuery({
+    queryKey: ['productCategories'],
+    queryFn: getProductCategories,
   });
 
   // Create product mutation
@@ -189,6 +214,10 @@ const Products = () => {
     }
   };
 
+  const handleCategoriesChange = () => {
+    refetchCategories();
+  };
+
   const openCreateDialog = () => {
     setCurrentProduct(undefined);
     setIsEditing(false);
@@ -218,7 +247,7 @@ const Products = () => {
     setDeleteDialogOpen(true);
   };
 
-  const isLoading = isLoadingProducts || isLoadingRecipes || isLoadingPackaging;
+  const isLoading = isLoadingProducts || isLoadingRecipes || isLoadingPackaging || isLoadingCategories;
 
   return (
     <div className="space-y-6">
@@ -263,29 +292,52 @@ const Products = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-muted border-b">
-                    <th className="text-left p-3">Nome</th>
-                    <th className="text-left p-3">Itens</th>
-                    <th className="text-left p-3">Embalagem</th>
-                    <th className="text-left p-3">Custo Total</th>
-                    <th className="text-left p-3">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Foto</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Qtd. Itens</TableHead>
+                    <TableHead>Custo Total</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {products.map((product) => {
-                    const pkg = packaging.find(p => p.id === product.packagingId);
                     const totalItems = product.items.reduce((acc, item) => acc + item.quantity, 0);
                     
                     return (
-                      <tr key={product.id} className="border-b hover:bg-muted/50">
-                        <td className="p-3">{product.name}</td>
-                        <td className="p-3">{totalItems}</td>
-                        <td className="p-3">{pkg?.name}</td>
-                        <td className="p-3">{formatCurrency(product.totalCost)}</td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          {product.imageUrl ? (
+                            <div className="h-10 w-10 rounded-md overflow-hidden">
+                              <img 
+                                src={product.imageUrl} 
+                                alt={product.name} 
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : product.packagingItems?.find(pkg => pkg.isPrimary)?.packaging?.image_url ? (
+                            <div className="h-10 w-10 rounded-md overflow-hidden">
+                              <img 
+                                src={product.packagingItems?.find(pkg => pkg.isPrimary)?.packaging?.image_url} 
+                                alt={product.name} 
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                              <Package className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>{product.category?.name || "Sem categoria"}</TableCell>
+                        <TableCell>{totalItems}</TableCell>
+                        <TableCell>{formatCurrency(product.totalCost)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
                             <Button 
                               variant="ghost" 
                               size="sm"
@@ -304,12 +356,12 @@ const Products = () => {
                               Excluir
                             </Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
@@ -317,7 +369,7 @@ const Products = () => {
 
       {/* Dialog for desktop */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isEditing ? "Editar Produto" : "Novo Produto"}</DialogTitle>
           </DialogHeader>
@@ -326,8 +378,10 @@ const Products = () => {
               product={currentProduct}
               recipes={recipes}
               packaging={packaging}
+              categories={categories}
               onSubmit={isEditing ? handleUpdateProduct : handleCreateProduct}
               onCancel={() => setDialogOpen(false)}
+              onCategoriesChange={handleCategoriesChange}
             />
           )}
         </DialogContent>
@@ -344,8 +398,10 @@ const Products = () => {
               product={currentProduct}
               recipes={recipes}
               packaging={packaging}
+              categories={categories}
               onSubmit={isEditing ? handleUpdateProduct : handleCreateProduct}
               onCancel={() => setSheetOpen(false)}
+              onCategoriesChange={handleCategoriesChange}
             />
           )}
         </SheetContent>

@@ -1,12 +1,31 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { Product, ProductItem, ProductPackaging } from "@/types";
+import { Product, ProductItem, ProductPackaging, ProductCategory } from "@/types";
 import { calculateProductTotalCost } from "@/utils/calculations";
+
+export const getProductCategories = async (): Promise<ProductCategory[]> => {
+  const { data, error } = await supabase
+    .from("product_categories")
+    .select("*")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Erro ao buscar categorias de produtos:", error);
+    throw new Error(error.message);
+  }
+
+  return data || [];
+};
 
 export const getProductList = async (): Promise<Product[]> => {
   const { data, error } = await supabase
     .from("products")
-    .select("*")
+    .select(`
+      *,
+      product_categories:category_id (
+        id,
+        name
+      )
+    `)
     .order("name", { ascending: true });
 
   if (error) {
@@ -44,7 +63,8 @@ export const getProductList = async (): Promise<Product[]> => {
           packaging:packaging_id (
             id,
             name,
-            unit_cost
+            unit_cost,
+            image_url
           )
         `)
         .eq("product_id", product.id);
@@ -59,6 +79,7 @@ export const getProductList = async (): Promise<Product[]> => {
         recipeId: item.recipe_id,
         quantity: item.quantity,
         cost: item.cost,
+        recipe: item.recipes
       }));
 
       const formattedPackagingItems = (packagingItems || []).map((pkg) => ({
@@ -67,6 +88,7 @@ export const getProductList = async (): Promise<Product[]> => {
         quantity: pkg.quantity,
         cost: pkg.cost,
         isPrimary: pkg.is_primary,
+        packaging: pkg.packaging
       }));
 
       // Find primary packaging
@@ -75,11 +97,14 @@ export const getProductList = async (): Promise<Product[]> => {
       return {
         id: product.id,
         name: product.name,
+        categoryId: product.category_id,
+        category: product.product_categories,
         items: formattedItems,
         packagingId: primaryPackaging?.packagingId || product.packaging_id,
         packagingCost: primaryPackaging?.cost || product.packaging_cost,
         packagingItems: formattedPackagingItems,
         totalCost: product.total_cost,
+        imageUrl: primaryPackaging?.packaging?.image_url || null
       };
     })
   );
@@ -104,6 +129,7 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
     .from("products")
     .insert({
       name: product.name,
+      category_id: product.categoryId,
       packaging_id: primaryPackaging?.packagingId || product.packagingId,
       packaging_cost: primaryPackaging?.cost || product.packagingCost,
       total_cost: totalCost,
@@ -167,11 +193,14 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
   return {
     id: data.id,
     name: data.name,
+    categoryId: data.category_id,
+    category: null,
     items: product.items,
     packagingId: data.packaging_id,
     packagingCost: data.packaging_cost,
     packagingItems: product.packagingItems,
     totalCost: data.total_cost,
+    imageUrl: null
   };
 };
 
@@ -192,6 +221,7 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
     .from("products")
     .update({
       name: product.name,
+      category_id: product.categoryId,
       packaging_id: primaryPackaging?.packagingId || product.packagingId,
       packaging_cost: primaryPackaging?.cost || product.packagingCost,
       total_cost: totalCost,
@@ -269,11 +299,14 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
   return {
     id: data.id,
     name: data.name,
+    categoryId: data.category_id,
+    category: null,
     items: product.items,
     packagingId: data.packaging_id,
     packagingCost: data.packaging_cost,
     packagingItems: product.packagingItems,
     totalCost: data.total_cost,
+    imageUrl: null
   };
 };
 
@@ -353,7 +386,8 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
           packaging:packaging_id (
             id,
             name,
-            unit_cost
+            unit_cost,
+            image_url
           )
         `)
         .eq("product_id", product.id);
@@ -368,6 +402,7 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
         recipeId: item.recipe_id,
         quantity: item.quantity,
         cost: item.cost,
+        recipe: item.recipes
       }));
       
       const formattedPackagingItems = (packagingItems || []).map((pkg) => ({
@@ -376,6 +411,7 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
         quantity: pkg.quantity,
         cost: pkg.cost,
         isPrimary: pkg.is_primary,
+        packaging: pkg.packaging
       }));
 
       // Find primary packaging
@@ -384,11 +420,14 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
       return {
         id: product.id,
         name: product.name,
+        categoryId: product.category_id,
+        category: product.product_categories,
         items: formattedItems,
         packagingId: primaryPackaging?.packagingId || product.packaging_id,
         packagingCost: primaryPackaging?.cost || product.packaging_cost,
         packagingItems: formattedPackagingItems,
         totalCost: product.total_cost,
+        imageUrl: primaryPackaging?.packaging?.image_url || null
       };
     })
   );
