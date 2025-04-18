@@ -6,8 +6,8 @@ import { v4 as uuidv4 } from "uuid";
 export const useFileUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
 
-  const uploadFile = async (file: File, folder: string = "") => {
-    if (!file) return null;
+  const uploadFile = async (file: File, folder: string = ""): Promise<string> => {
+    if (!file) return "";
 
     try {
       setIsUploading(true);
@@ -37,5 +37,9 @@ export const useFileUpload = () => {
     }
   };
 
-  return { uploadFile, isUploading, setUploading };
+  return { 
+    uploadFile, 
+    isUploading, 
+    setUploading: setIsUploading // Added this to fix the error
+  };
 };

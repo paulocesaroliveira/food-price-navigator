@@ -1,21 +1,21 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 import { Customer } from "@/types";
+import { toast } from "@/hooks/use-toast";
 
 export const getCustomerList = async (): Promise<Customer[]> => {
   try {
     const { data, error } = await supabase
       .from("customers")
       .select("*")
-      .order("name");
+      .order("name", { ascending: true });
 
     if (error) {
       console.error("Erro ao buscar clientes:", error);
       throw error;
     }
 
-    return data as unknown as Customer[] || [];
+    return data || [];
   } catch (error: any) {
     console.error("Erro ao buscar clientes:", error.message);
     toast({
@@ -27,25 +27,25 @@ export const getCustomerList = async (): Promise<Customer[]> => {
   }
 };
 
-// Alias for getCustomerList for compatibility
-export const getCustomers = getCustomerList;
-
-export const createCustomer = async (customer: Omit<Customer, "id" | "created_at">) => {
+export const createCustomer = async (customer: Omit<Customer, "id" | "created_at" | "updated_at">): Promise<Customer> => {
   try {
     const { data, error } = await supabase
       .from("customers")
-      .insert([{
+      .insert({
         name: customer.name,
         email: customer.email,
         phone: customer.phone,
-        address: customer.address || customer.address1,
-        // Include other fields being used
+        address: customer.address,
+        address1: customer.address1,
+        address2: customer.address2,
         notes: customer.notes,
         origin: customer.origin || "manual"
-      }])
-      .select();
+      })
+      .select()
+      .single();
 
     if (error) {
+      console.error("Erro ao criar cliente:", error);
       throw error;
     }
 
@@ -54,7 +54,7 @@ export const createCustomer = async (customer: Omit<Customer, "id" | "created_at
       description: "Cliente criado com sucesso!",
     });
     
-    return data[0] as Customer;
+    return data;
   } catch (error: any) {
     console.error("Erro ao criar cliente:", error.message);
     toast({
@@ -62,11 +62,11 @@ export const createCustomer = async (customer: Omit<Customer, "id" | "created_at
       description: `Não foi possível criar o cliente: ${error.message}`,
       variant: "destructive",
     });
-    return null;
+    throw error;
   }
 };
 
-export const updateCustomer = async (id: string, customer: Omit<Customer, "id" | "created_at">) => {
+export const updateCustomer = async (id: string, customer: Partial<Omit<Customer, "id" | "created_at" | "updated_at">>): Promise<Customer> => {
   try {
     const { data, error } = await supabase
       .from("customers")
@@ -74,14 +74,18 @@ export const updateCustomer = async (id: string, customer: Omit<Customer, "id" |
         name: customer.name,
         email: customer.email,
         phone: customer.phone,
-        address: customer.address || customer.address1,
+        address: customer.address,
+        address1: customer.address1,
+        address2: customer.address2,
         notes: customer.notes,
         origin: customer.origin
       })
       .eq("id", id)
-      .select();
+      .select()
+      .single();
 
     if (error) {
+      console.error("Erro ao atualizar cliente:", error);
       throw error;
     }
 
@@ -89,8 +93,8 @@ export const updateCustomer = async (id: string, customer: Omit<Customer, "id" |
       title: "Sucesso",
       description: "Cliente atualizado com sucesso!",
     });
-
-    return data[0] as Customer;
+    
+    return data;
   } catch (error: any) {
     console.error("Erro ao atualizar cliente:", error.message);
     toast({
@@ -98,7 +102,7 @@ export const updateCustomer = async (id: string, customer: Omit<Customer, "id" |
       description: `Não foi possível atualizar o cliente: ${error.message}`,
       variant: "destructive",
     });
-    return null;
+    throw error;
   }
 };
 
@@ -110,6 +114,7 @@ export const deleteCustomer = async (id: string): Promise<boolean> => {
       .eq("id", id);
 
     if (error) {
+      console.error("Erro ao excluir cliente:", error);
       throw error;
     }
 
@@ -117,7 +122,7 @@ export const deleteCustomer = async (id: string): Promise<boolean> => {
       title: "Sucesso",
       description: "Cliente excluído com sucesso!",
     });
-
+    
     return true;
   } catch (error: any) {
     console.error("Erro ao excluir cliente:", error.message);
@@ -136,13 +141,14 @@ export const searchCustomers = async (query: string): Promise<Customer[]> => {
       .from("customers")
       .select("*")
       .or(`name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
-      .order("name");
+      .order("name", { ascending: true });
 
     if (error) {
+      console.error("Erro ao buscar clientes:", error);
       throw error;
     }
 
-    return data as unknown as Customer[] || [];
+    return data || [];
   } catch (error: any) {
     console.error("Erro ao buscar clientes:", error.message);
     toast({

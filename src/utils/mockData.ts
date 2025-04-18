@@ -88,12 +88,12 @@ export const recipes: Recipe[] = [
     name: "Brigadeiro Tradicional",
     categoryId: "cat-rec-1",
     baseIngredients: [
-      { id: "bi-1", ingredientId: "ing-2", quantity: 395, cost: 6.49 },
-      { id: "bi-2", ingredientId: "ing-3", quantity: 50, cost: 2.50 },
-      { id: "bi-3", ingredientId: "ing-4", quantity: 20, cost: 1.09 },
+      { id: "bi-1", ingredient_id: "ing-2", quantity: 395, cost: 6.49 },
+      { id: "bi-2", ingredient_id: "ing-3", quantity: 50, cost: 2.50 },
+      { id: "bi-3", ingredient_id: "ing-4", quantity: 20, cost: 1.09 },
     ],
     portionIngredients: [
-      { id: "pi-1", ingredientId: "ing-5", quantity: 5, cost: 0.159 },
+      { id: "pi-1", ingredient_id: "ing-5", quantity: 5, cost: 0.159 },
     ],
     portions: 25,
     totalCost: 10.08 + 0.159 * 25,
@@ -105,11 +105,11 @@ export const recipes: Recipe[] = [
     name: "Brigadeiro de Morango",
     categoryId: "cat-rec-1",
     baseIngredients: [
-      { id: "bi-4", ingredientId: "ing-2", quantity: 395, cost: 6.49 },
-      { id: "bi-5", ingredientId: "ing-4", quantity: 20, cost: 1.09 },
+      { id: "bi-4", ingredient_id: "ing-2", quantity: 395, cost: 6.49 },
+      { id: "bi-5", ingredient_id: "ing-4", quantity: 20, cost: 1.09 },
     ],
     portionIngredients: [
-      { id: "pi-2", ingredientId: "ing-5", quantity: 5, cost: 0.159 },
+      { id: "pi-2", ingredient_id: "ing-5", quantity: 5, cost: 0.159 },
     ],
     portions: 25,
     totalCost: 7.58 + 0.159 * 25,
@@ -121,11 +121,11 @@ export const recipes: Recipe[] = [
     name: "Brigadeiro de Paçoca",
     categoryId: "cat-rec-1",
     baseIngredients: [
-      { id: "bi-6", ingredientId: "ing-2", quantity: 395, cost: 6.49 },
-      { id: "bi-7", ingredientId: "ing-4", quantity: 20, cost: 1.09 },
+      { id: "bi-6", ingredient_id: "ing-2", quantity: 395, cost: 6.49 },
+      { id: "bi-7", ingredient_id: "ing-4", quantity: 20, cost: 1.09 },
     ],
     portionIngredients: [
-      { id: "pi-3", ingredientId: "ing-5", quantity: 5, cost: 0.159 },
+      { id: "pi-3", ingredient_id: "ing-5", quantity: 5, cost: 0.159 },
     ],
     portions: 25,
     totalCost: 7.58 + 0.159 * 25,

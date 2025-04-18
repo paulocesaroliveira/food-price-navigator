@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -72,12 +71,10 @@ const PackagingPage = () => {
 
   const confirmDelete = async () => {
     if (packagingToDelete) {
-      const success = await deletePackaging(packagingToDelete.id);
-      if (success) {
-        setPackagingList(prev => prev.filter(p => p.id !== packagingToDelete.id));
-        setDeleteDialogOpen(false);
-        setPackagingToDelete(null);
-      }
+      await deletePackaging(packagingToDelete.id);
+      setPackagingList(prev => prev.filter(p => p.id !== packagingToDelete.id));
+      setDeleteDialogOpen(false);
+      setPackagingToDelete(null);
     }
   };
 
@@ -206,10 +203,7 @@ const PackagingPage = () => {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => {
-                              setSelectedPackaging(packaging);
-                              openPackagingDialog(packaging);
-                            }}
+                            onClick={() => openPackagingDialog(packaging)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
