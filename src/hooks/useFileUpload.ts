@@ -40,6 +40,6 @@ export const useFileUpload = () => {
   return { 
     uploadFile, 
     isUploading, 
-    setUploading: setIsUploading // Added this to fix the error
+    setUploading: setIsUploading
   };
 };

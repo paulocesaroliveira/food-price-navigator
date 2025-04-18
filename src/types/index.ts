@@ -1,4 +1,3 @@
-
 // Basic types
 export interface Category {
   id: string;
@@ -167,11 +166,11 @@ export interface Customer {
   name: string;
   email: string | null;
   phone: string | null;
-  address: string | null;
-  created_at: string;
-  updated_at?: string;
+  address?: string | null;
   address1?: string | null;
   address2?: string | null;
   notes?: string | null;
   origin?: "site" | "manual";
+  created_at: string;
+  updated_at?: string;
 }
