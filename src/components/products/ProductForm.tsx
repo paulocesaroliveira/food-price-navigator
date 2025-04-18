@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -343,8 +342,8 @@ export const ProductForm = ({
   // Get primary packaging image
   const getPrimaryPackagingImage = () => {
     const primaryPkg = packagingItems.find(pkg => pkg.isPrimary);
-    if (primaryPkg?.packaging?.image_url) {
-      return primaryPkg.packaging.image_url;
+    if (primaryPkg?.packaging?.imageUrl) {
+      return primaryPkg.packaging.imageUrl;
     } else if (primaryPkg) {
       const pkg = packaging.find(p => p.id === primaryPkg.packagingId);
       return pkg?.image_url;
@@ -922,87 +921,4 @@ export const ProductForm = ({
                           <h4 className="text-sm font-medium">Custo de Embalagens</h4>
                           <span className="text-lg font-semibold">{formatCurrency(primaryPackagingCost + additionalPackagingCost)}</span>
                         </div>
-                        <div className="h-1 bg-muted mb-2"></div>
-                        <div className="space-y-1">
-                          {form.watch("packagingId") && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">
-                                Principal: {packaging.find(p => p.id === form.watch("packagingId"))?.name || "Embalagem"}
-                              </span>
-                              <span>{formatCurrency(primaryPackagingCost)}</span>
-                            </div>
-                          )}
-                          
-                          {packagingItems.filter(pkg => !pkg.isPrimary).map((pkg, index) => {
-                            const pkgInfo = packaging.find(p => p.id === pkg.packagingId);
-                            return (
-                              <div key={index} className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">
-                                  {pkgInfo?.name || "Embalagem"} × {pkg.quantity}
-                                </span>
-                                <span>{formatCurrency(pkg.cost)}</span>
-                              </div>
-                            );
-                          })}
-                          
-                          {!form.watch("packagingId") && packagingItems.filter(pkg => !pkg.isPrimary).length === 0 && (
-                            <div className="text-center text-sm text-muted-foreground py-2">
-                              Nenhuma embalagem adicionada
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col bg-muted/30 p-4 rounded-md">
-                      <h4 className="text-lg font-medium mb-4">Custo Total do Produto</h4>
-                      
-                      <div className="space-y-4 flex-1">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Itens:</span>
-                          <span>{formatCurrency(itemsTotalCost)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Embalagem Principal:</span>
-                          <span>{formatCurrency(primaryPackagingCost)}</span>
-                        </div>
-                        {additionalPackagingCost > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Embalagens Adicionais:</span>
-                            <span>{formatCurrency(additionalPackagingCost)}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="border-t mt-auto pt-4 mt-4">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Total:</span>
-                          <span className="text-2xl font-bold">{formatCurrency(totalCost)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button type="submit">
-            {product ? "Atualizar Produto" : "Adicionar Produto"}
-          </Button>
-        </div>
-      </form>
-      
-      <ProductCategoryDialog
-        open={categoryDialogOpen}
-        onOpenChange={setCategoryDialogOpen}
-        onCategoriesChange={onCategoriesChange}
-      />
-    </Form>
-  );
-};
+                        <div className

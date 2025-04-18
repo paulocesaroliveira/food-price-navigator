@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductItem, ProductPackaging, ProductCategory } from "@/types";
-import { calculateProductTotalCost } from "@/utils/calculations";
 
 export const getProductCategories = async (): Promise<ProductCategory[]> => {
   const { data, error } = await supabase
@@ -33,10 +32,8 @@ export const getProductList = async (): Promise<Product[]> => {
     throw new Error(error.message);
   }
 
-  // Buscar os itens de cada produto
   const products = await Promise.all(
     (data || []).map(async (product) => {
-      // Get recipe items
       const { data: items, error: itemsError } = await supabase
         .from("product_items")
         .select(`
@@ -55,7 +52,6 @@ export const getProductList = async (): Promise<Product[]> => {
         throw new Error(itemsError.message);
       }
 
-      // Get additional packaging items
       const { data: packagingItems, error: packagingError } = await supabase
         .from("product_packaging")
         .select(`
@@ -91,7 +87,6 @@ export const getProductList = async (): Promise<Product[]> => {
         packaging: pkg.packaging
       }));
 
-      // Find primary packaging
       const primaryPackaging = formattedPackagingItems.find(pkg => pkg.isPrimary);
       
       return {
@@ -115,16 +110,13 @@ export const getProductList = async (): Promise<Product[]> => {
 export const createProduct = async (product: Omit<Product, "id">): Promise<Product> => {
   console.log("Criando produto:", product);
   
-  // Calcular o custo total
   const itemsCost = product.items.reduce((acc, item) => acc + item.cost, 0);
   const packagingItemsCost = product.packagingItems ? 
     product.packagingItems.reduce((acc, pkg) => acc + pkg.cost, 0) : 0;
   const totalCost = itemsCost + packagingItemsCost;
 
-  // Find primary packaging
   const primaryPackaging = product.packagingItems?.find(pkg => pkg.isPrimary);
 
-  // Inserir o produto
   const { data, error } = await supabase
     .from("products")
     .insert({
@@ -142,7 +134,6 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
     throw new Error(error.message);
   }
 
-  // Inserir os itens do produto
   const productItems = product.items.map((item) => ({
     product_id: data.id,
     recipe_id: item.recipeId,
@@ -158,14 +149,12 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
     if (itemsError) {
       console.error("Erro ao adicionar itens ao produto:", itemsError);
       
-      // Reverter a criação do produto em caso de erro
       await supabase.from("products").delete().eq("id", data.id);
       
       throw new Error(itemsError.message);
     }
   }
 
-  // Inserir embalagens adicionais se existirem
   if (product.packagingItems && product.packagingItems.length > 0) {
     const packagingItems = product.packagingItems.map((pkg) => ({
       product_id: data.id,
@@ -182,7 +171,6 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
     if (packagingError) {
       console.error("Erro ao adicionar embalagens ao produto:", packagingError);
       
-      // Reverter a criação do produto e itens em caso de erro
       await supabase.from("product_items").delete().eq("product_id", data.id);
       await supabase.from("products").delete().eq("id", data.id);
       
@@ -207,16 +195,13 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
 export const updateProduct = async (id: string, product: Omit<Product, "id">): Promise<Product> => {
   console.log("Atualizando produto:", id, product);
   
-  // Calcular o custo total
   const itemsCost = product.items.reduce((acc, item) => acc + item.cost, 0);
   const packagingItemsCost = product.packagingItems ? 
     product.packagingItems.reduce((acc, pkg) => acc + pkg.cost, 0) : 0;
   const totalCost = itemsCost + packagingItemsCost;
 
-  // Find primary packaging
   const primaryPackaging = product.packagingItems?.find(pkg => pkg.isPrimary);
 
-  // Atualizar o produto
   const { data, error } = await supabase
     .from("products")
     .update({
@@ -235,7 +220,6 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
     throw new Error(error.message);
   }
 
-  // Remover todos os itens existentes
   const { error: deleteItemsError } = await supabase
     .from("product_items")
     .delete()
@@ -246,7 +230,6 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
     throw new Error(deleteItemsError.message);
   }
 
-  // Remover todas as embalagens existentes
   const { error: deletePackagingError } = await supabase
     .from("product_packaging")
     .delete()
@@ -257,7 +240,6 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
     throw new Error(deletePackagingError.message);
   }
 
-  // Inserir os novos itens
   if (product.items.length > 0) {
     const productItems = product.items.map((item) => ({
       product_id: id,
@@ -276,7 +258,6 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
     }
   }
 
-  // Inserir as novas embalagens
   if (product.packagingItems && product.packagingItems.length > 0) {
     const packagingItems = product.packagingItems.map((pkg) => ({
       product_id: id,
@@ -311,7 +292,6 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
 };
 
 export const deleteProduct = async (id: string): Promise<void> => {
-  // Primeiro remover os itens do produto
   const { error: itemsError } = await supabase
     .from("product_items")
     .delete()
@@ -322,7 +302,6 @@ export const deleteProduct = async (id: string): Promise<void> => {
     throw new Error(itemsError.message);
   }
   
-  // Remover as embalagens do produto
   const { error: packagingError } = await supabase
     .from("product_packaging")
     .delete()
@@ -333,7 +312,6 @@ export const deleteProduct = async (id: string): Promise<void> => {
     throw new Error(packagingError.message);
   }
 
-  // Remover o produto
   const { error } = await supabase
     .from("products")
     .delete()
@@ -357,7 +335,6 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
     throw new Error(error.message);
   }
 
-  // Buscar os itens de cada produto
   const products = await Promise.all(
     (data || []).map(async (product) => {
       const { data: items, error: itemsError } = await supabase
@@ -378,7 +355,6 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
         throw new Error(itemsError.message);
       }
       
-      // Get additional packaging items
       const { data: packagingItems, error: packagingError } = await supabase
         .from("product_packaging")
         .select(`
@@ -414,7 +390,6 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
         packaging: pkg.packaging
       }));
 
-      // Find primary packaging
       const primaryPackaging = formattedPackagingItems.find(pkg => pkg.isPrimary);
 
       return {

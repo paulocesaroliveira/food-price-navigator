@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import { 
   Dialog, 
@@ -11,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { 
   AlertDialog,
@@ -24,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { ProductCategory } from "@/types";
 
 type ProductCategoryDialogProps = {
   open: boolean;
@@ -31,34 +30,29 @@ type ProductCategoryDialogProps = {
   onCategoriesChange: () => void;
 };
 
-type Category = {
-  id: string;
-  name: string;
-};
-
 export function ProductCategoryDialog({
   open,
   onOpenChange,
   onCategoriesChange
 }: ProductCategoryDialogProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<ProductCategory | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Fetch categories when the dialog opens
+  // Fetch categories when dialog opens
   const fetchCategories = async () => {
     if (!open) return;
     
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('product_categories')
-        .select('*')
-        .order('name');
+        .from("product_categories")
+        .select("*")
+        .order("name");
       
       if (error) throw error;
       setCategories(data || []);
@@ -74,12 +68,11 @@ export function ProductCategoryDialog({
     }
   };
 
-  // Call fetchCategories when the dialog opens
-  useState(() => {
+  useEffect(() => {
     if (open) {
       fetchCategories();
     }
-  });
+  }, [open]);
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
@@ -94,7 +87,7 @@ export function ProductCategoryDialog({
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('product_categories')
+        .from("product_categories")
         .insert([{ name: newCategoryName.trim() }])
         .select()
         .single();
@@ -133,7 +126,7 @@ export function ProductCategoryDialog({
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('product_categories')
+        .from("product_categories")
         .update({ name: editingCategory.name.trim() })
         .eq('id', editingCategory.id);
       
@@ -161,11 +154,6 @@ export function ProductCategoryDialog({
     }
   };
 
-  const confirmDeleteCategory = (category: Category) => {
-    setCategoryToDelete(category);
-    setDeleteDialogOpen(true);
-  };
-
   const handleDeleteCategory = async () => {
     if (!categoryToDelete) return;
     
@@ -173,9 +161,9 @@ export function ProductCategoryDialog({
     try {
       // Check if the category is being used in any products
       const { data: products, error: checkError } = await supabase
-        .from('products')
-        .select('id')
-        .eq('category_id', categoryToDelete.id)
+        .from("products")
+        .select("id")
+        .eq("category_id", categoryToDelete.id)
         .limit(1);
       
       if (checkError) throw checkError;
@@ -187,19 +175,17 @@ export function ProductCategoryDialog({
           variant: "destructive",
         });
         setDeleteDialogOpen(false);
-        setIsDeleting(false);
         return;
       }
       
       const { error } = await supabase
-        .from('product_categories')
+        .from("product_categories")
         .delete()
-        .eq('id', categoryToDelete.id);
+        .eq("id", categoryToDelete.id);
       
       if (error) throw error;
       
-      const updatedCategories = categories.filter(cat => cat.id !== categoryToDelete.id);
-      setCategories(updatedCategories);
+      setCategories(categories.filter(cat => cat.id !== categoryToDelete.id));
       setDeleteDialogOpen(false);
       setCategoryToDelete(null);
       toast({

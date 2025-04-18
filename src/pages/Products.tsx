@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -41,7 +40,6 @@ import {
   TableCell
 } from "@/components/ui/table";
 
-// Helper function to transform the API response to match our Recipe type
 const mapRecipesData = (recipesData: any[]): Recipe[] => {
   return recipesData.map(recipe => ({
     id: recipe.id,
@@ -66,7 +64,6 @@ const Products = () => {
   const [currentProduct, setCurrentProduct] = useState<Product | undefined>(undefined);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Fetch products
   const { 
     data: products = [], 
     isLoading: isLoadingProducts,
@@ -76,7 +73,6 @@ const Products = () => {
     queryFn: getProductList,
   });
 
-  // Fetch recipes and map them to our Recipe type
   const { 
     data: recipesData = [],
     isLoading: isLoadingRecipes
@@ -85,10 +81,8 @@ const Products = () => {
     queryFn: fetchRecipes,
   });
 
-  // Transform the recipes data to match our type
   const recipes: Recipe[] = mapRecipesData(recipesData);
 
-  // Fetch packaging
   const { 
     data: packaging = [],
     isLoading: isLoadingPackaging
@@ -97,7 +91,6 @@ const Products = () => {
     queryFn: getPackagingList,
   });
 
-  // Fetch product categories
   const {
     data: categories = [],
     isLoading: isLoadingCategories,
@@ -107,7 +100,6 @@ const Products = () => {
     queryFn: getProductCategories,
   });
 
-  // Create product mutation
   const createProductMutation = useMutation({
     mutationFn: createProduct,
     onSuccess: () => {
@@ -128,7 +120,6 @@ const Products = () => {
     },
   });
 
-  // Update product mutation
   const updateProductMutation = useMutation({
     mutationFn: ({ id, product }: { id: string; product: Omit<Product, "id"> }) => 
       updateProduct(id, product),
@@ -152,7 +143,6 @@ const Products = () => {
     },
   });
 
-  // Delete product mutation
   const deleteProductMutation = useMutation({
     mutationFn: deleteProduct,
     onSuccess: () => {
@@ -173,7 +163,6 @@ const Products = () => {
     },
   });
 
-  // Search products
   useEffect(() => {
     const searchTimer = setTimeout(async () => {
       if (searchQuery) {
@@ -318,10 +307,10 @@ const Products = () => {
                                 className="h-full w-full object-cover"
                               />
                             </div>
-                          ) : product.packagingItems?.find(pkg => pkg.isPrimary)?.packaging?.image_url ? (
+                          ) : product.packagingItems?.find(pkg => pkg.isPrimary)?.packaging?.imageUrl ? (
                             <div className="h-10 w-10 rounded-md overflow-hidden">
                               <img 
-                                src={product.packagingItems?.find(pkg => pkg.isPrimary)?.packaging?.image_url} 
+                                src={product.packagingItems?.find(pkg => pkg.isPrimary)?.packaging?.imageUrl} 
                                 alt={product.name} 
                                 className="h-full w-full object-cover"
                               />
@@ -367,7 +356,6 @@ const Products = () => {
         </CardContent>
       </Card>
 
-      {/* Dialog for desktop */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -387,7 +375,6 @@ const Products = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Sheet for mobile */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader>
@@ -407,7 +394,6 @@ const Products = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Delete confirmation dialog */}
       <DeleteProductDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}

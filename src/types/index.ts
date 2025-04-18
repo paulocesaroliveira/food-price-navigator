@@ -68,8 +68,14 @@ export type Product = {
 };
 
 export interface ProductItem {
-  id: string;
+  id?: string;
   recipeId: string;
+  recipe?: {
+    id: string;
+    name: string;
+    image_url?: string;
+    unit_cost: number;
+  } | null;
   quantity: number;
   cost: number;
 }
@@ -77,6 +83,12 @@ export interface ProductItem {
 export interface ProductPackaging {
   id?: string;
   packagingId: string;
+  packaging?: {
+    id: string;
+    name: string;
+    image_url?: string;
+    unit_cost: number;
+  } | null;
   quantity: number;
   cost: number;
   isPrimary?: boolean;

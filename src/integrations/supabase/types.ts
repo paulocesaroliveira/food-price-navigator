@@ -459,6 +459,24 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       product_items: {
         Row: {
           cost: number
@@ -548,6 +566,7 @@ export type Database = {
       }
       products: {
         Row: {
+          category_id: string | null
           created_at: string
           id: string
           name: string
@@ -557,6 +576,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category_id?: string | null
           created_at?: string
           id?: string
           name: string
@@ -566,6 +586,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category_id?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -575,6 +596,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_packaging_id_fkey"
             columns: ["packaging_id"]
