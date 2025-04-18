@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Form,
@@ -15,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { createOrder } from "@/services/orderService";
 import { getCustomerList } from "@/services/customerService";
 import { type Customer } from "@/types";
@@ -23,11 +24,12 @@ import { cn } from "@/lib/utils";
 
 interface NewOrderFormProps {
   onOrderCreated: () => void;
+  onCancel?: () => void;
 }
 
 const deliveryTypes = ["Entrega", "Retirada"];
 
-const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated }) => {
+const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel }) => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
 
@@ -41,6 +43,7 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated }) => {
       total_amount: 0,
       notes: "",
       origin: "manual",
+      status: "Novo"
     }
   });
 
@@ -238,7 +241,14 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated }) => {
           )}
         />
 
-        <Button type="submit">Criar Pedido</Button>
+        <div className="flex justify-end gap-2">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+          )}
+          <Button type="submit">Criar Pedido</Button>
+        </div>
       </form>
     </Form>
   );

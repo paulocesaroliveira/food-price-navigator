@@ -1,21 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-
-export interface Customer {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  created_at: string;
-  // Added fields to match how they're used in Customers.tsx
-  updated_at?: string;
-  address1?: string | null;
-  address2?: string | null;
-  notes?: string | null;
-  origin?: "site" | "manual";
-}
+import { Customer } from "@/types";
 
 export const getCustomerList = async (): Promise<Customer[]> => {
   try {
@@ -29,7 +15,7 @@ export const getCustomerList = async (): Promise<Customer[]> => {
       throw error;
     }
 
-    return data || [];
+    return data as unknown as Customer[] || [];
   } catch (error: any) {
     console.error("Erro ao buscar clientes:", error.message);
     toast({
@@ -68,7 +54,7 @@ export const createCustomer = async (customer: Omit<Customer, "id" | "created_at
       description: "Cliente criado com sucesso!",
     });
     
-    return data[0];
+    return data[0] as Customer;
   } catch (error: any) {
     console.error("Erro ao criar cliente:", error.message);
     toast({
@@ -104,7 +90,7 @@ export const updateCustomer = async (id: string, customer: Omit<Customer, "id" |
       description: "Cliente atualizado com sucesso!",
     });
 
-    return data[0];
+    return data[0] as Customer;
   } catch (error: any) {
     console.error("Erro ao atualizar cliente:", error.message);
     toast({
@@ -156,7 +142,7 @@ export const searchCustomers = async (query: string): Promise<Customer[]> => {
       throw error;
     }
 
-    return data || [];
+    return data as unknown as Customer[] || [];
   } catch (error: any) {
     console.error("Erro ao buscar clientes:", error.message);
     toast({

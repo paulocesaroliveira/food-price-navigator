@@ -1,5 +1,6 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { type Order, type OrderItem, type Customer } from "@/types";
+import { type Order as OrderType, type OrderItem as OrderItemType, type Customer } from "@/types";
 import { toast } from "@/hooks/use-toast";
 
 export interface OrderItem {
@@ -159,11 +160,12 @@ type OrderInsert = {
 
 export async function createOrder(
   order: Omit<Order, "id" | "created_at" | "updated_at" | "order_number" | "items" | "customer">,
-  items: Omit<OrderItem, "id" | "order_id" | "created_at">[]
+  items: Omit<OrderItem, "id" | "order_id" | "created_at">[] = []
 ) {
   try {
     const orderData: OrderInsert = {
       ...order,
+      status: order.status || "Novo",
       order_number: "" // This will be replaced by the database trigger
     };
 

@@ -20,10 +20,11 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/utils/calculations";
-import { Order, getOrders, filterOrders, updateOrderStatus, searchOrders, createOrder } from "@/services/orderService";
+import { getOrders, filterOrders, updateOrderStatus, searchOrders, createOrder } from "@/services/orderService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { NewOrderForm } from "@/components/orders/NewOrderForm";
+import NewOrderForm from "@/components/orders/NewOrderForm";
+import { Order } from "@/services/orderService";
 
 const statusColors = {
   "Novo": "bg-blue-500",
@@ -120,23 +121,10 @@ const OrdersPage = () => {
     setDetailsOpen(true);
   };
 
-  // Criar novo pedido
-  const handleCreateOrder = async (orderData: any) => {
-    try {
-      await createOrder(orderData, orderData.items || []);
-      fetchOrders();
-      setNewOrderOpen(false);
-      toast({
-        title: "Sucesso",
-        description: "Pedido criado com sucesso",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: `Erro ao criar pedido: ${error.message}`,
-        variant: "destructive"
-      });
-    }
+  // Função para manipular a criação de um novo pedido
+  const handleOrderCreated = () => {
+    fetchOrders();
+    setNewOrderOpen(false);
   };
 
   // Enviar mensagem pelo WhatsApp
@@ -505,7 +493,10 @@ const OrdersPage = () => {
             </DialogDescription>
           </DialogHeader>
           {newOrderOpen && (
-            <NewOrderForm onSubmit={handleCreateOrder} onCancel={() => setNewOrderOpen(false)} />
+            <NewOrderForm 
+              onOrderCreated={handleOrderCreated} 
+              onCancel={() => setNewOrderOpen(false)} 
+            />
           )}
         </DialogContent>
       </Dialog>
