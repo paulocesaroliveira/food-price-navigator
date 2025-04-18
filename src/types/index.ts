@@ -19,17 +19,17 @@ export interface Ingredient {
 
 export interface RecipeIngredient {
   id?: string;
-  ingredientId?: string;
-  ingredient_id?: string; // For compatibility with existing code
+  ingredient_id: string;
   quantity: number;
   cost: number;
+  ingredient?: Ingredient;
 }
 
 export interface Recipe {
   id: string;
   name: string;
   image?: string;
-  categoryId: string;
+  categoryId?: string;
   baseIngredients: RecipeIngredient[];
   portionIngredients: RecipeIngredient[];
   portions: number;
@@ -41,12 +41,11 @@ export interface Recipe {
 export interface Packaging {
   id: string;
   name: string;
-  image?: string;
-  imageUrl?: string; // This field is needed for compatibility
   type: string;
   bulkQuantity: number;
   bulkPrice: number;
   unitCost: number;
+  imageUrl?: string;
   notes?: string;
 }
 
@@ -58,37 +57,32 @@ export type ProductCategory = {
 export type Product = {
   id: string;
   name: string;
-  categoryId?: string;
-  category?: ProductCategory | null;
-  items: ProductItem[];
+  categoryId?: string | null;
+  category?: ProductCategory;
   packagingId?: string;
-  packagingCost: number;
-  packagingItems?: ProductPackaging[];
-  totalCost: number;
   imageUrl?: string | null;
+  items: ProductItem[];
+  packagingItems?: ProductPackaging[];
+  packagingCost: number;
+  totalCost: number;
+  calculatedPrice?: number;
 };
 
 export interface ProductItem {
-  id?: string;
+  id: string;
   recipeId: string;
-  recipe?: Partial<Recipe> | null; // Make recipe a partial type for compatibility
   quantity: number;
   cost: number;
+  recipe?: Partial<Recipe>;
 }
 
 export interface ProductPackaging {
   id?: string;
   packagingId: string;
-  packaging?: {
-    id: string;
-    name: string;
-    image_url?: string;
-    imageUrl?: string;
-    unit_cost: number;
-  } | null;
   quantity: number;
   cost: number;
-  isPrimary?: boolean;
+  isPrimary: boolean;
+  packaging?: Packaging;
 }
 
 export interface PricingConfiguration {
@@ -127,4 +121,41 @@ export interface PricingResult {
   priceWithCommission: number;
   priceWithTaxes: number;
   minimumRecommendedPrice: number;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  price_at_order: number;
+  total_price: number;
+  notes: string | null;
+  created_at: string;
+  product?: {
+    name: string;
+  };
+}
+
+export interface Order {
+  id: string;
+  order_number: string;
+  customer_id: string;
+  status: "Novo" | "Em preparo" | "Pronto" | "Finalizado" | "Cancelado";
+  delivery_type: "Entrega" | "Retirada";
+  delivery_address: string | null;
+  scheduled_date: string | null;
+  scheduled_time: string | null;
+  total_amount: number;
+  notes: string | null;
+  origin: "site" | "manual";
+  created_at: string;
+  updated_at: string;
+  customer?: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+  };
+  items?: OrderItem[];
 }

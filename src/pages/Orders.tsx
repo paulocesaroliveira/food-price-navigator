@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,9 +20,10 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/utils/calculations";
-import { Order, getOrders, filterOrders, updateOrderStatus, searchOrders } from "@/services/orderService";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Order, getOrders, filterOrders, updateOrderStatus, searchOrders, createOrder } from "@/services/orderService";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { NewOrderForm } from "@/components/orders/NewOrderForm";
 
 const statusColors = {
   "Novo": "bg-blue-500",
@@ -41,6 +41,7 @@ const OrdersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [newOrderOpen, setNewOrderOpen] = useState(false);
 
   // Buscar pedidos
   const fetchOrders = async () => {
@@ -119,6 +120,25 @@ const OrdersPage = () => {
     setDetailsOpen(true);
   };
 
+  // Criar novo pedido
+  const handleCreateOrder = async (orderData: any) => {
+    try {
+      await createOrder(orderData, orderData.items || []);
+      fetchOrders();
+      setNewOrderOpen(false);
+      toast({
+        title: "Sucesso",
+        description: "Pedido criado com sucesso",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: `Erro ao criar pedido: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+
   // Enviar mensagem pelo WhatsApp
   const sendWhatsAppMessage = (phone: string | null, orderNumber: string) => {
     if (!phone) {
@@ -158,7 +178,10 @@ const OrdersPage = () => {
             <h1 className="text-3xl font-poppins font-semibold">Pedidos</h1>
             <p className="text-muted-foreground">Gerencie os pedidos recebidos do site e criados manualmente.</p>
           </div>
-          <Button className="bg-food-coral hover:bg-food-amber text-white">
+          <Button 
+            className="bg-food-coral hover:bg-food-amber text-white"
+            onClick={() => setNewOrderOpen(true)}
+          >
             <ShoppingCart className="mr-2 h-4 w-4" />
             Novo Pedido
           </Button>
@@ -468,6 +491,21 @@ const OrdersPage = () => {
                 </Button>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para novo pedido */}
+      <Dialog open={newOrderOpen} onOpenChange={setNewOrderOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Novo Pedido</DialogTitle>
+            <DialogDescription>
+              Crie um novo pedido manualmente
+            </DialogDescription>
+          </DialogHeader>
+          {newOrderOpen && (
+            <NewOrderForm onSubmit={handleCreateOrder} onCancel={() => setNewOrderOpen(false)} />
           )}
         </DialogContent>
       </Dialog>
