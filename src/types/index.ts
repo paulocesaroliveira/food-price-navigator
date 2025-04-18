@@ -1,3 +1,4 @@
+
 // Basic types
 export interface Category {
   id: string;
@@ -42,6 +43,7 @@ export interface Packaging {
   id: string;
   name: string;
   image?: string;
+  imageUrl?: string; // Add this field for compatibility
   type: string;
   bulkQuantity: number;
   bulkPrice: number;
@@ -87,6 +89,7 @@ export interface ProductPackaging {
     id: string;
     name: string;
     image_url?: string;
+    imageUrl?: string;
     unit_cost: number;
   } | null;
   quantity: number;
