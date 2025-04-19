@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +17,7 @@ import React from "react";
 import Website from "./pages/Website";
 import Orders from "./pages/Orders";
 import Customers from "./pages/Customers";
+import Settings from "./pages/Settings";
 
 // Crie o queryClient fora do componente para evitar recriações em cada renderização
 const queryClient = new QueryClient({
@@ -45,10 +45,10 @@ const App = () => {
                 <Route path="/packaging" element={<Packaging />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/pricing" element={<Pricing />} />
-                {/* Novas rotas */}
                 <Route path="/website" element={<Website />} />
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/customers" element={<Customers />} />
+                <Route path="/settings" element={<Settings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
