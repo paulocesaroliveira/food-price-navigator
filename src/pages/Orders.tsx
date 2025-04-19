@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,13 +21,13 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/utils/calculations";
-import { getOrders, filterOrders, updateOrderStatus, searchOrders, createOrder } from "@/services/orderService";
+import { getOrders, filterOrders, updateOrderStatus, searchOrders } from "@/services/orderService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import NewOrderForm from "@/components/orders/NewOrderForm";
-import { Order } from "@/services/orderService";
+import { Order } from "@/types";
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   "Novo": "bg-blue-500",
   "Em preparo": "bg-yellow-500",
   "Pronto": "bg-green-500",

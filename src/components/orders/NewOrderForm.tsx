@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Form,
@@ -20,7 +21,7 @@ import { createOrder } from "@/services/orderService";
 import { getCustomerList } from "@/services/customerService";
 import { getProductList } from "@/services/productService";
 import { Card, CardContent } from "@/components/ui/card";
-import { type Customer, type Product } from "@/types";
+import { type Customer, type Product, type OrderItem } from "@/types";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/calculations";
 
@@ -29,12 +30,13 @@ interface NewOrderFormProps {
   onCancel?: () => void;
 }
 
+// Adjusted to match the required structure from OrderItem
 interface OrderItemInput {
   product_id: string;
   quantity: number;
   price_at_order: number;
   total_price: number;
-  notes?: string;
+  notes: string | null; // Changed from optional to nullable to match OrderItem type
 }
 
 interface AdditionalCost {
@@ -62,7 +64,7 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
       total_amount: 0,
       notes: "",
       origin: "manual",
-      status: "Novo"
+      status: "Novo" as const
     }
   });
 
@@ -97,7 +99,8 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
         product_id: "",
         quantity: 1,
         price_at_order: 0,
-        total_price: 0
+        total_price: 0,
+        notes: null // Initialize with null to match the expected type
       }
     ]);
   };
@@ -167,6 +170,7 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
     };
 
     try {
+      // Since we've updated OrderItemInput to match the expected type, this should work now
       const createdOrder = await createOrder(payload, orderItems);
       toast({
         title: "Sucesso",
