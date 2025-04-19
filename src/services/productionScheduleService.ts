@@ -5,9 +5,12 @@ import { toast } from "@/hooks/use-toast";
 export interface ProductionSchedule {
   id?: string;
   date: string;
+  start_time?: string;
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   notes?: string;
   items?: ProductionScheduleItem[];
+  estimated_cost?: number;
+  estimated_time?: string;
 }
 
 export interface ProductionScheduleItem {
@@ -18,6 +21,8 @@ export interface ProductionScheduleItem {
   notes?: string;
   recipe?: {
     name: string;
+    total_cost?: number;
+    estimated_time?: string;
   };
 }
 
@@ -28,8 +33,11 @@ export const createProductionSchedule = async (schedule: ProductionSchedule): Pr
       .from('production_schedules')
       .insert({
         date: schedule.date,
+        start_time: schedule.start_time,
         status: schedule.status,
-        notes: schedule.notes
+        notes: schedule.notes,
+        estimated_cost: schedule.estimated_cost,
+        estimated_time: schedule.estimated_time
       })
       .select()
       .single();
@@ -76,8 +84,11 @@ export const createProductionSchedule = async (schedule: ProductionSchedule): Pr
     return {
       id: scheduleData.id,
       date: scheduleData.date,
+      start_time: scheduleData.start_time,
       status: scheduleData.status as ProductionSchedule['status'],
-      notes: scheduleData.notes
+      notes: scheduleData.notes,
+      estimated_cost: scheduleData.estimated_cost,
+      estimated_time: scheduleData.estimated_time
     };
   } catch (error: any) {
     console.error('Unexpected error:', error);
@@ -99,7 +110,7 @@ export const fetchProductionSchedules = async (): Promise<ProductionSchedule[]> 
         *,
         items:production_schedule_items(
           *,
-          recipe:recipe_id(name)
+          recipe:recipe_id(name, total_cost, portions)
         )
       `)
       .order('date');
@@ -200,5 +211,142 @@ export const deleteProductionSchedule = async (scheduleId: string): Promise<bool
       variant: 'destructive'
     });
     return false;
+  }
+};
+
+// Duplicate a production schedule
+export const duplicateProductionSchedule = async (scheduleId: string, newDate: string): Promise<boolean> => {
+  try {
+    // First, get the schedule to duplicate
+    const { data: schedule, error: fetchError } = await supabase
+      .from('production_schedules')
+      .select(`
+        *,
+        items:production_schedule_items(*)
+      `)
+      .eq('id', scheduleId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching production schedule to duplicate:', fetchError);
+      toast({
+        title: 'Erro',
+        description: `Não foi possível duplicar a agenda: ${fetchError.message}`,
+        variant: 'destructive'
+      });
+      return false;
+    }
+
+    // Create new schedule with the same data but new date
+    const { data: newSchedule, error: createError } = await supabase
+      .from('production_schedules')
+      .insert({
+        date: newDate,
+        start_time: schedule.start_time,
+        status: 'pending',
+        notes: `${schedule.notes || ''} (Duplicado)`,
+        estimated_cost: schedule.estimated_cost,
+        estimated_time: schedule.estimated_time
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      console.error('Error creating duplicated schedule:', createError);
+      toast({
+        title: 'Erro',
+        description: `Não foi possível criar a agenda duplicada: ${createError.message}`,
+        variant: 'destructive'
+      });
+      return false;
+    }
+
+    // Duplicate all items
+    if (schedule.items && schedule.items.length > 0) {
+      const newItems = schedule.items.map(item => ({
+        schedule_id: newSchedule.id,
+        recipe_id: item.recipe_id,
+        quantity: item.quantity,
+        notes: item.notes
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('production_schedule_items')
+        .insert(newItems);
+
+      if (itemsError) {
+        console.error('Error duplicating items:', itemsError);
+        toast({
+          title: 'Erro',
+          description: `Não foi possível duplicar os itens da agenda: ${itemsError.message}`,
+          variant: 'destructive'
+        });
+        // We should delete the created schedule if items failed
+        await supabase.from('production_schedules').delete().eq('id', newSchedule.id);
+        return false;
+      }
+    }
+
+    toast({
+      title: 'Sucesso',
+      description: 'Agenda de produção duplicada com sucesso!'
+    });
+    return true;
+  } catch (error: any) {
+    console.error('Unexpected error:', error);
+    toast({
+      title: 'Erro',
+      description: `Erro inesperado: ${error.message}`,
+      variant: 'destructive'
+    });
+    return false;
+  }
+};
+
+// Get production schedule details with ingredients
+export const getProductionScheduleDetails = async (scheduleId: string): Promise<any> => {
+  try {
+    // Get the schedule with items
+    const { data: schedule, error: scheduleError } = await supabase
+      .from('production_schedules')
+      .select(`
+        *,
+        items:production_schedule_items(
+          *,
+          recipe:recipe_id(
+            *,
+            baseIngredients:recipe_base_ingredients(
+              *,
+              ingredients:ingredient_id(*)
+            ),
+            portionIngredients:recipe_portion_ingredients(
+              *,
+              ingredients:ingredient_id(*)
+            )
+          )
+        )
+      `)
+      .eq('id', scheduleId)
+      .single();
+
+    if (scheduleError) {
+      console.error('Error fetching production schedule details:', scheduleError);
+      toast({
+        title: 'Erro',
+        description: `Não foi possível carregar os detalhes da agenda: ${scheduleError.message}`,
+        variant: 'destructive'
+      });
+      return null;
+    }
+
+    return schedule;
+  } catch (error: any) {
+    console.error('Unexpected error:', error);
+    toast({
+      title: 'Erro',
+      description: `Erro inesperado: ${error.message}`,
+      variant: 'destructive'
+    });
+    return null;
   }
 };
