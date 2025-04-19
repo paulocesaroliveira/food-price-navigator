@@ -73,7 +73,12 @@ export const createProductionSchedule = async (schedule: ProductionSchedule): Pr
       description: 'Agenda de produção criada com sucesso!'
     });
 
-    return scheduleData;
+    return {
+      id: scheduleData.id,
+      date: scheduleData.date,
+      status: scheduleData.status as ProductionSchedule['status'],
+      notes: scheduleData.notes
+    };
   } catch (error: any) {
     console.error('Unexpected error:', error);
     toast({
@@ -109,7 +114,13 @@ export const fetchProductionSchedules = async (): Promise<ProductionSchedule[]> 
       return [];
     }
 
-    return schedules || [];
+    // Cast the status field to ensure it matches our type definition
+    const typedSchedules = schedules.map(schedule => ({
+      ...schedule,
+      status: schedule.status as ProductionSchedule['status']
+    }));
+
+    return typedSchedules || [];
   } catch (error: any) {
     console.error('Unexpected error:', error);
     toast({
