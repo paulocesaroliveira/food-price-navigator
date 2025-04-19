@@ -15,7 +15,11 @@ export const getCustomerList = async (): Promise<Customer[]> => {
       throw error;
     }
 
-    return data || [];
+    // Ensure we cast origin correctly to the limited string types expected by Customer
+    return (data || []).map(item => ({
+      ...item,
+      origin: (item.origin === "site" ? "site" : "manual") as "site" | "manual"
+    }));
   } catch (error: any) {
     console.error("Erro ao buscar clientes:", error.message);
     toast({
@@ -26,6 +30,9 @@ export const getCustomerList = async (): Promise<Customer[]> => {
     return [];
   }
 };
+
+// Alias for getCustomers (to maintain compatibility with existing code)
+export const getCustomers = getCustomerList;
 
 export const createCustomer = async (customer: Omit<Customer, "id" | "created_at" | "updated_at">): Promise<Customer> => {
   try {
@@ -54,7 +61,11 @@ export const createCustomer = async (customer: Omit<Customer, "id" | "created_at
       description: "Cliente criado com sucesso!",
     });
     
-    return data;
+    // Ensure we cast origin correctly
+    return {
+      ...data,
+      origin: (data.origin === "site" ? "site" : "manual") as "site" | "manual"
+    };
   } catch (error: any) {
     console.error("Erro ao criar cliente:", error.message);
     toast({
@@ -94,7 +105,11 @@ export const updateCustomer = async (id: string, customer: Partial<Omit<Customer
       description: "Cliente atualizado com sucesso!",
     });
     
-    return data;
+    // Ensure we cast origin correctly
+    return {
+      ...data,
+      origin: (data.origin === "site" ? "site" : "manual") as "site" | "manual"
+    };
   } catch (error: any) {
     console.error("Erro ao atualizar cliente:", error.message);
     toast({
@@ -148,7 +163,11 @@ export const searchCustomers = async (query: string): Promise<Customer[]> => {
       throw error;
     }
 
-    return data || [];
+    // Ensure we cast origin correctly
+    return (data || []).map(item => ({
+      ...item,
+      origin: (item.origin === "site" ? "site" : "manual") as "site" | "manual"
+    }));
   } catch (error: any) {
     console.error("Erro ao buscar clientes:", error.message);
     toast({

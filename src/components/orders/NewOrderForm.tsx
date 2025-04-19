@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Form,
@@ -30,7 +29,7 @@ interface NewOrderFormProps {
   onCancel?: () => void;
 }
 
-interface OrderItem {
+interface OrderItemInput {
   product_id: string;
   quantity: number;
   price_at_order: number;
@@ -49,7 +48,7 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [orderItems, setOrderItems] = useState<OrderItemInput[]>([]);
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
   const [totalAmount, setTotalAmount] = useState<number>(0);
 
@@ -82,7 +81,6 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
     fetchProducts();
   }, []);
 
-  // Calculate total amount when order items or additional costs change
   useEffect(() => {
     const itemsTotal = orderItems.reduce((sum, item) => sum + item.total_price, 0);
     const costsTotal = additionalCosts.reduce((sum, cost) => sum + cost.value, 0);
@@ -110,11 +108,10 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
     setOrderItems(updatedItems);
   };
 
-  const handleOrderItemChange = (index: number, field: keyof OrderItem, value: any) => {
+  const handleOrderItemChange = (index: number, field: keyof OrderItemInput, value: any) => {
     const updatedItems = [...orderItems];
     const item = { ...updatedItems[index], [field]: value };
     
-    // Automatically calculate total price when quantity or price changes
     if (field === 'quantity' || field === 'price_at_order') {
       item.total_price = item.quantity * item.price_at_order;
     }
@@ -152,7 +149,6 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
       return;
     }
 
-    // Validate products have been selected
     const invalidItems = orderItems.some(item => !item.product_id || item.quantity <= 0 || item.price_at_order <= 0);
     if (invalidItems) {
       toast({
@@ -191,7 +187,6 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
     }
   };
 
-  // Get product details by ID
   const getProductById = (id: string) => {
     return products.find(product => product.id === id);
   };
@@ -325,7 +320,6 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
           />
         </div>
 
-        {/* Products Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">Produtos</h3>
@@ -423,7 +417,6 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
           ))}
         </div>
 
-        {/* Additional Costs Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">Custos Adicionais</h3>
@@ -480,7 +473,6 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
           ))}
         </div>
 
-        {/* Total Amount */}
         <div className="bg-muted p-4 rounded-md">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Total do Pedido</h3>

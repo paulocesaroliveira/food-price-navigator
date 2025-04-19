@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, UserPlus, Filter, Download, Phone, Mail, ShoppingBag, Edit, Eye, Loader2, Plus, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Customer, getCustomers, createCustomer, updateCustomer, deleteCustomer, searchCustomers } from "@/services/customerService";
+import { getCustomerList, createCustomer, updateCustomer, deleteCustomer, searchCustomers } from "@/services/customerService";
+import { Customer } from "@/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,20 +39,17 @@ const CustomersPage = () => {
     }
   });
 
-  // Buscar clientes
   const fetchCustomers = async () => {
     setLoading(true);
-    const data = await getCustomers();
+    const data = await getCustomerList();
     setCustomers(data);
     setLoading(false);
   };
 
-  // Efeito inicial para carregar clientes
   useEffect(() => {
     fetchCustomers();
   }, []);
 
-  // Efeito para atualizar o formulário ao editar
   useEffect(() => {
     if (editingCustomer) {
       form.reset({
@@ -77,7 +74,6 @@ const CustomersPage = () => {
     }
   }, [editingCustomer, form]);
 
-  // Filtragem por origem
   useEffect(() => {
     if (originFilter !== "all") {
       const filtered = customers.filter(customer => 
@@ -89,7 +85,6 @@ const CustomersPage = () => {
     }
   }, [originFilter]);
 
-  // Busca por texto
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (searchQuery) {
@@ -103,7 +98,6 @@ const CustomersPage = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Abrir diálogo para adicionar/editar cliente
   const openCustomerDialog = (customer?: Customer) => {
     if (customer) {
       setEditingCustomer(customer);
@@ -113,19 +107,16 @@ const CustomersPage = () => {
     setDialogOpen(true);
   };
 
-  // Abrir diálogo para visualizar detalhes
   const openDetailsDialog = (customer: Customer) => {
     setSelectedCustomer(customer);
     setDetailsOpen(true);
   };
 
-  // Abrir diálogo para confirmar exclusão
   const openDeleteDialog = (customer: Customer) => {
     setCustomerToDelete(customer);
     setDeleteDialogOpen(true);
   };
 
-  // Salvar cliente (novo ou editado)
   const onSubmit = async (data: Omit<Customer, "id" | "created_at" | "updated_at">) => {
     if (editingCustomer) {
       const updated = await updateCustomer(editingCustomer.id, data);
@@ -144,7 +135,6 @@ const CustomersPage = () => {
     }
   };
 
-  // Excluir cliente
   const confirmDelete = async () => {
     if (customerToDelete) {
       const success = await deleteCustomer(customerToDelete.id);
@@ -156,9 +146,7 @@ const CustomersPage = () => {
     }
   };
 
-  // Exportar lista de clientes
   const exportCustomers = () => {
-    // Criar um CSV com os dados dos clientes
     const headers = ["Nome", "Email", "Telefone", "Endereço 1", "Endereço 2", "Origem", "Notas"];
     const csvRows = [
       headers.join(','),
@@ -177,7 +165,6 @@ const CustomersPage = () => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     
-    // Criar um link para download
     const link = document.createElement('a');
     link.setAttribute('href', url);
     link.setAttribute('download', `clientes_${new Date().toISOString().split('T')[0]}.csv`);
@@ -346,7 +333,6 @@ const CustomersPage = () => {
         </Card>
       </div>
 
-      {/* Diálogo para adicionar/editar cliente */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -434,7 +420,6 @@ const CustomersPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog para visualizar detalhes do cliente */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -539,7 +524,6 @@ const CustomersPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* AlertDialog para confirmar exclusão */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
