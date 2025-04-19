@@ -564,6 +564,75 @@ export type Database = {
           },
         ]
       }
+      production_schedule_items: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          quantity: number
+          recipe_id: string
+          schedule_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          recipe_id: string
+          schedule_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          recipe_id?: string
+          schedule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_schedule_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_schedule_items_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "production_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_schedules: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category_id: string | null

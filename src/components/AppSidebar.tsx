@@ -21,7 +21,8 @@ import {
   Globe,
   ShoppingCart,
   Users,
-  Store
+  Store,
+  Calendar, // Added import for Calendar icon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +36,7 @@ const AppSidebar = () => {
     { path: "/packaging", name: "Embalagens", icon: Package },
     { path: "/products", name: "Produtos", icon: ShoppingBag },
     { path: "/pricing", name: "Precificação", icon: DollarSign },
-    // Novas seções
+    { path: "/production-schedule", name: "Agenda de Produção", icon: Calendar }, // New item
     { path: "/website", name: "Site Público", icon: Globe },
     { path: "/orders", name: "Pedidos", icon: ShoppingCart },
     { path: "/customers", name: "Clientes", icon: Users },
