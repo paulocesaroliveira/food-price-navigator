@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Customer } from "@/types";
 
 export interface WebsiteSettings {
   id: string;
@@ -32,6 +33,33 @@ export interface PublishedProduct {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface OrderData {
+  customer: {
+    name: string;
+    email: string | null;
+    phone: string | null;
+    address?: string | null;
+    origin: "site" | "manual";
+  };
+  order: {
+    delivery_type: "Entrega" | "Retirada";
+    delivery_address: string | null;
+    scheduled_date: string | null;
+    scheduled_time: string | null;
+    total_amount: number;
+    notes: string | null;
+    origin: "site" | "manual";
+    status: "Novo" | "Em preparo" | "Pronto" | "Finalizado" | "Cancelado";
+  };
+  items: Array<{
+    product_id: string;
+    quantity: number;
+    price_at_order: number;
+    total_price: number;
+    notes: string | null;
+  }>;
 }
 
 export async function getWebsiteSettings() {
@@ -181,5 +209,137 @@ export async function unpublishProduct(id: string) {
       variant: "destructive",
     });
     return false;
+  }
+}
+
+export async function submitOrder(orderData: OrderData) {
+  try {
+    // 1. Create or update customer
+    let customerId;
+    
+    // Check if customer exists by email or phone
+    const customerIdentifier = orderData.customer.email || orderData.customer.phone;
+    let existingCustomer = null;
+    
+    if (customerIdentifier) {
+      const { data: customers } = await supabase
+        .from("customers")
+        .select("*")
+        .or(`email.eq.${orderData.customer.email || ""},phone.eq.${orderData.customer.phone || ""}`)
+        .limit(1);
+      
+      if (customers && customers.length > 0) {
+        existingCustomer = customers[0];
+      }
+    }
+    
+    if (existingCustomer) {
+      // Update existing customer
+      const { data: updatedCustomer, error: customerUpdateError } = await supabase
+        .from("customers")
+        .update({
+          name: orderData.customer.name,
+          email: orderData.customer.email,
+          phone: orderData.customer.phone,
+          address: orderData.customer.address,
+          origin: orderData.customer.origin
+        })
+        .eq("id", existingCustomer.id)
+        .select()
+        .single();
+      
+      if (customerUpdateError) throw customerUpdateError;
+      customerId = updatedCustomer.id;
+    } else {
+      // Create new customer
+      const { data: newCustomer, error: customerCreateError } = await supabase
+        .from("customers")
+        .insert({
+          name: orderData.customer.name,
+          email: orderData.customer.email,
+          phone: orderData.customer.phone,
+          address: orderData.customer.address,
+          origin: orderData.customer.origin
+        })
+        .select()
+        .single();
+      
+      if (customerCreateError) throw customerCreateError;
+      customerId = newCustomer.id;
+    }
+    
+    // 2. Create order
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .insert({
+        customer_id: customerId,
+        delivery_type: orderData.order.delivery_type,
+        delivery_address: orderData.order.delivery_address,
+        scheduled_date: orderData.order.scheduled_date,
+        scheduled_time: orderData.order.scheduled_time,
+        total_amount: orderData.order.total_amount,
+        notes: orderData.order.notes,
+        status: orderData.order.status,
+        origin: orderData.order.origin
+      })
+      .select()
+      .single();
+    
+    if (orderError) throw orderError;
+    
+    // 3. Create order items
+    const orderItems = orderData.items.map(item => ({
+      order_id: order.id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      price_at_order: item.price_at_order,
+      total_price: item.total_price,
+      notes: item.notes
+    }));
+    
+    const { error: orderItemsError } = await supabase
+      .from("order_items")
+      .insert(orderItems);
+    
+    if (orderItemsError) throw orderItemsError;
+    
+    return {
+      success: true,
+      order_id: order.id,
+      order_number: order.order_number
+    };
+  } catch (error: any) {
+    console.error("Erro ao enviar pedido:", error.message);
+    toast({
+      title: "Erro",
+      description: `Não foi possível enviar o pedido: ${error.message}`,
+      variant: "destructive",
+    });
+    return null;
+  }
+}
+
+// Get website by subdomain or domain
+export async function getWebsiteByDomain(domain: string) {
+  try {
+    const { data, error } = await supabase
+      .from("website_settings")
+      .select("*")
+      .or(`domain.eq.${domain},subdomain.eq.${domain}`)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") { // No rows found
+        return null;
+      }
+      throw error;
+    }
+
+    return data as WebsiteSettings;
+  } catch (error: any) {
+    console.error("Erro ao buscar site por domínio:", error.message);
+    return null;
   }
 }

@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, Settings, Palette, ShoppingBag, Image, ExternalLink, Loader2, Save } from "lucide-react";
+import { Globe, Settings, Palette, ShoppingBag, Image, ExternalLink, Loader2, Save, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { WebsiteSettings, getWebsiteSettings, saveWebsiteSettings } from "@/services/websiteService";
 import { useForm } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
+import PublishProductsTable from "@/components/public-site/products/PublishProductsTable";
 
 const Website = () => {
   const [loading, setLoading] = useState(true);
@@ -34,7 +34,6 @@ const Website = () => {
     }
   });
 
-  // Carregar configurações existentes
   useEffect(() => {
     const fetchSettings = async () => {
       setLoading(true);
@@ -61,7 +60,6 @@ const Website = () => {
     fetchSettings();
   }, [form]);
 
-  // Salvar configurações
   const onSubmit = async (data: Omit<WebsiteSettings, "id" | "created_at" | "updated_at">) => {
     setSaving(true);
     const saved = await saveWebsiteSettings(data);
@@ -75,7 +73,6 @@ const Website = () => {
     setSaving(false);
   };
 
-  // Gerar URL do site público
   const getPublicSiteUrl = () => {
     if (!settings) return null;
     
@@ -334,14 +331,7 @@ const Website = () => {
                     <CardDescription>Gerencie os produtos que serão exibidos no site.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="border rounded-md p-12 flex flex-col items-center justify-center">
-                      <ShoppingBag className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium">Publicar produtos no site</h3>
-                      <p className="text-center text-muted-foreground mt-2 mb-6 max-w-md">
-                        Esta funcionalidade permitirá que você selecione quais produtos do seu catálogo serão exibidos no site, com preços, descrições e imagens.
-                      </p>
-                      <Button disabled variant="outline">Em desenvolvimento</Button>
-                    </div>
+                    <PublishProductsTable />
                   </CardContent>
                 </Card>
               </TabsContent>
