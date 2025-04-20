@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -178,11 +179,7 @@ const ProductionSchedulePage: React.FC = () => {
 
   const handleSaveSchedule = async () => {
     if (!newSchedule.date || !newSchedule.items || newSchedule.items.length === 0) {
-      toast({
-        title: 'Erro',
-        description: 'Data e pelo menos uma receita são obrigatórios',
-        variant: 'destructive'
-      });
+      toast.error("Data e pelo menos uma receita são obrigatórios");
       return;
     }
 
@@ -587,7 +584,7 @@ const ProductionSchedulePage: React.FC = () => {
                   
                   return (
                     <div className="relative w-full h-full flex items-center justify-center">
-                      {props.children}
+                      {props.day}
                       {daySchedules.length > 0 && (
                         <div className="absolute bottom-0 left-0 right-0 flex justify-center">
                           <div className={`w-2 h-2 rounded-full ${
