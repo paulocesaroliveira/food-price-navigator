@@ -8,6 +8,7 @@ import {
   deleteProductionSchedule,
   duplicateProductionSchedule,
   getProductionScheduleDetails,
+  calculateTotalIngredients,
   ProductionSchedule,
   ProductionScheduleItem
 } from '@/services/productionScheduleService';
@@ -63,19 +64,28 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
+  CalendarIcon,
   Plus, 
   MoreHorizontal, 
   Trash2, 
-  Edit, 
-  Calendar as CalendarIcon,
-  Clock,
   Copy,
+  Clock,
   Check,
+  FileText,
   Filter,
-  FileText
+  Download,
+  Bell
 } from 'lucide-react';
 import { toast } from "@/components/ui/sonner";
 import { DayContentProps } from 'react-day-picker';
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetDescription, 
+  SheetHeader, 
+  SheetTitle, 
+  SheetTrigger 
+} from '@/components/ui/sheet';
 
 const statusLabels = {
   'pending': 'Agendada',
@@ -109,6 +119,13 @@ const ProductionSchedulePage: React.FC = () => {
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [scheduleToDuplicate, setScheduleToDuplicate] = useState<string | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterDate, setFilterDate] = useState<{ start: Date | null, end: Date | null }>({
+    start: null,
+    end: null
+  });
+  const [filterRecipe, setFilterRecipe] = useState<string>('all');
 
   useEffect(() => {
     const loadData = async () => {
@@ -251,6 +268,29 @@ const ProductionSchedulePage: React.FC = () => {
         </div>
       </div>
     );
+  };
+
+  const filteredSchedules = schedules.filter(schedule => {
+    if (filterStatus !== 'all' && schedule.status !== filterStatus) return false;
+    
+    if (filterDate.start && new Date(schedule.date) < filterDate.start) return false;
+    if (filterDate.end && new Date(schedule.date) > filterDate.end) return false;
+    
+    if (filterRecipe !== 'all') {
+      return schedule.items?.some(item => item.recipe_id === filterRecipe);
+    }
+    
+    return true;
+  });
+
+  const handleExportPDF = () => {
+    // TODO: Implement PDF export
+    toast.info("Exportação para PDF em desenvolvimento");
+  };
+
+  const handleSetReminder = () => {
+    // TODO: Implement reminders
+    toast.info("Sistema de lembretes em desenvolvimento");
   };
 
   return (
@@ -436,6 +476,46 @@ const ProductionSchedulePage: React.FC = () => {
         </Dialog>
       </div>
       
+      <div className="flex items-center gap-4 mb-4">
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filtrar por status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
+            <SelectItem value="pending">Agendada</SelectItem>
+            <SelectItem value="in_progress">Em produção</SelectItem>
+            <SelectItem value="completed">Concluída</SelectItem>
+            <SelectItem value="cancelled">Cancelada</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterRecipe} onValueChange={setFilterRecipe}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filtrar por receita" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as receitas</SelectItem>
+            {recipes.map(recipe => (
+              <SelectItem key={recipe.id} value={recipe.id}>
+                {recipe.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="ml-auto flex gap-2">
+          <Button variant="outline" onClick={handleExportPDF}>
+            <Download className="mr-2 h-4 w-4" />
+            Exportar PDF
+          </Button>
+          <Button variant="outline" onClick={handleSetReminder}>
+            <Bell className="mr-2 h-4 w-4" />
+            Lembretes
+          </Button>
+        </div>
+      </div>
+      
       <Tabs defaultValue="list" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="list" onClick={() => setCurrentView('list')}>
@@ -463,14 +543,14 @@ const ProductionSchedulePage: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {schedules.length === 0 ? (
+                {filteredSchedules.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       Nenhuma produção agendada. Crie uma nova produção utilizando o botão acima.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  schedules.map(schedule => (
+                  filteredSchedules.map(schedule => (
                     <TableRow key={schedule.id} className={schedule.status === 'completed' ? 'bg-green-50' : ''}>
                       <TableCell>
                         <Checkbox 
@@ -679,166 +759,107 @@ const ProductionSchedulePage: React.FC = () => {
         </DialogContent>
       </Dialog>
       
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>Detalhes da Produção</DialogTitle>
-          </DialogHeader>
-          
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="outline">Detalhes da Produção</Button>
+        </SheetTrigger>
+        <SheetContent className="w-[400px] sm:w-[540px] md:w-[700px]">
+          <SheetHeader>
+            <SheetTitle>Detalhes da Produção</SheetTitle>
+            <SheetDescription>
+              Visualize todos os detalhes desta produção
+            </SheetDescription>
+          </SheetHeader>
           {scheduleDetails && (
-            <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="py-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold mb-1">Data</h3>
+                  <h3 className="font-medium mb-1">Data</h3>
                   <p>{format(new Date(scheduleDetails.date), 'dd/MM/yyyy')}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold mb-1">Horário</h3>
+                  <h3 className="font-medium mb-1">Horário</h3>
                   <p>{scheduleDetails.start_time || '-'}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold mb-1">Status</h3>
-                  <span className={`px-2 py-1 rounded text-sm ${
-                    statusColors[scheduleDetails.status]
-                  }`}>
+                  <h3 className="font-medium mb-1">Status</h3>
+                  <span className={`px-2 py-1 rounded text-sm ${statusColors[scheduleDetails.status]}`}>
                     {statusLabels[scheduleDetails.status]}
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold mb-1">Custo Estimado</h3>
+                  <h3 className="font-medium mb-1">Custo Total</h3>
                   <p>R$ {(scheduleDetails.estimated_cost || 0).toFixed(2)}</p>
                 </div>
               </div>
-              
-              {scheduleDetails.notes && (
-                <div>
-                  <h3 className="text-sm font-semibold mb-1">Observações</h3>
-                  <p className="text-sm">{scheduleDetails.notes}</p>
+
+              <div className="mb-4">
+                <h3 className="font-medium mb-2">Receitas</h3>
+                <div className="space-y-2">
+                  {scheduleDetails.items?.map((item: any) => (
+                    <div key={item.id} className="flex justify-between items-center">
+                      <span>{item.recipe.name}</span>
+                      <span>x{item.quantity}</span>
+                    </div>
+                  ))}
                 </div>
-              )}
-              
-              <div>
-                <h3 className="text-md font-semibold mb-2">Receitas</h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Receita</TableHead>
-                      <TableHead>Quantidade</TableHead>
-                      <TableHead>Custo Unitário</TableHead>
-                      <TableHead>Custo Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {scheduleDetails.items?.map((item: any) => {
-                      const recipeCost = item.recipe?.total_cost || 0;
-                      const totalCost = recipeCost * item.quantity;
-                      
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell>{item.recipe?.name}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>R$ {recipeCost.toFixed(2)}</TableCell>
-                          <TableCell>R$ {totalCost.toFixed(2)}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
               </div>
-              
-              <div>
-                <h3 className="text-md font-semibold mb-2">Ingredientes Necessários</h3>
+
+              <div className="mb-4">
+                <h3 className="font-medium mb-2">Ingredientes Necessários</h3>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Ingrediente</TableHead>
-                      <TableHead>Quantidade Total</TableHead>
+                      <TableHead>Quantidade</TableHead>
                       <TableHead>Unidade</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {buildIngredientsList(scheduleDetails).map((ingredient: any, index: number) => (
+                    {calculateTotalIngredients(scheduleDetails.items).map((ingredient, index) => (
                       <TableRow key={index}>
                         <TableCell>{ingredient.name}</TableCell>
-                        <TableCell>{ingredient.totalQuantity.toFixed(2)}</TableCell>
+                        <TableCell>{ingredient.quantity.toFixed(2)}</TableCell>
                         <TableCell>{ingredient.unit}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
-              
-              <DialogFooter className="gap-2">
+
+              {scheduleDetails.notes && (
+                <div className="mb-4">
+                  <h3 className="font-medium mb-2">Observações</h3>
+                  <p className="text-sm text-gray-600">{scheduleDetails.notes}</p>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 mt-6">
                 {scheduleDetails.status === 'pending' && (
-                  <Button 
-                    onClick={() => {
-                      handleUpdateStatus(scheduleDetails.id, 'in_progress');
-                      setShowDetailsDialog(false);
-                    }}
-                  >
-                    <Clock className="mr-2 h-4 w-4" /> Iniciar Produção
+                  <Button onClick={() => handleUpdateStatus(scheduleDetails.id, 'in_progress')}>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Iniciar Produção
                   </Button>
                 )}
                 
                 {scheduleDetails.status === 'in_progress' && (
-                  <Button 
-                    onClick={() => {
-                      handleUpdateStatus(scheduleDetails.id, 'completed');
-                      setShowDetailsDialog(false);
-                    }}
-                  >
-                    <Check className="mr-2 h-4 w-4" /> Marcar como Concluída
+                  <Button onClick={() => handleUpdateStatus(scheduleDetails.id, 'completed')}>
+                    <Check className="mr-2 h-4 w-4" />
+                    Concluir Produção
                   </Button>
                 )}
-                
-                <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
-                  Fechar
+
+                <Button variant="outline" onClick={handleExportPDF}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar PDF
                 </Button>
-              </DialogFooter>
+              </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
-};
-
-const buildIngredientsList = (schedule: any) => {
-  const ingredients: Record<string, { name: string, totalQuantity: number, unit: string }> = {};
-  
-  schedule.items?.forEach((item: any) => {
-    item.recipe?.baseIngredients?.forEach((baseIng: any) => {
-      const ingredient = baseIng.ingredients;
-      const key = ingredient.id;
-      
-      if (!ingredients[key]) {
-        ingredients[key] = {
-          name: ingredient.name,
-          totalQuantity: 0,
-          unit: ingredient.unit
-        };
-      }
-      
-      ingredients[key].totalQuantity += baseIng.quantity;
-    });
-    
-    item.recipe?.portionIngredients?.forEach((portionIng: any) => {
-      const ingredient = portionIng.ingredients;
-      const key = ingredient.id;
-      
-      if (!ingredients[key]) {
-        ingredients[key] = {
-          name: ingredient.name,
-          totalQuantity: 0,
-          unit: ingredient.unit
-        };
-      }
-      
-      ingredients[key].totalQuantity += portionIng.quantity * item.quantity;
-    });
-  });
-  
-  return Object.values(ingredients).sort((a, b) => a.name.localeCompare(b.name));
 };
 
 export default ProductionSchedulePage;

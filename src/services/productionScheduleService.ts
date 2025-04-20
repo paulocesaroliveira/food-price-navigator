@@ -352,3 +352,48 @@ export const getProductionScheduleDetails = async (scheduleId: string): Promise<
     return null;
   }
 };
+
+// Add new function to calculate total ingredients needed
+export const calculateTotalIngredients = (items: ProductionScheduleItem[]) => {
+  const totalIngredients: Record<string, { 
+    name: string, 
+    quantity: number, 
+    unit: string 
+  }> = {};
+
+  items?.forEach(item => {
+    // Calculate base ingredients
+    item.recipe?.baseIngredients?.forEach(baseIng => {
+      const ingredient = baseIng.ingredients;
+      const key = ingredient.id;
+      
+      if (!totalIngredients[key]) {
+        totalIngredients[key] = {
+          name: ingredient.name,
+          quantity: 0,
+          unit: ingredient.unit
+        };
+      }
+      
+      totalIngredients[key].quantity += baseIng.quantity * item.quantity;
+    });
+
+    // Calculate portion ingredients
+    item.recipe?.portionIngredients?.forEach(portionIng => {
+      const ingredient = portionIng.ingredients;
+      const key = ingredient.id;
+      
+      if (!totalIngredients[key]) {
+        totalIngredients[key] = {
+          name: ingredient.name,
+          quantity: 0,
+          unit: ingredient.unit
+        };
+      }
+      
+      totalIngredients[key].quantity += portionIng.quantity * item.quantity;
+    });
+  });
+
+  return Object.values(totalIngredients);
+};
