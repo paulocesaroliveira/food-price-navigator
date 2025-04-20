@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -75,6 +74,8 @@ import {
   Filter,
   FileText
 } from 'lucide-react';
+import { toast } from "@/components/ui/sonner";
+import { DayContentProps } from 'react-day-picker';
 
 const statusLabels = {
   'pending': 'Agendada',
@@ -109,7 +110,6 @@ const ProductionSchedulePage: React.FC = () => {
   const [scheduleToDuplicate, setScheduleToDuplicate] = useState<string | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
-  // Fetch schedules and recipes on component mount
   useEffect(() => {
     const loadData = async () => {
       const fetchedSchedules = await fetchProductionSchedules();
@@ -125,7 +125,6 @@ const ProductionSchedulePage: React.FC = () => {
     loadData();
   }, []);
 
-  // Calculate costs and required time when items change
   useEffect(() => {
     if (newSchedule.items && newSchedule.items.length > 0) {
       let totalCost = 0;
@@ -144,7 +143,6 @@ const ProductionSchedulePage: React.FC = () => {
     }
   }, [newSchedule.items, recipes]);
 
-  // Add schedule item
   const addScheduleItem = () => {
     if (recipes.length === 0) return;
     
@@ -157,20 +155,17 @@ const ProductionSchedulePage: React.FC = () => {
     }));
   };
 
-  // Update schedule item
   const updateScheduleItem = (index: number, field: keyof ProductionScheduleItem, value: string | number) => {
     const newItems = [...(newSchedule.items || [])];
     newItems[index] = { ...newItems[index], [field]: value };
     setNewSchedule(prev => ({ ...prev, items: newItems }));
   };
 
-  // Remove schedule item
   const removeScheduleItem = (index: number) => {
     const newItems = newSchedule.items?.filter((_, i) => i !== index);
     setNewSchedule(prev => ({ ...prev, items: newItems }));
   };
 
-  // Reset form
   const resetForm = () => {
     setNewSchedule({
       date: new Date().toISOString().split('T')[0],
@@ -181,7 +176,6 @@ const ProductionSchedulePage: React.FC = () => {
     });
   };
 
-  // Save new schedule
   const handleSaveSchedule = async () => {
     if (!newSchedule.date || !newSchedule.items || newSchedule.items.length === 0) {
       toast({
@@ -199,7 +193,6 @@ const ProductionSchedulePage: React.FC = () => {
     }
   };
 
-  // Update schedule status
   const handleUpdateStatus = async (scheduleId: string, newStatus: ProductionSchedule['status']) => {
     const success = await updateProductionScheduleStatus(scheduleId, newStatus);
     if (success) {
@@ -211,7 +204,6 @@ const ProductionSchedulePage: React.FC = () => {
     }
   };
 
-  // Delete schedule
   const handleDeleteSchedule = async (scheduleId: string) => {
     const success = await deleteProductionSchedule(scheduleId);
     if (success) {
@@ -219,13 +211,11 @@ const ProductionSchedulePage: React.FC = () => {
     }
   };
 
-  // Show duplicate dialog
   const handleShowDuplicateDialog = (scheduleId: string) => {
     setScheduleToDuplicate(scheduleId);
     setShowDuplicateDialog(true);
   };
 
-  // Duplicate schedule
   const handleDuplicateSchedule = async () => {
     if (!scheduleToDuplicate || !duplicateDate) return;
     
@@ -233,14 +223,12 @@ const ProductionSchedulePage: React.FC = () => {
     const success = await duplicateProductionSchedule(scheduleToDuplicate, formattedDate);
     
     if (success) {
-      // Refresh schedules
       const fetchedSchedules = await fetchProductionSchedules();
       setSchedules(fetchedSchedules);
       setShowDuplicateDialog(false);
     }
   };
 
-  // Show schedule details
   const handleShowDetails = async (scheduleId: string) => {
     const details = await getProductionScheduleDetails(scheduleId);
     if (details) {
@@ -249,13 +237,11 @@ const ProductionSchedulePage: React.FC = () => {
     }
   };
 
-  // Calendar view - get schedules for selected date
   const getSchedulesForDate = (date: Date) => {
     const formattedDate = date.toISOString().split('T')[0];
     return schedules.filter(schedule => schedule.date === formattedDate);
   };
 
-  // Render calendar day content
   const renderCalendarDay = (day: Date) => {
     const daySchedules = getSchedulesForDate(day);
     
@@ -288,7 +274,6 @@ const ProductionSchedulePage: React.FC = () => {
             </DialogHeader>
             
             <div className="grid grid-cols-2 gap-4 mt-4">
-              {/* Date Picker */}
               <div>
                 <label className="block mb-2 text-sm font-medium">Data</label>
                 <Input 
@@ -298,7 +283,6 @@ const ProductionSchedulePage: React.FC = () => {
                 />
               </div>
 
-              {/* Time Picker */}
               <div>
                 <label className="block mb-2 text-sm font-medium">Horário (opcional)</label>
                 <Input 
@@ -309,7 +293,6 @@ const ProductionSchedulePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Status Dropdown */}
             <div className="mt-4">
               <label className="block mb-2 text-sm font-medium">Status</label>
               <Select 
@@ -330,7 +313,6 @@ const ProductionSchedulePage: React.FC = () => {
               </Select>
             </div>
 
-            {/* Notes */}
             <div className="mt-4">
               <label className="block mb-2 text-sm font-medium">Observações</label>
               <Textarea
@@ -341,7 +323,6 @@ const ProductionSchedulePage: React.FC = () => {
               />
             </div>
 
-            {/* Schedule Items */}
             <div className="mt-4">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-semibold">Itens da Agenda</h3>
@@ -441,7 +422,6 @@ const ProductionSchedulePage: React.FC = () => {
               )}
             </div>
 
-            {/* Save Button */}
             <DialogFooter className="mt-4">
               <Button 
                 variant="outline"
@@ -460,7 +440,6 @@ const ProductionSchedulePage: React.FC = () => {
         </Dialog>
       </div>
       
-      {/* Tabs for List and Calendar Views */}
       <Tabs defaultValue="list" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="list" onClick={() => setCurrentView('list')}>
@@ -473,7 +452,6 @@ const ProductionSchedulePage: React.FC = () => {
           </TabsTrigger>
         </TabsList>
         
-        {/* List View */}
         <TabsContent value="list" className="space-y-4">
           <div className="bg-white rounded-lg shadow">
             <Table>
@@ -590,7 +568,6 @@ const ProductionSchedulePage: React.FC = () => {
           </div>
         </TabsContent>
         
-        {/* Calendar View */}
         <TabsContent value="calendar">
           <div className="bg-white rounded-lg shadow p-4">
             <Calendar
@@ -604,7 +581,7 @@ const ProductionSchedulePage: React.FC = () => {
               }}
               className="rounded-md border"
               components={{
-                DayContent: (props) => {
+                DayContent: (props: DayContentProps) => {
                   const date = props.date;
                   const daySchedules = getSchedulesForDate(date);
                   
@@ -677,7 +654,6 @@ const ProductionSchedulePage: React.FC = () => {
         </TabsContent>
       </Tabs>
       
-      {/* Duplicate Dialog */}
       <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
         <DialogContent>
           <DialogHeader>
@@ -707,7 +683,6 @@ const ProductionSchedulePage: React.FC = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
@@ -832,13 +807,10 @@ const ProductionSchedulePage: React.FC = () => {
   );
 };
 
-// Helper function to build the list of ingredients needed for a production schedule
 const buildIngredientsList = (schedule: any) => {
   const ingredients: Record<string, { name: string, totalQuantity: number, unit: string }> = {};
   
-  // Process all recipes and their ingredients
   schedule.items?.forEach((item: any) => {
-    // Process base ingredients
     item.recipe?.baseIngredients?.forEach((baseIng: any) => {
       const ingredient = baseIng.ingredients;
       const key = ingredient.id;
@@ -854,7 +826,6 @@ const buildIngredientsList = (schedule: any) => {
       ingredients[key].totalQuantity += baseIng.quantity;
     });
     
-    // Process portion ingredients (multiply by quantity of the recipe)
     item.recipe?.portionIngredients?.forEach((portionIng: any) => {
       const ingredient = portionIng.ingredients;
       const key = ingredient.id;
@@ -871,7 +842,6 @@ const buildIngredientsList = (schedule: any) => {
     });
   });
   
-  // Convert to array and sort by name
   return Object.values(ingredients).sort((a, b) => a.name.localeCompare(b.name));
 };
 

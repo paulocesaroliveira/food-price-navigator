@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -11,6 +10,8 @@ export interface ProductionSchedule {
   items?: ProductionScheduleItem[];
   estimated_cost?: number;
   estimated_time?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProductionScheduleItem {
@@ -125,10 +126,12 @@ export const fetchProductionSchedules = async (): Promise<ProductionSchedule[]> 
       return [];
     }
 
-    // Cast the status field to ensure it matches our type definition
     const typedSchedules = schedules.map(schedule => ({
       ...schedule,
-      status: schedule.status as ProductionSchedule['status']
+      status: schedule.status as ProductionSchedule['status'],
+      start_time: schedule.start_time || undefined,
+      estimated_cost: schedule.estimated_cost || undefined,
+      estimated_time: schedule.estimated_time || undefined
     }));
 
     return typedSchedules || [];
@@ -281,7 +284,6 @@ export const duplicateProductionSchedule = async (scheduleId: string, newDate: s
           description: `Não foi possível duplicar os itens da agenda: ${itemsError.message}`,
           variant: 'destructive'
         });
-        // We should delete the created schedule if items failed
         await supabase.from('production_schedules').delete().eq('id', newSchedule.id);
         return false;
       }
