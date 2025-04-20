@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -239,8 +238,8 @@ const ProductionSchedulePage: React.FC = () => {
     return schedules.filter(schedule => schedule.date === formattedDate);
   };
 
-  const renderCalendarDay = (day: Date) => {
-    const daySchedules = getSchedulesForDate(day);
+  const renderCalendarDay = (date: Date) => {
+    const daySchedules = getSchedulesForDate(date);
     
     if (daySchedules.length === 0) return null;
     
@@ -584,7 +583,7 @@ const ProductionSchedulePage: React.FC = () => {
                   
                   return (
                     <div className="relative w-full h-full flex items-center justify-center">
-                      {props.day}
+                      {props.date.getDate()}
                       {daySchedules.length > 0 && (
                         <div className="absolute bottom-0 left-0 right-0 flex justify-center">
                           <div className={`w-2 h-2 rounded-full ${
