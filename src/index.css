@@ -7,93 +7,79 @@
 
 @layer base {
   :root {
-    --background: 20 100% 97%;     /* #FFF8F3 - cream background */
-    --foreground: 0 0% 20%;        /* #333333 - dark text */
+    /* Light mode */
+    --background: 40 71% 97%;      /* #FAF3E0 fundo baunilha */
+    --foreground: 0 0% 22%;        /* #3A3A3A texto principal */
+    --card: 0 0% 100%;             /* #FFFFFF */
+    --card-foreground: 0 0% 22%;   /* #3A3A3A */
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 22%;
+    --primary: 14 71% 61%;         /* #E76F51 coral gourmet */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 173 58% 37%;      /* #2A9D8F verde menta */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 37 77% 94%;           /* #FAF3E0 vanilla */
+    --muted-foreground: 0 0% 52%;  /* #6F6F6F texto secundário */
+    --accent: 14 71% 61%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 1 71% 73%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 88%;            /* #E0E0E0 borda clara */
+    --input: 0 0% 100%;            /* #FFFFFF fundo input */
+    --ring: 14 71% 61%;
+    --radius: 1rem;
 
-    --card: 0 0% 100%;             /* #FFFFFF - white cards */
-    --card-foreground: 0 0% 20%;   /* #333333 - dark text */
-
-    --popover: 0 0% 100%;          /* #FFFFFF - white popovers */
-    --popover-foreground: 0 0% 20%; /* #333333 - dark text */
-
-    --primary: 14 71% 61%;         /* #E76F51 - coral primary */
-    --primary-foreground: 0 0% 100%; /* #FFFFFF - white text on primary */
-
-    --secondary: 29 89% 67%;      /* #F4A261 - amber secondary */
-    --secondary-foreground: 0 0% 20%; /* #333333 - dark text on secondary */
-
-    --muted: 37 77% 94%;          /* #FAF3E0 - vanilla muted */
-    --muted-foreground: 0 0% 40%; /* #666666 - muted text */
-
-    --accent: 29 89% 67%;         /* #F4A261 - amber accent */
-    --accent-foreground: 0 0% 20%; /* #333333 - dark text on accent */
-
-    --destructive: 1 71% 73%;     /* #F28482 - red destructive */
-    --destructive-foreground: 0 0% 100%; /* #FFFFFF - white text on destructive */
-
-    --border: 20 33% 92%;         /* Lighter version of cream */
-    --input: 20 33% 92%;          /* Lighter version of cream */
-    --ring: 14 71% 61%;           /* #E76F51 - coral ring */
-
-    --radius: 1rem;               /* 16px border radius */
-
-    --sidebar-background: 20 100% 97%; /* #FFF8F3 - cream sidebar */
-    --sidebar-foreground: 0 0% 20%;    /* #333333 - dark text */
-    --sidebar-primary: 14 71% 61%;     /* #E76F51 - coral primary */
-    --sidebar-primary-foreground: 0 0% 100%; /* #FFFFFF - white text */
-    --sidebar-accent: 29 89% 67%;       /* #F4A261 - amber accent */
-    --sidebar-accent-foreground: 0 0% 20%; /* #333333 - dark text */
-    --sidebar-border: 20 33% 92%;       /* Lighter version of cream */
-    --sidebar-ring: 14 71% 61%;         /* #E76F51 - coral ring */
+    --sidebar-background: 40 71% 97%;
+    --sidebar-foreground: 0 0% 22%;
+    --sidebar-primary: 14 71% 61%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 37 77% 94%;
+    --sidebar-accent-foreground: 0 0% 22%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 14 71% 61%;
   }
 
   .dark {
-    --background: 219 35% 10%;
-    --foreground: 210 40% 98%;
+    /* Cores do dark mode conforme seu briefing */
+    --background: 250 6% 11%;          /* #1C1C1E fundo principal */
+    --foreground: 0 0% 96%;            /* #F5F5F5 texto principal */
+    --card: 244 5% 17%;                /* #2A2A2D cards/blocos */
+    --card-foreground: 0 0% 96%;
+    --popover: 244 5% 17%;
+    --popover-foreground: 0 0% 90%;
+    --primary: 18 88% 77%;             /* #F7A690 coral clara/vibrante */
+    --primary-foreground: 0 0% 22%;
+    --secondary: 181 49% 53%;          /* #54BAB9 verde menta dark */
+    --secondary-foreground: 0 0% 22%;
+    --muted: 250 6% 13%;               /* para destacar campos muted */
+    --muted-foreground: 0 0% 80%;      /* #CCCCCC texto secundário */
+    --accent: 18 88% 77%;
+    --accent-foreground: 0 0% 22%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 96%;
+    --border: 240 4% 23%;              /* #3A3A3A bordas dark */
+    --input: 244 5% 20%;               /* #333337 fundo inputs dark */
+    --ring: 18 88% 77%;
+    --radius: 1rem;
 
-    --card: 218 35% 13%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 219 35% 10%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 14 71% 61%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 29 89% 67%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 18%;
-    --muted-foreground: 215 25% 65%;
-
-    --accent: 29 89% 67%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 14 71% 61%;
-    
-    --sidebar-background: 219 35% 10%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 14 71% 61%;
+    --sidebar-background: 244 5% 17%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 18 88% 77%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 18%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 20%;
-    --sidebar-ring: 14 71% 61%;
+    --sidebar-accent: 250 6% 13%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 240 4% 23%;
+    --sidebar-ring: 18 88% 77%;
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border transition-colors duration-300;
   }
 
   body {
-    @apply bg-background text-foreground font-inter;
+    @apply bg-background text-foreground font-inter transition-colors duration-300;
     font-family: 'Inter', sans-serif;
   }
   
@@ -104,15 +90,15 @@
 
 @layer components {
   .stats-card {
-    @apply bg-food-white rounded-xl p-6 shadow-soft border border-gray-50 hover:shadow-card transition-all duration-300;
+    @apply bg-card rounded-xl p-6 shadow-soft border hover:shadow-card transition-all duration-300;
   }
   
   .stats-value {
-    @apply text-2xl font-semibold text-food-dark;
+    @apply text-2xl font-semibold text-food-coral;
   }
   
   .stats-label {
-    @apply text-sm text-gray-500;
+    @apply text-sm text-muted-foreground;
   }
   
   .sidebar-link {
@@ -140,7 +126,7 @@
   }
   
   .pricing-result-card {
-    @apply bg-food-white border rounded-xl p-5 transition-all hover:shadow-soft;
+    @apply bg-card border rounded-xl p-5 transition-all hover:shadow-soft;
   }
   
   .pricing-highlight {
@@ -158,10 +144,19 @@
   .input-group {
     @apply space-y-2;
   }
+  .input-dark {
+    @apply bg-input border border-border text-foreground shadow-[inset_0_0_3px_rgba(255,255,255,0.05)];
+  }
+  .input-light {
+    @apply bg-input border border-border text-foreground;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  .card-shadow-dark {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4) !important;
   }
 }
