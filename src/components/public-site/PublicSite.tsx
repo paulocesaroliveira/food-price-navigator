@@ -114,7 +114,7 @@ const PublicSite = ({ settings, products }: PublicSiteProps) => {
           email: customerData.email || null,
           phone: customerData.phone || null,
           address: customerData.address || null,
-          origin: "site"
+          origin: "site" as const
         },
         order: {
           delivery_type: customerData.deliveryType,
@@ -123,8 +123,8 @@ const PublicSite = ({ settings, products }: PublicSiteProps) => {
           scheduled_time: customerData.scheduledTime || null,
           total_amount: cart.reduce((total, item) => total + (item.price * item.quantity), 0),
           notes: customerData.notes || null,
-          origin: "site",
-          status: "Novo"
+          origin: "site" as const,
+          status: "Novo" as const
         },
         items: orderItems
       };

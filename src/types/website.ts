@@ -38,6 +38,33 @@ export interface CustomerData {
   notes?: string;
 }
 
+export interface OrderData {
+  customer: {
+    name: string;
+    email: string | null;
+    phone: string | null;
+    address?: string | null;
+    origin: "site" | "manual";
+  };
+  order: {
+    delivery_type: "Entrega" | "Retirada";
+    delivery_address: string | null;
+    scheduled_date: string | null;
+    scheduled_time: string | null;
+    total_amount: number;
+    notes: string | null;
+    origin: "site" | "manual";
+    status: "Novo" | "Em preparo" | "Pronto" | "Finalizado" | "Cancelado";
+  };
+  items: Array<{
+    product_id: string;
+    quantity: number;
+    price_at_order: number;
+    total_price: number;
+    notes: string | null;
+  }>;
+}
+
 export interface PublicSiteProps {
   settings: WebsiteSettings;
   products: PublishedProduct[];
