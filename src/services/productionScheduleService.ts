@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -24,6 +25,22 @@ export interface ProductionScheduleItem {
     name: string;
     total_cost?: number;
     estimated_time?: string;
+    baseIngredients?: Array<{
+      ingredients: {
+        id: string;
+        name: string;
+        unit: string;
+      };
+      quantity: number;
+    }>;
+    portionIngredients?: Array<{
+      ingredients: {
+        id: string;
+        name: string;
+        unit: string;
+      };
+      quantity: number;
+    }>;
   };
 }
 
