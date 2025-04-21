@@ -19,7 +19,8 @@ const PublicSite = ({ settings, products }: PublicSiteProps) => {
     name: "",
     email: "",
     phone: "",
-    deliveryType: "Retirada"
+    deliveryType: "Retirada",
+    paymentMethod: ""
   });
 
   const addToCart = (product: PublishedProduct, quantity: number = 1, notes: string = "") => {
@@ -90,6 +91,15 @@ const PublicSite = ({ settings, products }: PublicSiteProps) => {
       return;
     }
 
+    if (!customerData.paymentMethod) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione uma forma de pagamento",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (cart.length === 0) {
       toast({
         title: "Erro",
@@ -124,7 +134,8 @@ const PublicSite = ({ settings, products }: PublicSiteProps) => {
           total_amount: cart.reduce((total, item) => total + (item.price * item.quantity), 0),
           notes: customerData.notes || null,
           origin: "site" as const,
-          status: "Novo" as const
+          status: "Novo" as const,
+          payment_method: customerData.paymentMethod || null
         },
         items: orderItems
       };
@@ -141,7 +152,8 @@ const PublicSite = ({ settings, products }: PublicSiteProps) => {
           name: "",
           email: "",
           phone: "",
-          deliveryType: "Retirada"
+          deliveryType: "Retirada",
+          paymentMethod: ""
         });
       }
     } catch (error) {
@@ -173,6 +185,15 @@ const PublicSite = ({ settings, products }: PublicSiteProps) => {
       return;
     }
 
+    if (!customerData.paymentMethod) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione uma forma de pagamento",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (cart.length === 0) {
       toast({
         title: "Erro",
@@ -196,6 +217,7 @@ const PublicSite = ({ settings, products }: PublicSiteProps) => {
 *Telefone:* ${customerData.phone}
 ${customerData.email ? `*Email:* ${customerData.email}` : ''}
 *Tipo:* ${customerData.deliveryType}
+*Forma de Pagamento:* ${customerData.paymentMethod}
 ${customerData.deliveryType === 'Entrega' ? `*Endereço:* ${customerData.address}` : ''}
 ${customerData.scheduledDate ? `*Data desejada:* ${customerData.scheduledDate}` : ''}
 ${customerData.scheduledTime ? `*Horário desejado:* ${customerData.scheduledTime}` : ''}
@@ -249,6 +271,7 @@ ${itemsText}
             setCustomerData={setCustomerData}
             onSubmitOrder={handleSubmitOrder}
             onSendWhatsappOrder={handleSendWhatsappOrder}
+            settings={settings}
           />
         </section>
         

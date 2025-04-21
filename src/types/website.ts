@@ -16,6 +16,7 @@ export interface WebsiteSettings {
   store_address: string | null;
   created_at: string;
   updated_at: string;
+  accepted_payment_methods?: string[]; // New field for payment methods
 }
 
 export interface CartItem {
@@ -36,6 +37,7 @@ export interface CustomerData {
   scheduledDate?: string;
   scheduledTime?: string;
   notes?: string;
+  paymentMethod?: string; // New field for payment method
 }
 
 export interface OrderData {
@@ -55,6 +57,7 @@ export interface OrderData {
     notes: string | null;
     origin: "site" | "manual";
     status: "Novo" | "Em preparo" | "Pronto" | "Finalizado" | "Cancelado";
+    payment_method?: string | null; // New field for payment method
   };
   items: Array<{
     product_id: string;
