@@ -81,7 +81,7 @@ const Website = () => {
     } else if (settings.subdomain) {
       return `https://${settings.subdomain}.tastyhub.com`;
     } else {
-      return null;
+      return `/loja`;
     }
   };
 

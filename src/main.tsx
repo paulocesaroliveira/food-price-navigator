@@ -67,9 +67,13 @@ const router = createBrowserRouter(
         <Route path="website" element={<Website />} />
       </Route>
       
-      {/* Public website route */}
-      <Route path="/site" element={<PublicSitePage />} />
-      <Route path="/site/:storeId" element={<PublicSitePage />} />
+      {/* Public website route - renamed from /site to /loja */}
+      <Route path="/loja" element={<PublicSitePage />} />
+      <Route path="/loja/:storeId" element={<PublicSitePage />} />
+      
+      {/* Redirect old /site routes to /loja for backward compatibility */}
+      <Route path="/site" element={<Navigate to="/loja" replace />} />
+      <Route path="/site/:storeId" element={<Navigate to={params => `/loja/${params.storeId}`} replace />} />
       
       {/* 404 route */}
       <Route path="*" element={<NotFound />} />

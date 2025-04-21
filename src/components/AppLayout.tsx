@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
@@ -17,16 +17,42 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const AppLayout = () => {
   const { toast } = useToast();
-  const [isDarkMode, setIsDarkMode] = React.useState(false);
+  const [theme, setTheme] = React.useState<"light" | "dark">("light");
 
-  // This would be implemented with actual theme toggling 
+  // Check for saved theme in localStorage on component mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    
+    if (savedTheme === "dark") {
+      setTheme("dark");
+      document.documentElement.classList.add("dark");
+    } else {
+      setTheme("light");
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  // Toggle theme function with localStorage persistence
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    toast({
-      title: !isDarkMode ? "Modo escuro ativado" : "Modo claro ativado",
-      description: "O tema foi alterado com sucesso.",
-      duration: 2000,
-    });
+    if (theme === "light") {
+      setTheme("dark");
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      toast({
+        title: "Modo escuro ativado",
+        description: "O tema foi alterado com sucesso.",
+        duration: 2000,
+      });
+    } else {
+      setTheme("light");
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+      toast({
+        title: "Modo claro ativado",
+        description: "O tema foi alterado com sucesso.",
+        duration: 2000,
+      });
+    }
   };
 
   return (
@@ -34,12 +60,12 @@ const AppLayout = () => {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <main className="flex-1 overflow-auto">
-          <header className="sticky top-0 z-10 bg-food-white shadow-soft h-16">
+          <header className="sticky top-0 z-10 bg-food-white dark:bg-food-dark shadow-soft dark:shadow-card-dark h-16">
             <div className="h-full flex items-center justify-between px-4">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="text-food-dark hover:text-food-coral transition-colors" />
+                <SidebarTrigger className="text-food-dark dark:text-food-textdark hover:text-food-coral dark:hover:text-food-coralDark transition-colors" />
                 <div className="flex items-center gap-2">
-                  <BarChart3 className="h-6 w-6 text-food-coral md:hidden" />
+                  <BarChart3 className="h-6 w-6 text-food-coral dark:text-food-coralDark md:hidden" />
                   <span className="font-poppins font-semibold text-lg hidden md:block">FoodPrice</span>
                 </div>
               </div>
@@ -54,7 +80,7 @@ const AppLayout = () => {
                           title: "Sem notificações", 
                           description: "Você não tem novas notificações." 
                         })}
-                        className="text-food-dark hover:text-food-coral hover:bg-food-cream transition-colors"
+                        className="text-food-dark dark:text-food-textdark hover:text-food-coral dark:hover:text-food-coralDark hover:bg-food-cream dark:hover:bg-food-carddark transition-colors"
                       >
                         <Bell className="h-5 w-5" />
                       </Button>
@@ -72,9 +98,9 @@ const AppLayout = () => {
                         variant="ghost" 
                         size="icon" 
                         onClick={toggleTheme}
-                        className="text-food-dark hover:text-food-coral hover:bg-food-cream transition-colors"
+                        className="text-food-dark dark:text-food-textdark hover:text-food-coral dark:hover:text-food-coralDark hover:bg-food-cream dark:hover:bg-food-carddark transition-colors"
                       >
-                        {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                        {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -89,7 +115,7 @@ const AppLayout = () => {
                       <Button 
                         variant="ghost" 
                         size="icon"
-                        className="text-food-dark hover:text-food-coral hover:bg-food-cream transition-colors"
+                        className="text-food-dark dark:text-food-textdark hover:text-food-coral dark:hover:text-food-coralDark hover:bg-food-cream dark:hover:bg-food-carddark transition-colors"
                       >
                         <HelpCircle className="h-5 w-5" />
                       </Button>
@@ -105,9 +131,9 @@ const AppLayout = () => {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="rounded-full hover:bg-food-cream transition-colors"
+                      className="rounded-full hover:bg-food-cream dark:hover:bg-food-carddark transition-colors"
                     >
-                      <User className="h-5 w-5 text-food-dark hover:text-food-coral" />
+                      <User className="h-5 w-5 text-food-dark dark:text-food-textdark hover:text-food-coral dark:hover:text-food-coralDark" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">

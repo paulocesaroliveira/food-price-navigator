@@ -22,7 +22,7 @@ import {
   ShoppingCart,
   Users,
   Store,
-  Calendar, // Added import for Calendar icon
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,26 +30,26 @@ const AppSidebar = () => {
   const location = useLocation();
   
   const navItems = [
-    { path: "/", name: "Dashboard", icon: LayoutDashboard },
+    { path: "/dashboard", name: "Dashboard", icon: LayoutDashboard },
     { path: "/ingredients", name: "Ingredientes", icon: Egg },
     { path: "/recipes", name: "Receitas", icon: ChefHat },
     { path: "/packaging", name: "Embalagens", icon: Package },
     { path: "/products", name: "Produtos", icon: ShoppingBag },
     { path: "/pricing", name: "Precificação", icon: DollarSign },
-    { path: "/production-schedule", name: "Agenda de Produção", icon: Calendar }, // New item
+    { path: "/production-schedule", name: "Agenda de Produção", icon: Calendar },
     { path: "/website", name: "Site Público", icon: Globe },
     { path: "/orders", name: "Pedidos", icon: ShoppingCart },
     { path: "/customers", name: "Clientes", icon: Users },
   ];
 
   return (
-    <Sidebar className="bg-food-cream">
+    <Sidebar className="bg-food-cream dark:bg-food-carddark">
       <SidebarHeader>
         <div className="flex items-center gap-3 px-4 py-5">
-          <Store className="h-8 w-8 text-food-coral" />
+          <Store className="h-8 w-8 text-food-coral dark:text-food-coralDark" />
           <div className="flex flex-col">
-            <span className="text-xl font-poppins font-semibold tracking-tight">TastyHub</span>
-            <span className="text-xs text-food-dark/70">Gestão de Confeitaria</span>
+            <span className="text-xl font-poppins font-semibold tracking-tight text-food-textlight dark:text-food-textdark">TastyHub</span>
+            <span className="text-xs text-food-dark/70 dark:text-food-textdark/70">Gestão de Confeitaria</span>
           </div>
         </div>
       </SidebarHeader>
@@ -65,7 +65,7 @@ const AppSidebar = () => {
                 location.pathname === item.path && "active"
               )}
             >
-              <item.icon className={`h-5 w-5 ${location.pathname === item.path ? 'text-white' : 'text-food-coral'}`} />
+              <item.icon className={`h-5 w-5 ${location.pathname === item.path ? 'text-white dark:text-food-dark' : 'text-food-coral dark:text-food-coralDark'}`} />
               <span className="flex-1 text-sm font-medium">{item.name}</span>
               <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-70 transition-opacity" />
             </Link>
@@ -76,14 +76,14 @@ const AppSidebar = () => {
       <SidebarFooter>
         <div className="px-3 py-4 space-y-1">
           <Link to="/settings" className="sidebar-link">
-            <Settings className="h-5 w-5 text-food-coral" />
+            <Settings className="h-5 w-5 text-food-coral dark:text-food-coralDark" />
             <span className="text-sm font-medium">Configurações</span>
           </Link>
           <Link to="/help" className="sidebar-link">
-            <HelpCircle className="h-5 w-5 text-food-coral" />
+            <HelpCircle className="h-5 w-5 text-food-coral dark:text-food-coralDark" />
             <span className="text-sm font-medium">Ajuda</span>
           </Link>
-          <div className="px-4 py-4 mt-4 text-xs text-food-dark/60 text-center">
+          <div className="px-4 py-4 mt-4 text-xs text-food-dark/60 dark:text-food-textdark/60 text-center">
             TastyHub v1.0.0
             <div className="mt-1">Gestão de Confeitaria</div>
           </div>
