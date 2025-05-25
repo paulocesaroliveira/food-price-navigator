@@ -31,7 +31,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
   // Estado para controlar o modo de precificação
   const [pricingMode, setPricingMode] = useState<'margin' | 'target'>('margin');
   const [marginPercentage, setMarginPercentage] = useState(30);
-  const [targetPrice, setTargetPrice] = useState(0);
+  const [targetPrice, setTargetPrice] = useState<string>('');
   
   const [platformFeePercentage, setPlatformFeePercentage] = useState(0);
   const [taxPercentage, setTaxPercentage] = useState(0);
@@ -44,9 +44,12 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
     const packagingCost = product.packagingCost;
     
     let calculatedMargin = marginPercentage;
+    let finalTargetPrice = 0;
     
     // Se estiver no modo de preço alvo, calcular a margem necessária
-    if (pricingMode === 'target' && targetPrice > 0) {
+    if (pricingMode === 'target' && targetPrice && parseFloat(targetPrice) > 0) {
+      finalTargetPrice = parseFloat(targetPrice);
+      
       // Calcular custo total primeiro
       const totalAdditionalCost = additionalCosts.reduce((sum, cost) => {
         if (cost.type === 'percentage') {
@@ -61,7 +64,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       
       // Calcular margem necessária para atingir o preço alvo
       if (unitCostWithWastage > 0) {
-        calculatedMargin = ((targetPrice - unitCostWithWastage) / targetPrice) * 100;
+        calculatedMargin = ((finalTargetPrice - unitCostWithWastage) / finalTargetPrice) * 100;
       }
     }
     
@@ -77,7 +80,8 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
     
     setResults({
       ...calculatedResults,
-      calculatedMargin
+      calculatedMargin,
+      targetPrice: finalTargetPrice
     });
   }, [
     product,
@@ -94,6 +98,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
     if (!results) return;
 
     const finalMargin = pricingMode === 'target' ? results.calculatedMargin : marginPercentage;
+    const finalPrice = pricingMode === 'target' ? results.targetPrice : results.sellingPrice;
 
     const pricingData = {
       name: configName,
@@ -106,7 +111,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       platformFeePercentage,
       taxPercentage,
       totalUnitCost: results.unitCost,
-      idealPrice: results.sellingPrice,
+      idealPrice: finalPrice,
       finalPrice: results.priceWithTaxes,
       unitProfit: results.unitProfit,
       actualMargin: results.appliedMarkup
@@ -232,7 +237,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                     id="target-price"
                     type="number"
                     value={targetPrice}
-                    onChange={(e) => setTargetPrice(Number(e.target.value) || 0)}
+                    onChange={(e) => setTargetPrice(e.target.value)}
                     min="0"
                     step="0.01"
                     className="mt-1 pl-7 border-food-vanilla focus-visible:ring-food-coral"
@@ -240,7 +245,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                   />
                   <span className="absolute left-2.5 top-[9px] text-muted-foreground text-sm">R$</span>
                 </div>
-                {results && results.calculatedMargin !== undefined && (
+                {results && results.calculatedMargin !== undefined && targetPrice && (
                   <div className="text-xs text-muted-foreground mt-1">
                     Margem calculada: {formatPercentage(results.calculatedMargin)}
                   </div>
@@ -310,12 +315,14 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
 
               {/* Preço Ideal */}
               <div className="p-4 bg-food-green/20 border border-food-green/30 rounded-lg">
-                <div className="text-sm text-green-700">Preço Ideal (com margem)</div>
+                <div className="text-sm text-green-700">
+                  {pricingMode === 'target' ? 'Preço Alvo' : 'Preço Ideal (com margem)'}
+                </div>
                 <div className="text-3xl font-bold font-poppins text-green-800">
-                  {formatCurrency(results.sellingPrice)}
+                  {formatCurrency(pricingMode === 'target' && results.targetPrice ? results.targetPrice : results.sellingPrice)}
                 </div>
                 <div className="text-xs text-green-600 mt-1">
-                  Lucro: {formatCurrency(results.unitProfit)} ({formatPercentage(results.appliedMarkup)})
+                  Lucro: {formatCurrency(results.unitProfit)} ({formatPercentage(pricingMode === 'target' ? results.calculatedMargin : results.appliedMarkup)})
                 </div>
               </div>
 
@@ -347,7 +354,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
               </div>
 
               {/* Alerta para preço alvo muito baixo */}
-              {pricingMode === 'target' && results.calculatedMargin < 20 && (
+              {pricingMode === 'target' && results.calculatedMargin < 20 && targetPrice && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                   <div className="text-xs text-red-700 font-medium">⚠️ Atenção!</div>
                   <div className="text-xs text-red-600">
