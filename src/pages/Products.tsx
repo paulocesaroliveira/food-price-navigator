@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Search, Edit, Trash, Package, Image as ImageIcon, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { formatCurrency } from "@/utils/calculations";
+import { formatCurrency, formatPercentage } from "@/utils/calculations";
 import { Product, Recipe, Packaging, ProductCategory } from "@/types";
 import { 
   Dialog, 
@@ -29,6 +30,7 @@ import {
 } from "@/services/productService";
 import { fetchRecipes } from "@/services/recipeService";
 import { getPackagingList } from "@/services/packagingService";
+import { getPricingConfigs } from "@/services/pricingService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -98,6 +100,15 @@ const Products = () => {
   } = useQuery({
     queryKey: ['productCategories'],
     queryFn: getProductCategories,
+  });
+
+  // Buscar configurações de preços para todos os produtos
+  const { 
+    data: pricingConfigs = [],
+    isLoading: isLoadingPricing
+  } = useQuery({
+    queryKey: ['pricing-configs'],
+    queryFn: () => getPricingConfigs(),
   });
 
   const createProductMutation = useMutation({
@@ -243,7 +254,18 @@ const Products = () => {
     setDeleteDialogOpen(true);
   };
 
-  const isLoading = isLoadingProducts || isLoadingRecipes || isLoadingPackaging || isLoadingCategories;
+  // Função para buscar a configuração de preço mais recente de um produto
+  const getLatestPricingConfig = (productId: string) => {
+    const productConfigs = pricingConfigs.filter(config => config.productId === productId);
+    if (productConfigs.length === 0) return null;
+    
+    // Retornar a configuração mais recente
+    return productConfigs.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0];
+  };
+
+  const isLoading = isLoadingProducts || isLoadingRecipes || isLoadingPackaging || isLoadingCategories || isLoadingPricing;
 
   return (
     <div className="space-y-6">
@@ -296,12 +318,15 @@ const Products = () => {
                     <TableHead>Categoria</TableHead>
                     <TableHead>Qtd. Itens</TableHead>
                     <TableHead>Custo Total</TableHead>
+                    <TableHead>Margem</TableHead>
+                    <TableHead>Preço de Venda</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products.map((product) => {
                     const totalItems = product.items.reduce((acc, item) => acc + item.quantity, 0);
+                    const latestPricing = getLatestPricingConfig(product.id);
                     
                     return (
                       <TableRow key={product.id}>
@@ -332,6 +357,24 @@ const Products = () => {
                         <TableCell>{product.category?.name || "Sem categoria"}</TableCell>
                         <TableCell>{totalItems}</TableCell>
                         <TableCell>{formatCurrency(product.totalCost)}</TableCell>
+                        <TableCell>
+                          {latestPricing ? (
+                            <span className="text-green-600 font-medium">
+                              {formatPercentage(latestPricing.desiredMarginPercentage)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {latestPricing ? (
+                            <span className="font-medium">
+                              {formatCurrency(latestPricing.idealPrice)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             <Button 

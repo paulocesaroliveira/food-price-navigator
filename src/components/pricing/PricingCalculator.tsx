@@ -28,7 +28,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
   const [wastagePercentage, setWastagePercentage] = useState(5);
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
   
-  // Novo estado para controlar o modo de precificação
+  // Estado para controlar o modo de precificação
   const [pricingMode, setPricingMode] = useState<'margin' | 'target'>('margin');
   const [marginPercentage, setMarginPercentage] = useState(30);
   const [targetPrice, setTargetPrice] = useState(0);
@@ -226,7 +226,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
               </div>
             ) : (
               <div>
-                <Label htmlFor="target-price" className="text-sm">Preço de Venda Desejado (R$)</Label>
+                <Label htmlFor="target-price" className="text-sm">Preço de Venda Desejado</Label>
                 <div className="relative">
                   <Input
                     id="target-price"
@@ -236,8 +236,9 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                     min="0"
                     step="0.01"
                     className="mt-1 pl-7 border-food-vanilla focus-visible:ring-food-coral"
+                    placeholder="0,00"
                   />
-                  <span className="absolute left-2.5 top-[9px] text-muted-foreground">R$</span>
+                  <span className="absolute left-2.5 top-[9px] text-muted-foreground text-sm">R$</span>
                 </div>
                 {results && results.calculatedMargin !== undefined && (
                   <div className="text-xs text-muted-foreground mt-1">
