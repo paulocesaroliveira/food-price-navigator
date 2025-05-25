@@ -227,16 +227,19 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
             ) : (
               <div>
                 <Label htmlFor="target-price" className="text-sm">Preço de Venda Desejado (R$)</Label>
-                <Input
-                  id="target-price"
-                  type="number"
-                  value={targetPrice}
-                  onChange={(e) => setTargetPrice(Number(e.target.value) || 0)}
-                  min="0"
-                  step="0.01"
-                  className="mt-1 border-food-vanilla focus-visible:ring-food-coral"
-                />
-                {results && results.calculatedMargin && (
+                <div className="relative">
+                  <Input
+                    id="target-price"
+                    type="number"
+                    value={targetPrice}
+                    onChange={(e) => setTargetPrice(Number(e.target.value) || 0)}
+                    min="0"
+                    step="0.01"
+                    className="mt-1 pl-7 border-food-vanilla focus-visible:ring-food-coral"
+                  />
+                  <span className="absolute left-2.5 top-[9px] text-muted-foreground">R$</span>
+                </div>
+                {results && results.calculatedMargin !== undefined && (
                   <div className="text-xs text-muted-foreground mt-1">
                     Margem calculada: {formatPercentage(results.calculatedMargin)}
                   </div>
