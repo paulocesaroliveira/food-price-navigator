@@ -3,7 +3,8 @@ import React from "react";
 import { AdditionalCost } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Trash, Percent, DollarSign } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { formatCurrency } from "@/utils/calculations";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -11,17 +12,20 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface AdditionalCostsEditorProps {
   costs: AdditionalCost[];
   onChange: (costs: AdditionalCost[]) => void;
+  baseCost?: number; // Para calcular porcentagem
 }
 
 const AdditionalCostsEditor: React.FC<AdditionalCostsEditorProps> = ({
   costs,
-  onChange
+  onChange,
+  baseCost = 0
 }) => {
   const addCost = () => {
     const newCost: AdditionalCost = {
       id: uuidv4(),
       name: "",
       value: 0,
+      type: 'fixed',
       isPerUnit: true
     };
     onChange([...costs, newCost]);
@@ -41,7 +45,14 @@ const AdditionalCostsEditor: React.FC<AdditionalCostsEditorProps> = ({
     );
   };
 
-  const totalCosts = costs.reduce((sum, cost) => sum + cost.value, 0);
+  const calculateCostValue = (cost: AdditionalCost): number => {
+    if (cost.type === 'percentage') {
+      return baseCost * (cost.value / 100);
+    }
+    return cost.value;
+  };
+
+  const totalCosts = costs.reduce((sum, cost) => sum + calculateCostValue(cost), 0);
 
   return (
     <div className="space-y-3">
@@ -60,7 +71,7 @@ const AdditionalCostsEditor: React.FC<AdditionalCostsEditorProps> = ({
               <TooltipContent>
                 <p className="w-[200px] text-xs">
                   Adicione custos extras como gás, energia, transporte, etc. 
-                  Esses valores serão incluídos no cálculo final.
+                  Pode ser valor fixo em reais ou porcentagem do custo base.
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -88,7 +99,7 @@ const AdditionalCostsEditor: React.FC<AdditionalCostsEditorProps> = ({
               key={cost.id}
               className="grid grid-cols-12 gap-2 bg-food-vanilla/30 p-2 rounded-lg"
             >
-              <div className="col-span-7">
+              <div className="col-span-5">
                 <Input
                   placeholder="Nome da despesa"
                   value={cost.name}
@@ -96,18 +107,52 @@ const AdditionalCostsEditor: React.FC<AdditionalCostsEditorProps> = ({
                   className="h-9 border-food-vanilla focus-visible:ring-food-coral"
                 />
               </div>
+              
+              <div className="col-span-2">
+                <Select 
+                  value={cost.type} 
+                  onValueChange={(value: 'fixed' | 'percentage') => updateCost(cost.id, "type", value)}
+                >
+                  <SelectTrigger className="h-9 border-food-vanilla focus-visible:ring-food-coral">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed">
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="h-3 w-3" />
+                        Valor
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="percentage">
+                      <div className="flex items-center gap-1">
+                        <Percent className="h-3 w-3" />
+                        %
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <div className="col-span-4">
                 <div className="relative">
                   <Input
                     type="number"
                     value={cost.value}
                     onChange={(e) => updateCost(cost.id, "value", parseFloat(e.target.value) || 0)}
-                    placeholder="Valor"
+                    placeholder={cost.type === 'percentage' ? "Porcentagem" : "Valor"}
                     className="pl-6 h-9 border-food-vanilla focus-visible:ring-food-coral"
                   />
-                  <span className="absolute left-2 top-2 text-muted-foreground text-xs">R$</span>
+                  <span className="absolute left-2 top-2 text-muted-foreground text-xs">
+                    {cost.type === 'percentage' ? '%' : 'R$'}
+                  </span>
                 </div>
+                {cost.type === 'percentage' && cost.value > 0 && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    = {formatCurrency(calculateCostValue(cost))}
+                  </div>
+                )}
               </div>
+              
               <div className="col-span-1 flex items-center justify-center">
                 <Button
                   variant="ghost"

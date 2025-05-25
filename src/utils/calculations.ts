@@ -73,14 +73,20 @@ export function calculateProductTotalCost(itemsTotalCost: number, packagingCost:
 export const calculateTotalProductionCost = (
   baseCost: number,
   wastagePercentage: number,
-  additionalCosts: { value: number; isPerUnit: boolean }[]
+  additionalCosts: { value: number; type?: 'fixed' | 'percentage'; isPerUnit: boolean }[]
 ): number => {
   // Add wastage to base cost
   const wastageMultiplier = 1 + (wastagePercentage / 100);
   let totalCost = baseCost * wastageMultiplier;
   
   // Add additional costs
-  const additionalCostsTotal = additionalCosts.reduce((sum, cost) => sum + cost.value, 0);
+  const additionalCostsTotal = additionalCosts.reduce((sum, cost) => {
+    if (cost.type === 'percentage') {
+      return sum + (baseCost * (cost.value / 100));
+    }
+    return sum + cost.value;
+  }, 0);
+  
   totalCost += additionalCostsTotal;
   
   return totalCost;

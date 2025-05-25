@@ -109,6 +109,7 @@ export interface AdditionalCost {
   id: string;
   name: string;
   value: number;
+  type: 'fixed' | 'percentage'; // Novo campo para tipo
   isPerUnit: boolean;
 }
 

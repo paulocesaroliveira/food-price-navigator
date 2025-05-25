@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Plus, X, Calculator, TrendingUp, DollarSign, AlertTriangle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, X, Calculator, TrendingUp, DollarSign, AlertTriangle, Target } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/utils/calculations";
 import { calculatePricingResults } from "@/services/pricingService";
 import { v4 as uuidv4 } from "uuid";
+import AdditionalCostsEditor from "./AdditionalCostsEditor";
 
 interface PricingCalculatorProps {
   product: Product;
@@ -25,7 +27,12 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
   const [configName, setConfigName] = useState(`Precificação - ${product.name}`);
   const [wastagePercentage, setWastagePercentage] = useState(5);
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
+  
+  // Novo estado para controlar o modo de precificação
+  const [pricingMode, setPricingMode] = useState<'margin' | 'target'>('margin');
   const [marginPercentage, setMarginPercentage] = useState(30);
+  const [targetPrice, setTargetPrice] = useState(0);
+  
   const [platformFeePercentage, setPlatformFeePercentage] = useState(0);
   const [taxPercentage, setTaxPercentage] = useState(0);
   
@@ -36,50 +43,57 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
     const baseCost = product.totalCost - product.packagingCost;
     const packagingCost = product.packagingCost;
     
+    let calculatedMargin = marginPercentage;
+    
+    // Se estiver no modo de preço alvo, calcular a margem necessária
+    if (pricingMode === 'target' && targetPrice > 0) {
+      // Calcular custo total primeiro
+      const totalAdditionalCost = additionalCosts.reduce((sum, cost) => {
+        if (cost.type === 'percentage') {
+          return sum + (baseCost + packagingCost) * (cost.value / 100);
+        }
+        return sum + cost.value;
+      }, 0);
+      
+      const totalCost = baseCost + packagingCost + totalAdditionalCost;
+      const wastageMultiplier = 1 + (wastagePercentage / 100);
+      const unitCostWithWastage = totalCost * wastageMultiplier;
+      
+      // Calcular margem necessária para atingir o preço alvo
+      if (unitCostWithWastage > 0) {
+        calculatedMargin = ((targetPrice - unitCostWithWastage) / targetPrice) * 100;
+      }
+    }
+    
     const calculatedResults = calculatePricingResults(
       baseCost,
       packagingCost,
       wastagePercentage,
       additionalCosts,
-      marginPercentage,
+      calculatedMargin,
       platformFeePercentage,
       taxPercentage
     );
     
-    setResults(calculatedResults);
+    setResults({
+      ...calculatedResults,
+      calculatedMargin
+    });
   }, [
     product,
     wastagePercentage,
     additionalCosts,
     marginPercentage,
+    targetPrice,
+    pricingMode,
     platformFeePercentage,
     taxPercentage
   ]);
 
-  const addAdditionalCost = () => {
-    setAdditionalCosts([
-      ...additionalCosts,
-      {
-        id: uuidv4(),
-        name: "",
-        value: 0,
-        isPerUnit: true
-      }
-    ]);
-  };
-
-  const updateAdditionalCost = (index: number, field: keyof AdditionalCost, value: any) => {
-    const newCosts = [...additionalCosts];
-    newCosts[index] = { ...newCosts[index], [field]: value };
-    setAdditionalCosts(newCosts);
-  };
-
-  const removeAdditionalCost = (index: number) => {
-    setAdditionalCosts(additionalCosts.filter((_, i) => i !== index));
-  };
-
   const handleSave = () => {
     if (!results) return;
+
+    const finalMargin = pricingMode === 'target' ? results.calculatedMargin : marginPercentage;
 
     const pricingData = {
       name: configName,
@@ -88,7 +102,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       packagingCost: product.packagingCost,
       wastagePercentage,
       additionalCosts,
-      desiredMarginPercentage: marginPercentage,
+      desiredMarginPercentage: finalMargin,
       platformFeePercentage,
       taxPercentage,
       totalUnitCost: results.unitCost,
@@ -103,7 +117,6 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
 
   const baseCost = product.totalCost - product.packagingCost;
   const packagingCost = product.packagingCost;
-  const totalAdditionalCosts = additionalCosts.reduce((sum, cost) => sum + cost.value, 0);
 
   return (
     <div className="grid lg:grid-cols-2 gap-6">
@@ -169,84 +182,67 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
           <Separator className="bg-food-vanilla" />
 
           {/* Custos Adicionais */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-food-dark">Custos Adicionais</h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addAdditionalCost}
-                className="border-food-coral text-food-coral hover:bg-food-coral hover:text-white"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Adicionar
-              </Button>
-            </div>
-
-            {additionalCosts.map((cost, index) => (
-              <div key={cost.id} className="flex gap-2 items-end">
-                <div className="flex-1">
-                  <Label className="text-sm">Nome</Label>
-                  <Input
-                    value={cost.name}
-                    onChange={(e) => updateAdditionalCost(index, 'name', e.target.value)}
-                    placeholder="Ex: Mão de obra, energia..."
-                    className="border-food-vanilla focus-visible:ring-food-coral"
-                  />
-                </div>
-                <div className="w-24">
-                  <Label className="text-sm">Valor (R$)</Label>
-                  <Input
-                    type="number"
-                    value={cost.value}
-                    onChange={(e) => updateAdditionalCost(index, 'value', Number(e.target.value) || 0)}
-                    min="0"
-                    step="0.01"
-                    className="border-food-vanilla focus-visible:ring-food-coral"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeAdditionalCost(index)}
-                  className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-
-            {totalAdditionalCosts > 0 && (
-              <div className="p-2 bg-food-vanilla/30 rounded text-sm">
-                <strong>Total de custos adicionais: {formatCurrency(totalAdditionalCosts)}</strong>
-              </div>
-            )}
-          </div>
+          <AdditionalCostsEditor
+            costs={additionalCosts}
+            onChange={setAdditionalCosts}
+            baseCost={baseCost + packagingCost}
+          />
 
           <Separator className="bg-food-vanilla" />
 
-          {/* Margem e Taxas */}
+          {/* Estratégia de Precificação */}
           <div className="space-y-4">
             <h3 className="font-medium text-food-dark flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-food-coral" />
-              Margem e Taxas
+              Estratégia de Precificação
             </h3>
 
-            <div>
-              <Label htmlFor="margin" className="text-sm">Margem de Lucro Desejada (%)</Label>
-              <Input
-                id="margin"
-                type="number"
-                value={marginPercentage}
-                onChange={(e) => setMarginPercentage(Number(e.target.value) || 0)}
-                min="0"
-                max="100"
-                step="0.1"
-                className="mt-1 border-food-vanilla focus-visible:ring-food-coral"
+            <div className="flex items-center justify-between p-3 bg-food-vanilla/30 rounded-lg">
+              <div className="flex items-center gap-3">
+                <Target className="h-4 w-4 text-food-coral" />
+                <span className="text-sm font-medium">
+                  {pricingMode === 'margin' ? 'Por margem de lucro' : 'Por preço alvo'}
+                </span>
+              </div>
+              <Switch
+                checked={pricingMode === 'target'}
+                onCheckedChange={(checked) => setPricingMode(checked ? 'target' : 'margin')}
               />
             </div>
+
+            {pricingMode === 'margin' ? (
+              <div>
+                <Label htmlFor="margin" className="text-sm">Margem de Lucro Desejada (%)</Label>
+                <Input
+                  id="margin"
+                  type="number"
+                  value={marginPercentage}
+                  onChange={(e) => setMarginPercentage(Number(e.target.value) || 0)}
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  className="mt-1 border-food-vanilla focus-visible:ring-food-coral"
+                />
+              </div>
+            ) : (
+              <div>
+                <Label htmlFor="target-price" className="text-sm">Preço de Venda Desejado (R$)</Label>
+                <Input
+                  id="target-price"
+                  type="number"
+                  value={targetPrice}
+                  onChange={(e) => setTargetPrice(Number(e.target.value) || 0)}
+                  min="0"
+                  step="0.01"
+                  className="mt-1 border-food-vanilla focus-visible:ring-food-coral"
+                />
+                {results && results.calculatedMargin && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Margem calculada: {formatPercentage(results.calculatedMargin)}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <Label htmlFor="platform-fee" className="text-sm">Comissão de Plataforma (%)</Label>
@@ -346,35 +342,15 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                 </div>
               </div>
 
-              {/* Resumo dos Cálculos */}
-              <div className="mt-6 p-4 bg-food-cream rounded-lg border">
-                <h4 className="font-medium text-food-dark mb-3">Resumo dos Cálculos</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Custo da receita:</span>
-                    <span>{formatCurrency(baseCost)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Custo da embalagem:</span>
-                    <span>{formatCurrency(packagingCost)}</span>
-                  </div>
-                  {totalAdditionalCosts > 0 && (
-                    <div className="flex justify-between">
-                      <span>Custos adicionais:</span>
-                      <span>{formatCurrency(totalAdditionalCosts)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span>Perda ({wastagePercentage}%):</span>
-                    <span>{formatCurrency((baseCost + packagingCost + totalAdditionalCosts) * (wastagePercentage / 100))}</span>
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="flex justify-between font-medium">
-                    <span>Custo total unitário:</span>
-                    <span>{formatCurrency(results.unitCost)}</span>
+              {/* Alerta para preço alvo muito baixo */}
+              {pricingMode === 'target' && results.calculatedMargin < 20 && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="text-xs text-red-700 font-medium">⚠️ Atenção!</div>
+                  <div className="text-xs text-red-600">
+                    O preço alvo resulta em uma margem muito baixa. Considere aumentar o preço.
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8">

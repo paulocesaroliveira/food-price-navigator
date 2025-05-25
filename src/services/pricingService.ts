@@ -347,6 +347,7 @@ export const calculatePricingResults = (
   // Convert additional costs to the format expected by the calculation function
   const costs = additionalCosts.map(cost => ({
     value: cost.value,
+    type: cost.type,
     isPerUnit: true
   }));
   
