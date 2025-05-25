@@ -172,6 +172,13 @@ const Recipes = () => {
     }
   });
 
+  const formatCurrencyBR = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
   const filteredRecipes = recipes.filter((recipe: any) => {
     const matchesSearch = recipe.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !categoryFilter || categoryFilter === "all" || recipe.category_id === categoryFilter;
@@ -273,7 +280,7 @@ const Recipes = () => {
                     <th className="text-left p-3">Imagem</th>
                     <th className="text-left p-3">Nome</th>
                     <th className="text-left p-3">Categoria</th>
-                    <th className="text-left p-3">Porções</th>
+                    <th className="text-left p-3">Unidades</th>
                     <th className="text-left p-3">Custo Total</th>
                     <th className="text-left p-3">Custo por Unidade</th>
                     <th className="text-left p-3">Ações</th>
@@ -301,8 +308,8 @@ const Recipes = () => {
                         <td className="p-3">{recipe.name}</td>
                         <td className="p-3">{recipe.recipe_categories?.name}</td>
                         <td className="p-3">{recipe.portions}</td>
-                        <td className="p-3">{formatCurrency(recipe.total_cost)}</td>
-                        <td className="p-3">{formatCurrency(recipe.unit_cost)}</td>
+                        <td className="p-3">{formatCurrencyBR(recipe.total_cost)}</td>
+                        <td className="p-3">{formatCurrencyBR(recipe.unit_cost)}</td>
                         <td className="p-3">
                           <div className="flex items-center gap-2">
                             <Button 

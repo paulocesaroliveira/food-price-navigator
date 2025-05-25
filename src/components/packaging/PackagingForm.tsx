@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
@@ -146,14 +147,12 @@ export const PackagingForm = ({
               name="bulkPrice"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Preço do Fardo (R$)</FormLabel>
+                  <FormLabel>Preço do Fardo</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      placeholder="Ex: 120.00"
-                      {...field}
+                    <CurrencyInput
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="R$ 0,00"
                     />
                   </FormControl>
                   <FormMessage />
@@ -164,7 +163,10 @@ export const PackagingForm = ({
             <div className="p-4 border rounded-md bg-muted/50">
               <p className="text-sm font-medium">Custo Unitário (calculado)</p>
               <p className="text-xl font-bold mt-1">
-                R$ {unitCost.toFixed(2)}
+                {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                }).format(unitCost)}
               </p>
             </div>
 

@@ -368,7 +368,7 @@ const RecipeForm = ({
                   <TabsList className="grid grid-cols-4">
                     <TabsTrigger value="basic">Informações Básicas</TabsTrigger>
                     <TabsTrigger value="base">Ingredientes Base</TabsTrigger>
-                    <TabsTrigger value="portion">Ingredientes por Porção</TabsTrigger>
+                    <TabsTrigger value="portion">Ingredientes por Unidade</TabsTrigger>
                     <TabsTrigger value="costs">Custos e Rendimento</TabsTrigger>
                   </TabsList>
                   
@@ -508,9 +508,14 @@ const RecipeForm = ({
                   
                   <TabsContent value="base" className="space-y-4 pt-4">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-medium">
-                        Ingredientes Base (usados na receita completa)
-                      </h3>
+                      <div>
+                        <h3 className="text-lg font-medium">
+                          Ingredientes Base (preparação inicial)
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Ingredientes utilizados na preparação completa da receita, que será dividida entre todas as unidades produzidas.
+                        </p>
+                      </div>
                       <Button
                         type="button"
                         variant="outline"
@@ -685,9 +690,14 @@ const RecipeForm = ({
                   
                   <TabsContent value="portion" className="space-y-4 pt-4">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-medium">
-                        Ingredientes por Porção (usados em cada unidade)
-                      </h3>
+                      <div>
+                        <h3 className="text-lg font-medium">
+                          Ingredientes por Unidade (aplicação individual)
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Ingredientes aplicados individualmente em cada unidade produzida (ex: cobertura, recheio específico por unidade).
+                        </p>
+                      </div>
                       <Button
                         type="button"
                         variant="outline"
@@ -847,7 +857,7 @@ const RecipeForm = ({
                             
                             <TableRow>
                               <TableCell colSpan={3} className="text-right font-medium">
-                                Total de ingredientes por porção:
+                                Total de ingredientes por unidade:
                               </TableCell>
                               <TableCell className="font-medium">
                                 {formatCurrency(portionTotalCost)}
@@ -867,22 +877,23 @@ const RecipeForm = ({
                           control={form.control}
                           name="portions"
                           rules={{ 
-                            required: "Número de porções é obrigatório",
-                            min: { value: 1, message: "Mínimo de 1 porção" }
+                            required: "Número de unidades é obrigatório",
+                            min: { value: 1, message: "Mínimo de 1 unidade" }
                           }}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Número de Porções/Unidades</FormLabel>
+                              <FormLabel>Quantas unidades esta receita produz?</FormLabel>
                               <FormControl>
                                 <Input 
                                   type="number" 
                                   min={1} 
+                                  placeholder="Ex: 50 brigadeiros"
                                   {...field} 
                                   onChange={e => field.onChange(e.target.value)} 
                                 />
                               </FormControl>
                               <FormDescription>
-                                Quantidade total produzida pela receita
+                                Informe o total de unidades que esta receita completa produz (ex: 50 brigadeiros, 1 bolo, 24 cupcakes)
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -893,27 +904,52 @@ const RecipeForm = ({
                           <h4 className="font-medium mb-4">Detalhamento de Custos</h4>
                           <div className="grid grid-cols-2 gap-3">
                             <div className="text-gray-700">Custo total dos ingredientes base:</div>
-                            <div className="text-right font-medium">{formatCurrency(baseTotalCost)}</div>
+                            <div className="text-right font-medium">
+                              {new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                              }).format(baseTotalCost)}
+                            </div>
                             
-                            <div className="text-gray-700">Custo base por porção:</div>
-                            <div className="text-right font-medium">{formatCurrency(basePerPortionCost)}</div>
+                            <div className="text-gray-700">Custo base por unidade:</div>
+                            <div className="text-right font-medium">
+                              {new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                              }).format(basePerPortionCost)}
+                            </div>
                             
-                            <div className="text-gray-700">Custo dos ingredientes por porção:</div>
-                            <div className="text-right font-medium">{formatCurrency(portionTotalCost)}</div>
+                            <div className="text-gray-700">Custo dos ingredientes por unidade:</div>
+                            <div className="text-right font-medium">
+                              {new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                              }).format(portionTotalCost)}
+                            </div>
                             
-                            <div className="border-t pt-2 font-medium">Custo por unidade/porção:</div>
-                            <div className="border-t pt-2 text-right font-medium text-primary">{formatCurrency(unitCost)}</div>
+                            <div className="border-t pt-2 font-medium">Custo total por unidade:</div>
+                            <div className="border-t pt-2 text-right font-medium text-primary">
+                              {new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                              }).format(unitCost)}
+                            </div>
                             
-                            <div className="font-medium">Custo total da receita ({portions} porções):</div>
-                            <div className="text-right font-medium text-primary">{formatCurrency(totalCost)}</div>
+                            <div className="font-medium">Custo total da receita ({portions} unidades):</div>
+                            <div className="text-right font-medium text-primary">
+                              {new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                              }).format(totalCost)}
+                            </div>
                           </div>
 
                           <div className="pt-2 mt-3 text-xs text-muted-foreground">
                             <p className="mb-1">Fórmula de cálculo:</p>
                             <ul className="list-disc pl-4 space-y-1">
-                              <li>Custo base por porção = Total ingredientes base ÷ Número de porções</li>
-                              <li>Custo por porção = Custo base por porção + Custo dos ingredientes por porção</li>
-                              <li>Custo total da receita = Total ingredientes base + (Ingredientes por porção × Nº de porções)</li>
+                              <li>Custo base por unidade = Total ingredientes base ÷ Número de unidades</li>
+                              <li>Custo por unidade = Custo base por unidade + Custo dos ingredientes por unidade</li>
+                              <li>Custo total da receita = Total ingredientes base + (Ingredientes por unidade × Nº de unidades)</li>
                             </ul>
                           </div>
                         </div>
