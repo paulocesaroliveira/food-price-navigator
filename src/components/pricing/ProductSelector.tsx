@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types";
-import { getProducts } from "@/services/productService";
+import { getProductList } from "@/services/productService";
 import { getPricingConfigs } from "@/services/pricingService";
 import { formatCurrency, formatPercentage } from "@/utils/calculations";
 import { Package2, Calculator, TrendingUp, DollarSign } from "lucide-react";
@@ -21,7 +21,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 }) => {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
-    queryFn: getProducts
+    queryFn: getProductList
   });
 
   const { data: allPricingConfigs = [] } = useQuery({
