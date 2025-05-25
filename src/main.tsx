@@ -5,8 +5,7 @@ import {
   createBrowserRouter, 
   RouterProvider,
   createRoutesFromElements,
-  Route,
-  Navigate
+  Route
 } from 'react-router-dom'
 import './index.css'
 
@@ -27,9 +26,6 @@ import Settings from './pages/Settings'
 import Website from './pages/Website'
 import Index from './pages/Index'
 import NotFound from './pages/NotFound'
-
-// Public site
-import PublicSitePage from './pages/PublicSite'
 
 // Providers
 import { Toaster } from '@/components/ui/toaster'
@@ -66,14 +62,6 @@ const router = createBrowserRouter(
         <Route path="settings" element={<Settings />} />
         <Route path="website" element={<Website />} />
       </Route>
-      
-      {/* Public website route - renamed from /site to /loja */}
-      <Route path="/loja" element={<PublicSitePage />} />
-      <Route path="/loja/:storeId" element={<PublicSitePage />} />
-      
-      {/* Redirect old /site routes to /loja for backward compatibility */}
-      <Route path="/site" element={<Navigate to="/loja" replace />} />
-      <Route path="/site/:storeId" element={<Navigate to={(params) => `/loja/${params.storeId}`} replace />} />
       
       {/* 404 route */}
       <Route path="*" element={<NotFound />} />
