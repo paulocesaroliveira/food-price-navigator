@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -240,10 +239,10 @@ const RecipeForm = ({
     if (!file) return;
 
     try {
-      const imageUrl = await uploadFile(file, "recipes");
-      if (imageUrl) {
-        form.setValue("image_url", imageUrl);
-        setPreviewImage(imageUrl);
+      const result = await uploadFile(file, "recipes");
+      if (result?.url) {
+        form.setValue("image_url", result.url);
+        setPreviewImage(result.url);
       }
     } catch (error) {
       console.error("Erro ao fazer upload da imagem:", error);

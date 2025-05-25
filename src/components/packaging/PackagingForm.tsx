@@ -61,15 +61,14 @@ export const PackagingForm = ({
   const bulkPrice = form.watch("bulkPrice");
   const unitCost = bulkQuantity && bulkPrice ? bulkPrice / bulkQuantity : 0;
 
-  const handleImageUpload = async (file: File): Promise<string> => {
+  const handleImageUpload = async (file: File): Promise<void> => {
     try {
       setUploading(true);
-      const url = await uploadFile(file, "packaging");
-      if (url) {
-        setImageUrl(url);
-        form.setValue("imageUrl", url);
+      const result = await uploadFile(file, "packaging");
+      if (result?.url) {
+        setImageUrl(result.url);
+        form.setValue("imageUrl", result.url);
       }
-      return url;
     } catch (error) {
       console.error("Error uploading image:", error);
       toast({
@@ -77,7 +76,6 @@ export const PackagingForm = ({
         description: "Não foi possível fazer o upload da imagem.",
         variant: "destructive",
       });
-      return "";
     } finally {
       setUploading(false);
     }
@@ -198,10 +196,9 @@ export const PackagingForm = ({
                   <FormLabel>Imagem da Embalagem (opcional)</FormLabel>
                   <FormControl>
                     <ImageUpload
-                      currentImage={imageUrl}
-                      onUpload={handleImageUpload}
+                      currentImageUrl={imageUrl}
+                      onImageUpload={handleImageUpload}
                       isUploading={isUploading}
-                      label="Imagem da Embalagem (opcional)"
                     />
                   </FormControl>
                   <FormMessage />
