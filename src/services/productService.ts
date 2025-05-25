@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductItem, ProductPackaging, ProductCategory, Packaging } from "@/types";
 import { toast } from "@/hooks/use-toast";
@@ -162,11 +161,14 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
 
     const primaryPackaging = product.packagingItems?.find(pkg => pkg.isPrimary);
 
+    // Corrigir o problema do categoryId vazio
+    const categoryId = product.categoryId && product.categoryId !== "" ? product.categoryId : null;
+
     const { data, error } = await supabase
       .from("products")
       .insert({
         name: product.name,
-        category_id: product.categoryId,
+        category_id: categoryId,
         packaging_id: primaryPackaging?.packagingId || product.packagingId,
         packaging_cost: primaryPackaging?.cost || product.packagingCost,
         total_cost: totalCost,
@@ -257,11 +259,14 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
 
     const primaryPackaging = product.packagingItems?.find(pkg => pkg.isPrimary);
 
+    // Corrigir o problema do categoryId vazio
+    const categoryId = product.categoryId && product.categoryId !== "" ? product.categoryId : null;
+
     const { data, error } = await supabase
       .from("products")
       .update({
         name: product.name,
-        category_id: product.categoryId,
+        category_id: categoryId,
         packaging_id: primaryPackaging?.packagingId || product.packagingId,
         packaging_cost: primaryPackaging?.cost || product.packagingCost,
         total_cost: totalCost,
@@ -357,6 +362,68 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
 
 export const deleteProduct = async (id: string): Promise<void> => {
   try {
+    // Primeiro, verificar se o produto está referenciado em outras tabelas
+    const { data: publishedProducts, error: publishedError } = await supabase
+      .from("published_products")
+      .select("id")
+      .eq("product_id", id);
+
+    if (publishedError) {
+      console.error("Erro ao verificar produtos publicados:", publishedError);
+    }
+
+    // Se houver produtos publicados, removê-los primeiro
+    if (publishedProducts && publishedProducts.length > 0) {
+      const { error: deletePublishedError } = await supabase
+        .from("published_products")
+        .delete()
+        .eq("product_id", id);
+
+      if (deletePublishedError) {
+        console.error("Erro ao remover produtos publicados:", deletePublishedError);
+        throw new Error(`Erro ao remover produtos publicados: ${deletePublishedError.message}`);
+      }
+    }
+
+    // Verificar se há itens de pedido relacionados
+    const { data: orderItems, error: orderItemsError } = await supabase
+      .from("order_items")
+      .select("id")
+      .eq("product_id", id);
+
+    if (orderItemsError) {
+      console.error("Erro ao verificar itens de pedido:", orderItemsError);
+    }
+
+    // Se houver itens de pedido, não permitir exclusão
+    if (orderItems && orderItems.length > 0) {
+      throw new Error("Não é possível excluir este produto pois ele possui pedidos associados.");
+    }
+
+    // Verificar se há configurações de preços relacionadas
+    const { data: pricingConfigs, error: pricingError } = await supabase
+      .from("pricing_configs")
+      .select("id")
+      .eq("product_id", id);
+
+    if (pricingError) {
+      console.error("Erro ao verificar configurações de preços:", pricingError);
+    }
+
+    // Se houver configurações de preços, removê-las primeiro
+    if (pricingConfigs && pricingConfigs.length > 0) {
+      const { error: deletePricingError } = await supabase
+        .from("pricing_configs")
+        .delete()
+        .eq("product_id", id);
+
+      if (deletePricingError) {
+        console.error("Erro ao remover configurações de preços:", deletePricingError);
+        throw new Error(`Erro ao remover configurações de preços: ${deletePricingError.message}`);
+      }
+    }
+
+    // Remover itens do produto
     const { error: itemsError } = await supabase
       .from("product_items")
       .delete()
@@ -367,6 +434,7 @@ export const deleteProduct = async (id: string): Promise<void> => {
       throw new Error(itemsError.message);
     }
     
+    // Remover embalagens do produto
     const { error: packagingError } = await supabase
       .from("product_packaging")
       .delete()
@@ -377,6 +445,7 @@ export const deleteProduct = async (id: string): Promise<void> => {
       throw new Error(packagingError.message);
     }
 
+    // Finalmente, remover o produto
     const { error } = await supabase
       .from("products")
       .delete()

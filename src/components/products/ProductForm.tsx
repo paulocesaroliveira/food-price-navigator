@@ -227,9 +227,14 @@ export const ProductForm = ({
       return;
     }
 
+    // Garantir que categoryId seja null se estiver vazio ou for "_none"
+    const categoryId = values.categoryId && values.categoryId !== "_none" && values.categoryId !== "" 
+      ? values.categoryId 
+      : null;
+
     onSubmit({
       ...values,
-      categoryId: values.categoryId === "_none" ? null : values.categoryId,
+      categoryId,
       items: selectedRecipes.map(recipe => ({
         recipeId: recipe.recipeId,
         quantity: recipe.quantity,
