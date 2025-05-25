@@ -6,8 +6,8 @@ import { v4 as uuidv4 } from "uuid";
 export const useFileUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
 
-  const uploadFile = async (file: File, folder: string = ""): Promise<string> => {
-    if (!file) return "";
+  const uploadFile = async (file: File, folder: string = ""): Promise<{ url: string } | null> => {
+    if (!file) return null;
 
     try {
       setIsUploading(true);
@@ -28,7 +28,7 @@ export const useFileUpload = () => {
         .from("food_images")
         .getPublicUrl(filePath);
         
-      return data.publicUrl;
+      return { url: data.publicUrl };
     } catch (error) {
       console.error("Erro ao fazer upload de arquivo:", error);
       throw error;

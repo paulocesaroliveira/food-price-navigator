@@ -4,24 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Upload, X } from "lucide-react";
 
 interface ImageUploadProps {
-  currentImage: string | null;
-  onUpload: (file: File) => Promise<string | null>;
+  currentImageUrl: string | null;
+  onImageUpload: (file: File) => Promise<void>;
   isUploading: boolean;
-  label: string;
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
-  currentImage,
-  onUpload,
+  currentImageUrl,
+  onImageUpload,
   isUploading,
-  label,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      await onUpload(file);
+      await onImageUpload(file);
     }
   };
 
@@ -40,23 +38,23 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     
     const file = e.dataTransfer.files[0];
     if (file) {
-      await onUpload(file);
+      await onImageUpload(file);
     }
   };
 
   const removeImage = () => {
-    // Quando implementar a remoção da imagem, esta função setará currentImage para null
+    // Quando implementar a remoção da imagem, esta função setará currentImageUrl para null
     // e também atualizará o banco de dados se necessário
   };
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">{label}</p>
+      <p className="text-sm font-medium">Imagem</p>
       
-      {currentImage ? (
+      {currentImageUrl ? (
         <div className="relative w-full h-56 rounded-md overflow-hidden bg-muted">
           <img
-            src={currentImage}
+            src={currentImageUrl}
             alt="Uploaded"
             className="w-full h-full object-cover"
           />

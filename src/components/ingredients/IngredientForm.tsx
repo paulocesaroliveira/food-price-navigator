@@ -86,7 +86,7 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
   const handleImageUpload = async (file: File) => {
     try {
       const result = await uploadFile(file, "ingredients");
-      if (result && typeof result === 'object' && 'url' in result) {
+      if (result?.url) {
         setFormData(prev => ({ ...prev, image_url: result.url }));
       }
     } catch (error) {

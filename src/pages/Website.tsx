@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -105,7 +104,7 @@ const Website = () => {
       // Upload logo if selected
       if (logoFile) {
         const logoResult = await uploadFile(logoFile, "website");
-        if (logoResult && typeof logoResult === 'object' && 'url' in logoResult) {
+        if (logoResult?.url) {
           updatedSettings.logo_url = logoResult.url;
         }
       }
@@ -113,7 +112,7 @@ const Website = () => {
       // Upload cover if selected
       if (coverFile) {
         const coverResult = await uploadFile(coverFile, "website");
-        if (coverResult && typeof coverResult === 'object' && 'url' in coverResult) {
+        if (coverResult?.url) {
           updatedSettings.cover_image_url = coverResult.url;
         }
       }
