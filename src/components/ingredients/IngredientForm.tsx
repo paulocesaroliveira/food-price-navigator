@@ -1,361 +1,327 @@
 
 import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { ImageUpload } from "@/components/ingredients/ImageUpload";
-import { useFileUpload } from "@/hooks/useFileUpload";
-import { useToast } from "@/components/ui/use-toast";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { X, Save, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { ImageUpload } from "./ImageUpload";
 
-const ingredientSchema = z.object({
-  name: z.string().min(2, { message: "Nome deve ter pelo menos 2 caracteres" }),
-  categoryId: z.string().min(1, { message: "Selecione uma categoria" }),
-  unit: z.enum(["g", "ml"], { message: "Selecione uma unidade válida" }),
-  brand: z.string().min(1, { message: "Informe a marca" }),
-  supplier: z.string().optional(),
-  packageQuantity: z.coerce.number().positive({ message: "Quantidade deve ser maior que zero" }),
-  packagePrice: z.coerce.number().nonnegative({ message: "Preço deve ser maior ou igual a zero" }),
-});
-
-type IngredientFormValues = z.infer<typeof ingredientSchema>;
-
-type IngredientFormProps = {
+interface IngredientFormProps {
   ingredient?: any;
   onSave: () => void;
   onCancel: () => void;
-};
+}
 
 export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormProps) => {
-  const [categories, setCategories] = useState<any[]>([]);
-  const [imageUrl, setImageUrl] = useState<string | null>(ingredient?.image_url || null);
-  const { uploadFile, isUploading } = useFileUpload();
   const { toast } = useToast();
+  const { uploadFile, isUploading } = useFileUpload();
   
-  const form = useForm<IngredientFormValues>({
-    resolver: zodResolver(ingredientSchema),
-    defaultValues: ingredient
-      ? {
-          name: ingredient.name,
-          categoryId: ingredient.category_id || "",
-          unit: ingredient.unit,
-          brand: ingredient.brand,
-          supplier: ingredient.supplier || "",
-          packageQuantity: ingredient.package_quantity,
-          packagePrice: ingredient.package_price,
-        }
-      : {
-          name: "",
-          categoryId: "",
-          unit: "g",
-          brand: "",
-          supplier: "",
-          packageQuantity: 0,
-          packagePrice: 0,
-        },
+  const [formData, setFormData] = useState({
+    name: "",
+    category_id: "",
+    unit: "g" as "g" | "ml",
+    brand: "",
+    supplier: "",
+    package_quantity: 0,
+    package_price: 0,
+    unit_cost: 0,
+    image_url: ""
   });
+  
+  const [categories, setCategories] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Calcular o custo unitário
-  const unitCost = React.useMemo(() => {
-    const packageQuantity = form.watch("packageQuantity");
-    const packagePrice = form.watch("packagePrice");
-    
-    if (!packageQuantity || packageQuantity <= 0) return 0;
-    return packagePrice / packageQuantity;
-  }, [form.watch("packageQuantity"), form.watch("packagePrice")]);
-
-  // Buscar categorias de ingredientes
   useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const { data, error } = await supabase
-          .from("ingredient_categories")
-          .select("*")
-          .order("name");
-          
-        if (error) throw error;
-        setCategories(data || []);
-      } catch (error) {
-        console.error("Erro ao carregar categorias:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar as categorias",
-          variant: "destructive",
-        });
-      }
-    }
-    
-    fetchCategories();
-  }, [toast]);
-
-  // Manipular upload de imagem
-  const handleImageUpload = async (file: File) => {
-    try {
-      const url = await uploadFile(file, "ingredients");
-      setImageUrl(url);
-      return url;
-    } catch (error) {
-      console.error("Erro no upload da imagem:", error);
-      toast({
-        title: "Erro no upload",
-        description: "Não foi possível fazer o upload da imagem",
-        variant: "destructive",
+    loadCategories();
+    if (ingredient) {
+      setFormData({
+        name: ingredient.name || "",
+        category_id: ingredient.category_id || "",
+        unit: ingredient.unit || "g",
+        brand: ingredient.brand || "",
+        supplier: ingredient.supplier || "",
+        package_quantity: ingredient.package_quantity || 0,
+        package_price: ingredient.package_price || 0,
+        unit_cost: ingredient.unit_cost || 0,
+        image_url: ingredient.image_url || ""
       });
-      return null;
+    }
+  }, [ingredient]);
+
+  const loadCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ingredient_categories')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar categorias:", error);
     }
   };
 
-  // Enviar formulário
-  const onSubmit = async (data: IngredientFormValues) => {
-    try {
-      // Calcular custo unitário
-      const unitCost = data.packagePrice / data.packageQuantity;
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
       
+      // Recalcular custo unitário quando preço ou quantidade mudar
+      if (field === 'package_price' || field === 'package_quantity') {
+        const price = field === 'package_price' ? value : updated.package_price;
+        const quantity = field === 'package_quantity' ? value : updated.package_quantity;
+        updated.unit_cost = quantity > 0 ? price / quantity : 0;
+      }
+      
+      return updated;
+    });
+  };
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      const result = await uploadFile(file, "ingredients");
+      if (result && typeof result === 'object' && 'url' in result) {
+        setFormData(prev => ({ ...prev, image_url: result.url }));
+      }
+    } catch (error) {
+      console.error("Erro no upload:", error);
+      toast({
+        title: "Erro no upload",
+        description: "Não foi possível fazer o upload da imagem",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name.trim()) {
+      toast({
+        title: "Erro",
+        description: "Nome do ingrediente é obrigatório",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.category_id) {
+      toast({
+        title: "Erro",
+        description: "Categoria é obrigatória",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
       if (ingredient) {
         // Atualizar ingrediente existente
         const { error } = await supabase
-          .from("ingredients")
+          .from('ingredients')
           .update({
-            name: data.name,
-            category_id: data.categoryId,
-            unit: data.unit,
-            brand: data.brand,
-            supplier: data.supplier,
-            package_quantity: data.packageQuantity,
-            package_price: data.packagePrice,
-            unit_cost: unitCost,
-            image_url: imageUrl,
+            name: formData.name,
+            category_id: formData.category_id,
+            unit: formData.unit,
+            brand: formData.brand,
+            supplier: formData.supplier,
+            package_quantity: formData.package_quantity,
+            package_price: formData.package_price,
+            unit_cost: formData.unit_cost,
+            image_url: formData.image_url
           })
-          .eq("id", ingredient.id);
-          
+          .eq('id', ingredient.id);
+
         if (error) throw error;
-        
-        toast({
-          title: "Sucesso",
-          description: "Ingrediente atualizado com sucesso",
-        });
       } else {
         // Criar novo ingrediente
         const { error } = await supabase
-          .from("ingredients")
+          .from('ingredients')
           .insert({
-            name: data.name,
-            category_id: data.categoryId,
-            unit: data.unit,
-            brand: data.brand,
-            supplier: data.supplier,
-            package_quantity: data.packageQuantity,
-            package_price: data.packagePrice,
-            unit_cost: unitCost,
-            image_url: imageUrl,
+            name: formData.name,
+            category_id: formData.category_id,
+            unit: formData.unit,
+            brand: formData.brand,
+            supplier: formData.supplier,
+            package_quantity: formData.package_quantity,
+            package_price: formData.package_price,
+            unit_cost: formData.unit_cost,
+            image_url: formData.image_url
           });
-          
+
         if (error) throw error;
-        
-        toast({
-          title: "Sucesso",
-          description: "Ingrediente cadastrado com sucesso",
-        });
       }
-      
+
+      toast({
+        title: "Sucesso",
+        description: `Ingrediente ${ingredient ? 'atualizado' : 'criado'} com sucesso`,
+      });
+
       onSave();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar ingrediente:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar o ingrediente",
-        variant: "destructive",
+        description: `Não foi possível ${ingredient ? 'atualizar' : 'criar'} o ingrediente: ${error.message}`,
+        variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto">
-      <CardContent className="pt-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
-                <ImageUpload 
-                  currentImage={imageUrl} 
-                  onUpload={handleImageUpload} 
-                  isUploading={isUploading} 
-                  label="Imagem do ingrediente (opcional)"
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome do ingrediente</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Chocolate em pó" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>{ingredient ? 'Editar' : 'Novo'} Ingrediente</CardTitle>
+          <Button variant="ghost" size="sm" onClick={onCancel}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="Nome do ingrediente"
+                required
               />
-              
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Categoria</FormLabel>
-                    <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma categoria" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="unit"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Unidade</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex gap-6"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="g" id="g" />
-                          <label htmlFor="g" className="cursor-pointer">Gramas (g)</label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="ml" id="ml" />
-                          <label htmlFor="ml" className="cursor-pointer">Mililitros (ml)</label>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="brand"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Marca</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Nestlé" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="supplier"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fornecedor (opcional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Mercado XYZ" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="packageQuantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantidade da embalagem</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="Ex: 500" 
-                        {...field}
-                        onChange={(e) => {
-                          field.onChange(e.target.valueAsNumber);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="packagePrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Preço da embalagem (R$)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="Ex: 10.50" 
-                        step="0.01"
-                        {...field}
-                        onChange={(e) => {
-                          field.onChange(e.target.valueAsNumber);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div>
-                <FormLabel>Custo por unidade (R$)</FormLabel>
-                <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted text-muted-foreground flex items-center">
-                  {unitCost ? unitCost.toFixed(2) : '0.00'} / {form.watch("unit")}
-                </div>
-              </div>
             </div>
-            
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancelar
-              </Button>
-              <Button type="submit">
-                {ingredient ? 'Atualizar' : 'Cadastrar'} ingrediente
-              </Button>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Categoria *</Label>
+              <Select 
+                value={formData.category_id} 
+                onValueChange={(value) => handleInputChange('category_id', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </form>
-        </Form>
+
+            <div className="space-y-2">
+              <Label htmlFor="brand">Marca</Label>
+              <Input
+                id="brand"
+                value={formData.brand}
+                onChange={(e) => handleInputChange('brand', e.target.value)}
+                placeholder="Marca do ingrediente"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="supplier">Fornecedor</Label>
+              <Input
+                id="supplier"
+                value={formData.supplier}
+                onChange={(e) => handleInputChange('supplier', e.target.value)}
+                placeholder="Fornecedor"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="unit">Unidade</Label>
+              <Select 
+                value={formData.unit} 
+                onValueChange={(value: "g" | "ml") => handleInputChange('unit', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="g">Gramas (g)</SelectItem>
+                  <SelectItem value="ml">Mililitros (ml)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="package_quantity">Quantidade da Embalagem</Label>
+              <Input
+                id="package_quantity"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.package_quantity}
+                onChange={(e) => handleInputChange('package_quantity', parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="package_price">Preço da Embalagem (R$)</Label>
+              <Input
+                id="package_price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.package_price}
+                onChange={(e) => handleInputChange('package_price', parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="unit_cost">Custo Unitário (R$)</Label>
+              <Input
+                id="unit_cost"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.unit_cost.toFixed(4)}
+                readOnly
+                className="bg-muted"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Imagem</Label>
+            <ImageUpload
+              currentImageUrl={formData.image_url}
+              onImageUpload={handleImageUpload}
+              isUploading={isUploading}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSaving || isUploading}>
+              {isSaving ? (
+                <>Salvando...</>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  {ingredient ? 'Atualizar' : 'Criar'} Ingrediente
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
       </CardContent>
     </Card>
   );

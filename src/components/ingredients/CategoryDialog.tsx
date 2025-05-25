@@ -1,19 +1,27 @@
 
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, Edit } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { PlusCircle, Edit, Trash2, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface CategoryDialogProps {
   open: boolean;
@@ -21,251 +29,263 @@ interface CategoryDialogProps {
   onCategoriesChange: () => void;
 }
 
-export const CategoryDialog: React.FC<CategoryDialogProps> = ({
-  open,
-  onOpenChange,
-  onCategoriesChange,
-}) => {
-  const [categories, setCategories] = useState<any[]>([]);
-  const [newCategory, setNewCategory] = useState("");
-  const [editingCategory, setEditingCategory] = useState<{id: string, name: string} | null>(null);
+export const CategoryDialog = ({ open, onOpenChange, onCategoriesChange }: CategoryDialogProps) => {
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchCategories = async () => {
-    try {
-      setIsLoading(true);
+  const { data: categories = [], refetch } = useQuery({
+    queryKey: ['ingredientCategories'],
+    queryFn: async () => {
       const { data, error } = await supabase
-        .from("ingredient_categories")
-        .select("*")
-        .order("name");
-        
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error) {
-      console.error("Erro ao carregar categorias:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as categorias",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (open) {
-      fetchCategories();
-    }
-  }, [open]);
-
-  const handleAddCategory = async () => {
-    if (!newCategory.trim()) return;
-    
-    try {
-      setIsLoading(true);
-      const { error } = await supabase
-        .from("ingredient_categories")
-        .insert({ name: newCategory.trim() });
-        
-      if (error) throw error;
+        .from('ingredient_categories')
+        .select('*')
+        .order('name');
       
-      setNewCategory("");
-      fetchCategories();
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await supabase
+        .from('ingredient_categories')
+        .insert({ name })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      setNewCategoryName("");
+      refetch();
       onCategoriesChange();
-      
       toast({
-        title: "Sucesso",
-        description: "Categoria adicionada com sucesso",
+        title: "Categoria criada",
+        description: "Nova categoria foi criada com sucesso",
       });
-    } catch (error) {
-      console.error("Erro ao adicionar categoria:", error);
+    },
+    onError: (error: any) => {
       toast({
         title: "Erro",
-        description: "Não foi possível adicionar a categoria",
+        description: `Não foi possível criar a categoria: ${error.message}`,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
-  };
+  });
 
-  const handleUpdateCategory = async () => {
-    if (!editingCategory || !editingCategory.name.trim()) return;
-    
-    try {
-      setIsLoading(true);
-      const { error } = await supabase
-        .from("ingredient_categories")
-        .update({ name: editingCategory.name.trim() })
-        .eq("id", editingCategory.id);
-        
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { data, error } = await supabase
+        .from('ingredient_categories')
+        .update({ name })
+        .eq('id', id)
+        .select()
+        .single();
+      
       if (error) throw error;
-      
-      setEditingCategory(null);
-      fetchCategories();
+      return data;
+    },
+    onSuccess: () => {
+      setEditingId(null);
+      setEditingName("");
+      refetch();
       onCategoriesChange();
-      
       toast({
-        title: "Sucesso",
-        description: "Categoria atualizada com sucesso",
+        title: "Categoria atualizada",
+        description: "Categoria foi atualizada com sucesso",
       });
-    } catch (error) {
-      console.error("Erro ao atualizar categoria:", error);
+    },
+    onError: (error: any) => {
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar a categoria",
+        description: `Não foi possível atualizar a categoria: ${error.message}`,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
-  };
+  });
 
-  const handleDeleteCategory = async (id: string) => {
-    try {
-      setIsLoading(true);
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // Verificar se há ingredientes usando esta categoria
+      const { data: ingredients, error: checkError } = await supabase
+        .from('ingredients')
+        .select('id')
+        .eq('category_id', id)
+        .limit(1);
       
-      // Verificar se a categoria está em uso
-      const { count, error: countError } = await supabase
-        .from("ingredients")
-        .select("*", { count: "exact", head: true })
-        .eq("category_id", id);
-        
-      if (countError) throw countError;
+      if (checkError) throw checkError;
       
-      if (count && count > 0) {
-        toast({
-          title: "Não é possível excluir",
-          description: `Esta categoria está sendo usada por ${count} ingrediente(s)`,
-          variant: "destructive",
-        });
-        return;
+      if (ingredients && ingredients.length > 0) {
+        throw new Error("Não é possível excluir esta categoria pois existem ingredientes vinculados a ela");
       }
       
-      // Excluir a categoria
       const { error } = await supabase
-        .from("ingredient_categories")
+        .from('ingredient_categories')
         .delete()
-        .eq("id", id);
-        
+        .eq('id', id);
+      
       if (error) throw error;
-      
-      fetchCategories();
+    },
+    onSuccess: () => {
+      refetch();
       onCategoriesChange();
-      
       toast({
-        title: "Sucesso",
-        description: "Categoria excluída com sucesso",
+        title: "Categoria excluída",
+        description: "Categoria foi excluída com sucesso",
       });
-    } catch (error) {
-      console.error("Erro ao excluir categoria:", error);
+    },
+    onError: (error: any) => {
       toast({
         title: "Erro",
-        description: "Não foi possível excluir a categoria",
+        description: `Não foi possível excluir a categoria: ${error.message}`,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
+    }
+  });
+
+  const handleCreate = () => {
+    if (newCategoryName.trim()) {
+      createMutation.mutate(newCategoryName.trim());
+    }
+  };
+
+  const handleEdit = (category: any) => {
+    setEditingId(category.id);
+    setEditingName(category.name);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingId && editingName.trim()) {
+      updateMutation.mutate({ id: editingId, name: editingName.trim() });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingName("");
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Tem certeza que deseja excluir esta categoria?")) {
+      deleteMutation.mutate(id);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Gerenciar categorias</DialogTitle>
+          <DialogTitle>Gerenciar Categorias de Ingredientes</DialogTitle>
           <DialogDescription>
-            Adicione, edite ou remova categorias de ingredientes.
+            Adicione, edite ou remova categorias de ingredientes
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="space-y-4 my-4">
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Nova categoria"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              disabled={isLoading}
-            />
-            <Button onClick={handleAddCategory} disabled={!newCategory.trim() || isLoading}>
+
+        <div className="space-y-4">
+          {/* Adicionar nova categoria */}
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Label htmlFor="newCategory">Nova Categoria</Label>
+              <Input
+                id="newCategory"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Nome da categoria"
+                onKeyPress={(e) => e.key === 'Enter' && handleCreate()}
+              />
+            </div>
+            <Button 
+              onClick={handleCreate} 
+              disabled={!newCategoryName.trim() || createMutation.isPending}
+              className="mt-6"
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
               Adicionar
             </Button>
           </div>
-          
+
+          {/* Lista de categorias */}
           <div className="border rounded-md">
-            {categories.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">
-                Nenhuma categoria cadastrada
-              </div>
-            ) : (
-              <div className="divide-y">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {categories.map((category) => (
-                  <div key={category.id} className="p-3 flex items-center justify-between">
-                    {editingCategory && editingCategory.id === category.id ? (
-                      <div className="flex-1 flex items-center gap-2">
+                  <TableRow key={category.id}>
+                    <TableCell>
+                      {editingId === category.id ? (
                         <Input
-                          value={editingCategory.name}
-                          onChange={(e) => 
-                            setEditingCategory({ ...editingCategory, name: e.target.value })
-                          }
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit()}
                           autoFocus
                         />
-                        <div className="flex gap-1">
-                          <Button 
-                            size="sm" 
-                            onClick={handleUpdateCategory}
-                            disabled={!editingCategory.name.trim() || isLoading}
+                      ) : (
+                        category.name
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {editingId === category.id ? (
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleSaveEdit}
+                            disabled={updateMutation.isPending}
                           >
-                            Salvar
+                            <Save className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => setEditingCategory(null)}
-                            disabled={isLoading}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleCancelEdit}
                           >
-                            Cancelar
+                            <X className="h-4 w-4" />
                           </Button>
                         </div>
-                      </div>
-                    ) : (
-                      <>
-                        <span>{category.name}</span>
-                        <div className="flex items-center gap-1">
+                      ) : (
+                        <div className="flex justify-end gap-1">
                           <Button
-                            size="icon"
+                            size="sm"
                             variant="ghost"
-                            onClick={() => setEditingCategory(category)}
-                            disabled={isLoading}
+                            onClick={() => handleEdit(category)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
-                            size="icon"
+                            size="sm"
                             variant="ghost"
+                            onClick={() => handleDelete(category.id)}
+                            disabled={deleteMutation.isPending}
                             className="text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteCategory(category.id)}
-                            disabled={isLoading}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                      </>
-                    )}
-                  </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </div>
-            )}
+                {categories.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground">
+                      Nenhuma categoria cadastrada
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
