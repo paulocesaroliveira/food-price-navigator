@@ -126,11 +126,11 @@ const RecipeForm = ({
     0
   );
   
-  // Calculate per-portion base cost
+  // Calculate base cost per portion
   const basePerPortionCost = parseFloat(portions) > 0 ? baseTotalCost / parseFloat(portions) : 0;
   
-  // Calculate per-unit total cost (base per portion + portion ingredients)
-  const unitCost = basePerPortionCost + (portionTotalCost / parseFloat(portions));
+  // Calculate unit cost: base per portion + portion ingredients cost per unit
+  const unitCost = basePerPortionCost + portionTotalCost;
   
   // Calculate total recipe cost
   const totalCost = baseTotalCost + (portionTotalCost * parseFloat(portions));
