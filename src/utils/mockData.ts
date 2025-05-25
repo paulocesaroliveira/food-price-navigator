@@ -1,3 +1,4 @@
+
 import { 
   Ingredient, 
   Recipe, 
@@ -188,9 +189,9 @@ export const pricingConfigurations: PricingConfiguration[] = [
     packagingCost: 1.99,
     wastagePercentage: 5,
     additionalCosts: [
-      { id: "add-1", name: "Gás", value: 0.50, isPerUnit: true },
-      { id: "add-2", name: "Energia", value: 0.25, isPerUnit: true },
-      { id: "add-3", name: "Transporte", value: 10, isPerUnit: false },
+      { id: "add-1", name: "Gás", value: 0.50, type: 'fixed', isPerUnit: true },
+      { id: "add-2", name: "Energia", value: 0.25, type: 'fixed', isPerUnit: true },
+      { id: "add-3", name: "Transporte", value: 10, type: 'fixed', isPerUnit: false },
     ],
     desiredMarginPercentage: 40,
     platformFeePercentage: 12,

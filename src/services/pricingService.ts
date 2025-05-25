@@ -44,6 +44,7 @@ export const getPricingConfigs = async (productId?: string): Promise<PricingConf
       id: expense.id,
       name: expense.name,
       value: expense.value,
+      type: 'fixed', // Default to fixed for existing data
       isPerUnit: true
     }));
     
@@ -99,6 +100,7 @@ export const getPricingConfig = async (id: string): Promise<PricingConfiguration
     id: expense.id,
     name: expense.name,
     value: expense.value,
+    type: 'fixed', // Default to fixed for existing data
     isPerUnit: true
   }));
   
