@@ -2,8 +2,6 @@
 import { useState, useCallback } from 'react';
 
 export const useCurrencyMask = (initialValue: number = 0) => {
-  const [displayValue, setDisplayValue] = useState(() => formatCurrency(initialValue));
-
   const formatCurrency = useCallback((value: number): string => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -12,6 +10,8 @@ export const useCurrencyMask = (initialValue: number = 0) => {
       maximumFractionDigits: 2,
     }).format(value);
   }, []);
+
+  const [displayValue, setDisplayValue] = useState(() => formatCurrency(initialValue));
 
   const parseCurrency = useCallback((value: string): number => {
     // Remove todos os caracteres não numéricos exceto vírgula
