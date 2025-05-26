@@ -20,6 +20,7 @@ import Orders from "./pages/Orders";
 import Customers from "./pages/Customers";
 import Settings from "./pages/Settings";
 import ProductionSchedule from "./pages/ProductionSchedule";
+import AccountsPayable from "./pages/AccountsPayable";
 
 // Crie o queryClient fora do componente para evitar recriações em cada renderização
 const queryClient = new QueryClient({
@@ -42,6 +43,7 @@ const App = () => {
             <Routes>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/ingredients" element={<Ingredients />} />
                 <Route path="/recipes" element={<Recipes />} />
                 <Route path="/packaging" element={<Packaging />} />
@@ -52,6 +54,7 @@ const App = () => {
                 <Route path="/customers" element={<Customers />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/production-schedule" element={<ProductionSchedule />} />
+                <Route path="/accounts-payable" element={<AccountsPayable />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
