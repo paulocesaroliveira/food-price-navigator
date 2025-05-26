@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Sale, CreateSaleRequest, SaleItem, SaleExpense } from "@/types/sales";
+import { Sale, CreateSaleRequest, SaleItem, SaleExpense, SaleInsert } from "@/types/sales";
 
 export async function getSales() {
   try {
@@ -110,17 +110,20 @@ export async function createSale(saleData: CreateSaleRequest) {
     const grossProfit = totalAmount - totalCost;
     const netProfit = grossProfit - totalExpenses;
 
+    // Preparar dados para inserção
+    const saleInsertData: SaleInsert = {
+      sale_date: saleData.sale_date,
+      total_amount: totalAmount,
+      total_cost: totalCost,
+      gross_profit: grossProfit,
+      net_profit: netProfit,
+      notes: saleData.notes,
+    };
+
     // Criar venda (o sale_number será gerado automaticamente pelo trigger)
     const { data: sale, error: saleError } = await supabase
       .from("sales")
-      .insert({
-        sale_date: saleData.sale_date,
-        total_amount: totalAmount,
-        total_cost: totalCost,
-        gross_profit: grossProfit,
-        net_profit: netProfit,
-        notes: saleData.notes,
-      })
+      .insert(saleInsertData)
       .select()
       .single();
 

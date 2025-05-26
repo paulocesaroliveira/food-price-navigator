@@ -11,8 +11,8 @@ export interface Sale {
   status: 'completed' | 'cancelled' | 'pending';
   created_at: string;
   updated_at: string;
-  items?: SaleItem[];
-  expenses?: SaleExpense[];
+  sale_items?: SaleItem[];
+  sale_expenses?: SaleExpense[];
 }
 
 export interface SaleItem {
@@ -60,4 +60,15 @@ export interface CreateSaleExpenseRequest {
   amount: number;
   type: 'expense' | 'tax' | 'fee';
   description?: string;
+}
+
+// Tipo específico para inserção no banco, onde sale_number é opcional
+export interface SaleInsert {
+  sale_date: string;
+  total_amount: number;
+  total_cost: number;
+  gross_profit: number;
+  net_profit: number;
+  notes?: string;
+  status?: 'completed' | 'cancelled' | 'pending';
 }
