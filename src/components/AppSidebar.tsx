@@ -74,11 +74,11 @@ const AppSidebar = () => {
       
       <SidebarFooter>
         <div className="px-3 py-4 space-y-1">
-          <Link to="/settings" className="sidebar-link">
+          <Link to="/settings" className="sidebar-link group">
             <Settings className="h-5 w-5" />
             <span className="text-sm font-medium">Configurações</span>
           </Link>
-          <Link to="/help" className="sidebar-link">
+          <Link to="/help" className="sidebar-link group">
             <HelpCircle className="h-5 w-5" />
             <span className="text-sm font-medium">Ajuda</span>
           </Link>
