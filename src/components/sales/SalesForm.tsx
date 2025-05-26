@@ -20,6 +20,7 @@ interface SalesFormProps {
 const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
   const [items, setItems] = useState<CreateSaleItemRequest[]>([]);
   const [expenses, setExpenses] = useState<CreateSaleExpenseRequest[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,7 +30,7 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, total_cost")
+        .select("id, name, total_cost, selling_price")
         .order("name");
       
       if (error) throw error;
@@ -52,6 +53,15 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
   const updateItem = (index: number, field: keyof CreateSaleItemRequest, value: any) => {
     const updatedItems = [...items];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
+    
+    // Auto-populate price when product is selected
+    if (field === 'product_id') {
+      const selectedProduct = products.find(p => p.id === value);
+      if (selectedProduct && selectedProduct.selling_price) {
+        updatedItems[index].unit_price = selectedProduct.selling_price;
+      }
+    }
+    
     setItems(updatedItems);
   };
 
@@ -91,6 +101,7 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
 
     const saleData: CreateSaleRequest = {
       sale_date: saleDate,
+      discount_amount: discountAmount > 0 ? discountAmount : undefined,
       notes: notes || undefined,
       items,
       expenses: expenses.length > 0 ? expenses : undefined,
@@ -107,7 +118,7 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
 
   const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const netAmount = totalAmount - totalExpenses;
+  const netAmount = totalAmount - totalExpenses - discountAmount;
 
   return (
     <div className="space-y-6">
@@ -136,6 +147,19 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
                   value={saleDate}
                   onChange={(e) => setSaleDate(e.target.value)}
                   required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="discount">Desconto (R$)</Label>
+                <Input
+                  id="discount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
+                  placeholder="0,00"
                 />
               </div>
               
@@ -339,6 +363,13 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
                   <span>Subtotal dos Itens:</span>
                   <span className="font-medium">R$ {totalAmount.toFixed(2)}</span>
                 </div>
+                
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-red-600">
+                    <span>Desconto:</span>
+                    <span className="font-medium">R$ {discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 
                 <div className="flex justify-between text-red-600">
                   <span>Total de Despesas:</span>

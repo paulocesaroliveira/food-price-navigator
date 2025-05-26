@@ -20,7 +20,6 @@ import Products from './pages/Products'
 import Recipes from './pages/Recipes'
 import Ingredients from './pages/Ingredients'
 import Packaging from './pages/Packaging'
-import ProductionSchedule from './pages/ProductionSchedule'
 import Customers from './pages/Customers'
 import Pricing from './pages/Pricing'
 import Settings from './pages/Settings'
@@ -66,7 +65,6 @@ const router = createBrowserRouter(
         <Route path="recipes" element={<Recipes />} />
         <Route path="ingredients" element={<Ingredients />} />
         <Route path="packaging" element={<Packaging />} />
-        <Route path="production-schedule" element={<ProductionSchedule />} />
         <Route path="customers" element={<Customers />} />
         <Route path="pricing" element={<Pricing />} />
         <Route path="settings" element={<Settings />} />
