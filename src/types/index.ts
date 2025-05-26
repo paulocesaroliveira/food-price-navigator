@@ -101,6 +101,7 @@ export interface PricingConfiguration {
   finalPrice: number;
   unitProfit: number;
   actualMargin: number;
+  actualSellingPrice?: number;
   createdAt: string;
   updatedAt: string;
 }
