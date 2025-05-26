@@ -1,5 +1,3 @@
-
-
 export interface Sale {
   id: string;
   sale_number: string;
@@ -8,6 +6,8 @@ export interface Sale {
   total_cost: number;
   gross_profit: number;
   net_profit: number;
+  discount_amount?: number; // Novo campo
+  sale_point_id?: string; // Novo campo
   notes?: string;
   status: 'completed' | 'cancelled' | 'pending';
   created_at: string;
@@ -45,6 +45,8 @@ export interface SaleExpense {
 
 export interface CreateSaleRequest {
   sale_date: string;
+  discount_amount?: number; // Novo campo
+  sale_point_id?: string; // Novo campo
   notes?: string;
   items: CreateSaleItemRequest[];
   expenses?: CreateSaleExpenseRequest[];
@@ -70,7 +72,9 @@ export interface SaleInsert {
   total_cost: number;
   gross_profit: number;
   net_profit: number;
+  discount_amount?: number; // Novo campo
+  sale_point_id?: string; // Novo campo
   notes?: string;
   status?: 'completed' | 'cancelled' | 'pending';
-  sale_number?: string; // Torna opcional para inserção
+  sale_number?: string;
 }

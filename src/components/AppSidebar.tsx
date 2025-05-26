@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -88,7 +87,6 @@ const AppSidebar = () => {
         { path: "/sales", name: "Vendas", icon: TrendingUp },
         { path: "/orders", name: "Pedidos", icon: ShoppingCart },
         { path: "/resale", name: "Revenda", icon: UserCheck },
-        { path: "/production-schedule", name: "Agenda de Produção", icon: Calendar },
       ]
     },
     {

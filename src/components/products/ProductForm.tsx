@@ -1,40 +1,19 @@
-
 import React, { useState, useEffect } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { PlusCircle, Trash2, Package, DollarSign, Tag } from "lucide-react";
 import { Product, Recipe, Packaging, ProductCategory } from "@/types";
-import { Save, X, Package2, Tag } from "lucide-react";
-import { ProductCategoryDialog } from "./ProductCategoryDialog";
-import { RecipeSelector } from "./RecipeSelector";
-import { PackagingSelector } from "./PackagingSelector";
-import { CostSummary } from "./CostSummary";
+import { formatCurrency } from "@/utils/calculations";
+import { ProductCategoryManager } from "@/components/products/ProductCategoryManager";
+import { toast } from "@/hooks/use-toast";
 
-const productSchema = z.object({
-  name: z.string().min(2, { message: "Nome é obrigatório" }),
-  categoryId: z.string().optional(),
-});
-
-type ProductFormProps = {
+interface ProductFormProps {
   product?: Product;
   recipes: Recipe[];
   packaging: Packaging[];
@@ -42,9 +21,9 @@ type ProductFormProps = {
   onSubmit: (data: any) => void;
   onCancel: () => void;
   onCategoriesChange: () => void;
-};
+}
 
-export const ProductForm = ({
+export const ProductForm: React.FC<ProductFormProps> = ({
   product,
   recipes,
   packaging,
@@ -52,361 +31,452 @@ export const ProductForm = ({
   onSubmit,
   onCancel,
   onCategoriesChange,
-}: ProductFormProps) => {
-  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
-  
-  // Estado para receitas selecionadas
-  const [selectedRecipes, setSelectedRecipes] = useState(() =>
-    product?.items.map(item => ({
-      recipeId: item.recipeId,
-      quantity: item.quantity,
-      cost: item.cost,
-    })) || []
-  );
-
-  // Estado para embalagens selecionadas
-  const [selectedPackaging, setSelectedPackaging] = useState(() =>
-    product?.packagingItems?.map(pkg => ({
-      packagingId: pkg.packagingId,
-      quantity: pkg.quantity || 1,
-      cost: pkg.cost,
-      isPrimary: pkg.isPrimary || false,
-    })) || []
-  );
-
-  const form = useForm<z.infer<typeof productSchema>>({
-    resolver: zodResolver(productSchema),
-    defaultValues: {
-      name: product?.name || "",
-      categoryId: product?.categoryId || "",
-    },
+}) => {
+  const [formData, setFormData] = useState({
+    name: product?.name || "",
+    categoryId: product?.categoryId || "",
+    sellingPrice: product?.sellingPrice || 0, // Novo campo
   });
 
-  // Calcular custos
-  const recipesCost = selectedRecipes.reduce((acc, item) => acc + item.cost, 0);
-  const packagingCost = selectedPackaging.reduce((acc, item) => acc + item.cost, 0);
-  const totalCost = recipesCost + packagingCost;
+  const [items, setItems] = useState(product?.items || []);
+  const [packagingItems, setPackagingItems] = useState(product?.packagingItems || []);
+  const [totalCost, setTotalCost] = useState(product?.totalCost || 0);
+  const [selectedRecipe, setSelectedRecipe] = useState<string | null>(null);
+  const [recipeQuantity, setRecipeQuantity] = useState(1);
+  const [recipeCost, setRecipeCost] = useState(0);
+  const [selectedPackaging, setSelectedPackaging] = useState<string | null>(null);
+  const [packagingQuantity, setPackagingQuantity] = useState(1);
+  const [packagingCost, setPackagingCost] = useState(0);
+  const [isPrimaryPackaging, setIsPrimaryPackaging] = useState(false);
 
-  // Handlers para receitas
-  const handleAddRecipe = () => {
-    if (recipes.length === 0) {
+  useEffect(() => {
+    recalculateTotalCost();
+  }, [items, packagingItems]);
+
+  const recalculateTotalCost = () => {
+    const itemsCost = items.reduce((acc, item) => acc + item.cost, 0);
+    const packagingCost = packagingItems.reduce((acc, pkg) => acc + pkg.cost, 0);
+    setTotalCost(itemsCost + packagingCost);
+  };
+
+  const handleAddItem = () => {
+    if (!selectedRecipe) {
       toast({
         title: "Erro",
-        description: "Não há receitas disponíveis.",
+        description: "Selecione uma receita",
         variant: "destructive",
       });
       return;
     }
 
-    const firstRecipe = recipes[0];
-    setSelectedRecipes([...selectedRecipes, {
-      recipeId: firstRecipe.id,
-      quantity: 1,
-      cost: firstRecipe.unitCost,
-    }]);
+    const recipe = recipes.find((r) => r.id === selectedRecipe);
+    if (!recipe) {
+      toast({
+        title: "Erro",
+        description: "Receita não encontrada",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const cost = recipe.unitCost * recipeQuantity;
+
+    setItems([
+      ...items,
+      {
+        recipeId: selectedRecipe,
+        quantity: recipeQuantity,
+        cost: cost,
+        recipe: {
+          id: recipe.id,
+          name: recipe.name,
+          image: recipe.image,
+          unitCost: recipe.unitCost,
+        },
+      },
+    ]);
+
+    setSelectedRecipe(null);
+    setRecipeQuantity(1);
+    setRecipeCost(0);
   };
 
-  const handleRemoveRecipe = (index: number) => {
-    const newRecipes = [...selectedRecipes];
-    newRecipes.splice(index, 1);
-    setSelectedRecipes(newRecipes);
+  const handleRemoveItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index));
   };
 
-  const handleRecipeChange = (index: number, recipeId: string) => {
-    const recipe = recipes.find(r => r.id === recipeId);
-    if (!recipe) return;
+  const handleRecipeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const recipeId = e.target.value;
+    setSelectedRecipe(recipeId);
 
-    const newRecipes = [...selectedRecipes];
-    newRecipes[index] = {
-      ...newRecipes[index],
-      recipeId,
-      cost: recipe.unitCost * newRecipes[index].quantity,
-    };
-    setSelectedRecipes(newRecipes);
+    const recipe = recipes.find((r) => r.id === recipeId);
+    if (recipe) {
+      setRecipeCost(recipe.unitCost * recipeQuantity);
+    } else {
+      setRecipeCost(0);
+    }
   };
 
-  const handleRecipeQuantityChange = (index: number, quantity: number) => {
-    const recipe = recipes.find(r => r.id === selectedRecipes[index].recipeId);
-    if (!recipe) return;
+  const handleRecipeQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const quantity = parseInt(e.target.value) || 1;
+    setRecipeQuantity(quantity);
 
-    const newRecipes = [...selectedRecipes];
-    newRecipes[index] = {
-      ...newRecipes[index],
-      quantity,
-      cost: recipe.unitCost * quantity,
-    };
-    setSelectedRecipes(newRecipes);
+    if (selectedRecipe) {
+      const recipe = recipes.find((r) => r.id === selectedRecipe);
+      if (recipe) {
+        setRecipeCost(recipe.unitCost * quantity);
+      }
+    }
   };
 
-  // Handlers para embalagens
   const handleAddPackaging = () => {
-    if (packaging.length === 0) {
+    if (!selectedPackaging) {
       toast({
         title: "Erro",
-        description: "Não há embalagens disponíveis.",
+        description: "Selecione uma embalagem",
         variant: "destructive",
       });
       return;
     }
 
-    const firstPackaging = packaging[0];
-    setSelectedPackaging([...selectedPackaging, {
-      packagingId: firstPackaging.id,
-      quantity: 1,
-      cost: firstPackaging.unitCost,
-      isPrimary: selectedPackaging.length === 0, // Primeira embalagem é principal
-    }]);
+    const packagingItem = packaging.find((p) => p.id === selectedPackaging);
+    if (!packagingItem) {
+      toast({
+        title: "Erro",
+        description: "Embalagem não encontrada",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const cost = packagingItem.unitCost * packagingQuantity;
+
+    setPackagingItems([
+      ...packagingItems,
+      {
+        packagingId: selectedPackaging,
+        quantity: packagingQuantity,
+        cost: cost,
+        isPrimary: isPrimaryPackaging,
+        packaging: {
+          id: packagingItem.id,
+          name: packagingItem.name,
+          type: packagingItem.type,
+          bulkQuantity: packagingItem.bulkQuantity,
+          bulkPrice: packagingItem.bulkPrice,
+          unitCost: packagingItem.unitCost,
+          imageUrl: packagingItem.imageUrl,
+          notes: packagingItem.notes,
+        },
+      },
+    ]);
+
+    setSelectedPackaging(null);
+    setPackagingQuantity(1);
+    setPackagingCost(0);
+    setIsPrimaryPackaging(false);
   };
 
   const handleRemovePackaging = (index: number) => {
-    const newPackaging = [...selectedPackaging];
-    newPackaging.splice(index, 1);
-    setSelectedPackaging(newPackaging);
+    setPackagingItems(packagingItems.filter((_, i) => i !== index));
   };
 
-  const handlePackagingChange = (index: number, packagingId: string) => {
-    const pkg = packaging.find(p => p.id === packagingId);
-    if (!pkg) return;
+  const handlePackagingChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const packagingId = e.target.value;
+    setSelectedPackaging(packagingId);
 
-    const newPackaging = [...selectedPackaging];
-    newPackaging[index] = {
-      ...newPackaging[index],
-      packagingId,
-      cost: pkg.unitCost * newPackaging[index].quantity,
+    const packagingItem = packaging.find((p) => p.id === packagingId);
+    if (packagingItem) {
+      setPackagingCost(packagingItem.unitCost * packagingQuantity);
+    } else {
+      setPackagingCost(0);
+    }
+  };
+
+  const handlePackagingQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const quantity = parseInt(e.target.value) || 1;
+    setPackagingQuantity(quantity);
+
+    if (selectedPackaging) {
+      const packagingItem = packaging.find((p) => p.id === selectedPackaging);
+      if (packagingItem) {
+        setPackagingCost(packagingItem.unitCost * quantity);
+      }
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name.trim()) {
+      toast({
+        title: "Erro",
+        description: "O nome do produto é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (items.length === 0) {
+      toast({
+        title: "Erro", 
+        description: "Adicione pelo menos uma receita ao produto",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const itemsCost = items.reduce((acc, item) => acc + item.cost, 0);
+    const packagingCost = packagingItems.reduce((acc, pkg) => acc + pkg.cost, 0);
+
+    const productData = {
+      name: formData.name,
+      categoryId: formData.categoryId || null,
+      items,
+      packagingItems,
+      totalCost: itemsCost + packagingCost,
+      sellingPrice: formData.sellingPrice, // Incluir valor de venda
     };
-    setSelectedPackaging(newPackaging);
-  };
 
-  const handlePackagingQuantityChange = (index: number, quantity: number) => {
-    const pkg = packaging.find(p => p.id === selectedPackaging[index].packagingId);
-    if (!pkg) return;
-
-    const newPackaging = [...selectedPackaging];
-    newPackaging[index] = {
-      ...newPackaging[index],
-      quantity,
-      cost: pkg.unitCost * quantity,
-    };
-    setSelectedPackaging(newPackaging);
-  };
-
-  const handlePrimaryChange = (index: number) => {
-    const newPackaging = selectedPackaging.map((pkg, i) => ({
-      ...pkg,
-      isPrimary: i === index,
-    }));
-    setSelectedPackaging(newPackaging);
-  };
-
-  const handleFormSubmit = (values: z.infer<typeof productSchema>) => {
-    if (selectedRecipes.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Adicione pelo menos uma receita ao produto.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (selectedPackaging.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Adicione pelo menos uma embalagem ao produto.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const primaryPackaging = selectedPackaging.find(pkg => pkg.isPrimary);
-    if (!primaryPackaging) {
-      toast({
-        title: "Erro",
-        description: "Selecione uma embalagem principal.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Garantir que categoryId seja null se estiver vazio ou for "_none"
-    const categoryId = values.categoryId && values.categoryId !== "_none" && values.categoryId !== "" 
-      ? values.categoryId 
-      : null;
-
-    onSubmit({
-      ...values,
-      categoryId,
-      items: selectedRecipes.map(recipe => ({
-        recipeId: recipe.recipeId,
-        quantity: recipe.quantity,
-        cost: recipe.cost,
-      })),
-      packagingItems: selectedPackaging.map(pkg => ({
-        packagingId: pkg.packagingId,
-        quantity: pkg.quantity,
-        cost: pkg.cost,
-        isPrimary: pkg.isPrimary,
-      })),
-      packagingId: primaryPackaging.packagingId,
-      packagingCost: primaryPackaging.cost,
-      totalCost,
-    });
-  };
-
-  const primaryPackagingImage = () => {
-    const primary = selectedPackaging.find(pkg => pkg.isPrimary);
-    if (primary) {
-      const pkg = packaging.find(p => p.id === primary.packagingId);
-      return pkg?.imageUrl;
-    }
-    return null;
+    onSubmit(productData);
   };
 
   return (
-    <>
-      <ProductCategoryDialog
-        open={categoryDialogOpen}
-        onOpenChange={setCategoryDialogOpen}
-        onCategoriesChange={onCategoriesChange}
-      />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Informações Básicas */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Tag className="h-5 w-5" />
+            Informações Básicas
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="name">Nome do Produto *</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Digite o nome do produto"
+            />
+          </div>
 
-      <div className="space-y-6">
-        {/* Header com imagem do produto */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package2 className="h-5 w-5" />
-              {product ? "Editar Produto" : "Novo Produto"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 space-y-4">
-                <Form {...form}>
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome do Produto</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Ex: Caixa de Brigadeiros Sortidos"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex gap-2">
-                    <FormField
-                      control={form.control}
-                      name="categoryId"
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel>Categoria</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value || ""}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione uma categoria" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="_none">Sem categoria</SelectItem>
-                              {categories.map((category) => (
-                                <SelectItem key={category.id} value={category.id}>
-                                  {category.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setCategoryDialogOpen(true)}
-                      className="mt-8"
-                    >
-                      <Tag className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </Form>
-              </div>
-
-              <div className="flex justify-center">
-                {primaryPackagingImage() ? (
-                  <div className="w-32 h-32 rounded-lg overflow-hidden">
-                    <img
-                      src={primaryPackagingImage()!}
-                      alt="Produto"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-32 h-32 rounded-lg bg-muted flex items-center justify-center">
-                    <Package2 className="h-12 w-12 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
+          <div>
+            <Label htmlFor="category">Categoria</Label>
+            <div className="flex gap-2">
+              <Select value={formData.categoryId} onValueChange={(value) => setFormData({ ...formData, categoryId: value })}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Sem categoria</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <ProductCategoryManager
+                categories={categories}
+                onCategoriesChange={onCategoriesChange}
+              />
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Seleção de Receitas */}
-        <Card>
-          <CardContent className="pt-6">
-            <RecipeSelector
-              recipes={recipes}
-              selectedRecipes={selectedRecipes}
-              onRecipeAdd={handleAddRecipe}
-              onRecipeRemove={handleRemoveRecipe}
-              onRecipeChange={handleRecipeChange}
-              onQuantityChange={handleRecipeQuantityChange}
+          <div>
+            <Label htmlFor="sellingPrice">Valor de Venda (R$)</Label>
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                id="sellingPrice"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.sellingPrice}
+                onChange={(e) => setFormData({ ...formData, sellingPrice: parseFloat(e.target.value) || 0 })}
+                placeholder="0,00"
+                className="pl-10"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Receitas */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <ChefHat className="h-5 w-5" />
+              Receitas
+            </CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Adicionar Receita
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <Label htmlFor="recipe">Receita</Label>
+              <Select id="recipe" value={selectedRecipe || ""} onValueChange={handleRecipeChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma receita" />
+                </SelectTrigger>
+                <SelectContent>
+                  {recipes.map((recipe) => (
+                    <SelectItem key={recipe.id} value={recipe.id}>
+                      {recipe.name} ({formatCurrency(recipe.unitCost)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="quantity">Quantidade</Label>
+              <Input
+                type="number"
+                id="quantity"
+                min="1"
+                value={recipeQuantity}
+                onChange={handleRecipeQuantityChange}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {items.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <ChefHat className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>Nenhuma receita adicionada</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {items.map((item, index) => (
+                <div key={index} className="flex items-center justify-between border rounded-lg p-4">
+                  <div>
+                    <p className="font-medium">{item.recipe?.name}</p>
+                    <p className="text-sm text-gray-500">
+                      Quantidade: {item.quantity} - {formatCurrency(item.cost)}
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => handleRemoveItem(index)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Embalagens */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Embalagens
+            </CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={handleAddPackaging}>
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Adicionar Embalagem
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <Label htmlFor="packaging">Embalagem</Label>
+              <Select id="packaging" value={selectedPackaging || ""} onValueChange={handlePackagingChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma embalagem" />
+                </SelectTrigger>
+                <SelectContent>
+                  {packaging.map((pack) => (
+                    <SelectItem key={pack.id} value={pack.id}>
+                      {pack.name} ({formatCurrency(pack.unitCost)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="packaging-quantity">Quantidade</Label>
+              <Input
+                type="number"
+                id="packaging-quantity"
+                min="1"
+                value={packagingQuantity}
+                onChange={handlePackagingQuantityChange}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Input
+              id="is-primary"
+              type="checkbox"
+              checked={isPrimaryPackaging}
+              onChange={(e) => setIsPrimaryPackaging(e.target.checked)}
             />
-          </CardContent>
-        </Card>
+            <Label htmlFor="is-primary">Embalagem Primária</Label>
+          </div>
 
-        {/* Seleção de Embalagens */}
-        <Card>
-          <CardContent className="pt-6">
-            <PackagingSelector
-              packaging={packaging}
-              selectedPackaging={selectedPackaging}
-              onPackagingAdd={handleAddPackaging}
-              onPackagingRemove={handleRemovePackaging}
-              onPackagingChange={handlePackagingChange}
-              onQuantityChange={handlePackagingQuantityChange}
-              onPrimaryChange={handlePrimaryChange}
-            />
-          </CardContent>
-        </Card>
+          <Separator />
 
-        {/* Resumo de Custos */}
-        <CostSummary
-          recipesCost={recipesCost}
-          packagingCost={packagingCost}
-          totalCost={totalCost}
-        />
+          {packagingItems.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>Nenhuma embalagem adicionada</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {packagingItems.map((pack, index) => (
+                <div key={index} className="flex items-center justify-between border rounded-lg p-4">
+                  <div>
+                    <p className="font-medium">{pack.packaging?.name}</p>
+                    <p className="text-sm text-gray-500">
+                      Quantidade: {pack.quantity} - {formatCurrency(pack.cost)}
+                    </p>
+                    {pack.isPrimary && <Badge variant="secondary">Primária</Badge>}
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => handleRemovePackaging(index)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Botões de Ação */}
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onCancel}>
-            <X className="h-4 w-4 mr-2" />
-            Cancelar
-          </Button>
-          <Button onClick={form.handleSubmit(handleFormSubmit)}>
-            <Save className="h-4 w-4 mr-2" />
-            {product ? "Atualizar" : "Criar"} Produto
-          </Button>
-        </div>
+      {/* Resumo */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Resumo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-between">
+            <p className="text-lg font-medium">Custo Total:</p>
+            <p className="text-lg font-medium">{formatCurrency(totalCost)}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Botões */}
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit">
+          {product ? "Atualizar Produto" : "Criar Produto"}
+        </Button>
       </div>
-    </>
+    </form>
   );
 };

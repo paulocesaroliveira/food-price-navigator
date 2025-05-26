@@ -133,6 +133,7 @@ export const getProductList = async (): Promise<Product[]> => {
           packagingCost: primaryPackaging?.cost || product.packaging_cost,
           packagingItems: formattedPackagingItems,
           totalCost: product.total_cost,
+          sellingPrice: product.selling_price || 0, // Incluir campo
           imageUrl: primaryPackaging?.packaging?.imageUrl || null
         };
       })
@@ -160,8 +161,6 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
     const totalCost = itemsCost + packagingItemsCost;
 
     const primaryPackaging = product.packagingItems?.find(pkg => pkg.isPrimary);
-
-    // Corrigir o problema do categoryId vazio
     const categoryId = product.categoryId && product.categoryId !== "" ? product.categoryId : null;
 
     const { data, error } = await supabase
@@ -172,6 +171,7 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
         packaging_id: primaryPackaging?.packagingId || product.packagingId,
         packaging_cost: primaryPackaging?.cost || product.packagingCost,
         total_cost: totalCost,
+        selling_price: product.sellingPrice || 0, // Novo campo
       })
       .select()
       .single();
@@ -235,6 +235,7 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
       packagingCost: data.packaging_cost,
       packagingItems: product.packagingItems,
       totalCost: data.total_cost,
+      sellingPrice: data.selling_price, // Incluir campo
       imageUrl: null
     };
   } catch (error: any) {
@@ -258,8 +259,6 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
     const totalCost = itemsCost + packagingItemsCost;
 
     const primaryPackaging = product.packagingItems?.find(pkg => pkg.isPrimary);
-
-    // Corrigir o problema do categoryId vazio
     const categoryId = product.categoryId && product.categoryId !== "" ? product.categoryId : null;
 
     const { data, error } = await supabase
@@ -270,6 +269,7 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
         packaging_id: primaryPackaging?.packagingId || product.packagingId,
         packaging_cost: primaryPackaging?.cost || product.packagingCost,
         total_cost: totalCost,
+        selling_price: product.sellingPrice || 0, // Novo campo
       })
       .eq("id", id)
       .select()
@@ -347,6 +347,7 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
       packagingCost: data.packaging_cost,
       packagingItems: product.packagingItems,
       totalCost: data.total_cost,
+      sellingPrice: data.selling_price, // Incluir campo
       imageUrl: null
     };
   } catch (error: any) {
@@ -574,6 +575,7 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
           packagingCost: primaryPackaging?.cost || product.packaging_cost,
           packagingItems: formattedPackagingItems,
           totalCost: product.total_cost,
+          sellingPrice: product.selling_price || 0, // Incluir campo
           imageUrl: primaryPackaging?.packaging?.imageUrl || null
         };
       })

@@ -1,4 +1,3 @@
-
 // Basic types
 export interface Category {
   id: string;
@@ -59,13 +58,14 @@ export type Product = {
   id: string;
   name: string;
   categoryId?: string | null;
-  category?: ProductCategory;
-  packagingId?: string;
-  imageUrl?: string | null;
+  category?: ProductCategory | null;
   items: ProductItem[];
-  packagingItems?: ProductPackaging[];
+  packagingId?: string | null;
   packagingCost: number;
+  packagingItems?: ProductPackaging[];
   totalCost: number;
+  sellingPrice?: number; // Novo campo
+  imageUrl?: string | null;
   calculatedPrice?: number;
 };
 

@@ -316,13 +316,16 @@ const Products = () => {
                     <TableHead>Nome</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Qtd. Itens</TableHead>
+                    <TableHead>Qtd. Embalagens</TableHead>
                     <TableHead>Custo Total</TableHead>
+                    <TableHead>Valor de Venda</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products.map((product) => {
                     const totalItems = product.items.reduce((acc, item) => acc + item.quantity, 0);
+                    const totalPackaging = product.packagingItems?.reduce((acc, pkg) => acc + pkg.quantity, 0) || 0;
                     
                     return (
                       <TableRow key={product.id}>
@@ -352,7 +355,17 @@ const Products = () => {
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>{product.category?.name || "Sem categoria"}</TableCell>
                         <TableCell>{totalItems}</TableCell>
+                        <TableCell>{totalPackaging}</TableCell>
                         <TableCell>{formatCurrency(product.totalCost)}</TableCell>
+                        <TableCell>
+                          {product.sellingPrice > 0 ? (
+                            <span className="font-medium text-green-600">
+                              {formatCurrency(product.sellingPrice)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             <Button 
