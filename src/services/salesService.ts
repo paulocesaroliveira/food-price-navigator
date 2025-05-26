@@ -1,4 +1,5 @@
 
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Sale, CreateSaleRequest, SaleItem, SaleExpense, SaleInsert } from "@/types/sales";
@@ -110,8 +111,8 @@ export async function createSale(saleData: CreateSaleRequest) {
     const grossProfit = totalAmount - totalCost;
     const netProfit = grossProfit - totalExpenses;
 
-    // Preparar dados para inserção
-    const saleInsertData: SaleInsert = {
+    // Preparar dados para inserção - removendo sale_number porque é auto-gerado
+    const saleInsertData = {
       sale_date: saleData.sale_date,
       total_amount: totalAmount,
       total_cost: totalCost,

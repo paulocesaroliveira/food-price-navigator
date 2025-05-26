@@ -72,13 +72,13 @@ const SalesDetail = ({ sale, onClose }: SalesDetailProps) => {
                 Itens da Venda
               </CardTitle>
               <CardDescription>
-                {sale.items?.length || 0} {(sale.items?.length || 0) === 1 ? 'item' : 'itens'}
+                {sale.sale_items?.length || 0} {(sale.sale_items?.length || 0) === 1 ? 'item' : 'itens'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {sale.items && sale.items.length > 0 ? (
+              {sale.sale_items && sale.sale_items.length > 0 ? (
                 <div className="space-y-4">
-                  {sale.items.map((item) => (
+                  {sale.sale_items.map((item) => (
                     <div key={item.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
                       <div className="md:col-span-2">
                         <p className="font-medium">{item.product?.name || 'Produto não encontrado'}</p>
@@ -105,7 +105,7 @@ const SalesDetail = ({ sale, onClose }: SalesDetailProps) => {
           </Card>
 
           {/* Despesas */}
-          {sale.expenses && sale.expenses.length > 0 && (
+          {sale.sale_expenses && sale.sale_expenses.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -113,12 +113,12 @@ const SalesDetail = ({ sale, onClose }: SalesDetailProps) => {
                   Despesas e Taxas
                 </CardTitle>
                 <CardDescription>
-                  {sale.expenses.length} {sale.expenses.length === 1 ? 'despesa' : 'despesas'}
+                  {sale.sale_expenses.length} {sale.sale_expenses.length === 1 ? 'despesa' : 'despesas'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {sale.expenses.map((expense) => (
+                  {sale.sale_expenses.map((expense) => (
                     <div key={expense.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
                       <div>
                         <p className="font-medium">{expense.name}</p>
@@ -180,11 +180,11 @@ const SalesDetail = ({ sale, onClose }: SalesDetailProps) => {
                   <span className="font-medium text-green-600">R$ {sale.gross_profit.toFixed(2)}</span>
                 </div>
                 
-                {sale.expenses && sale.expenses.length > 0 && (
+                {sale.sale_expenses && sale.sale_expenses.length > 0 && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total de Despesas:</span>
                     <span className="font-medium text-red-600">
-                      R$ {sale.expenses.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2)}
+                      R$ {sale.sale_expenses.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2)}
                     </span>
                   </div>
                 )}

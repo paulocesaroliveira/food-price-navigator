@@ -1,4 +1,5 @@
 
+
 export interface Sale {
   id: string;
   sale_number: string;
@@ -71,4 +72,5 @@ export interface SaleInsert {
   net_profit: number;
   notes?: string;
   status?: 'completed' | 'cancelled' | 'pending';
+  sale_number?: string; // Torna opcional para inserção
 }
