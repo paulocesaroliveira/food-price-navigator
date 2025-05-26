@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useQuery } from "@tanstack/react-query";
 import { createOrder } from "@/services/orderService";
-import { getCustomerList } from "@/services/customerService";
+import { getCustomerList, getCustomerById } from "@/services/customerService";
 import { getProductList } from "@/services/productService";
 import { Order, Customer, Product, OrderItem } from "@/types";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
   const [orderExpenses, setOrderExpenses] = useState<OrderExpenseInput[]>([]);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerAddresses, setCustomerAddresses] = useState<any[]>([]);
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers'],
@@ -76,6 +79,46 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
     queryKey: ['products'],
     queryFn: getProductList
   });
+
+  // Buscar endereços do cliente quando selecionado
+  useEffect(() => {
+    const fetchCustomerAddresses = async () => {
+      if (formData.customer_id) {
+        try {
+          const customer = await getCustomerById(formData.customer_id);
+          if (customer) {
+            setSelectedCustomer(customer);
+            setCustomerAddresses(customer.addresses || []);
+            
+            // Se só tem um endereço, seleciona automaticamente
+            if (customer.addresses && customer.addresses.length === 1) {
+              setFormData(prev => ({
+                ...prev,
+                delivery_address: customer.addresses[0].address
+              }));
+            }
+            // Se tem endereço primário, seleciona ele
+            else if (customer.addresses && customer.addresses.length > 0) {
+              const primaryAddress = customer.addresses.find(addr => addr.is_primary);
+              if (primaryAddress) {
+                setFormData(prev => ({
+                  ...prev,
+                  delivery_address: primaryAddress.address
+                }));
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao buscar dados do cliente:", error);
+        }
+      } else {
+        setSelectedCustomer(null);
+        setCustomerAddresses([]);
+      }
+    };
+
+    fetchCustomerAddresses();
+  }, [formData.customer_id]);
 
   const addOrderItem = () => {
     setOrderItems([...orderItems, {
@@ -137,16 +180,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
     return products.find(product => product.id === id);
   };
 
-  const getExpenseTypeLabel = (type: string) => {
-    switch (type) {
-      case 'expense': return 'Despesa';
-      case 'tax': return 'Taxa';
-      case 'fee': return 'Comissão';
-      case 'delivery': return 'Entrega';
-      default: return type;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -189,10 +222,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
 
       const createdOrder = await createOrder(orderPayload, orderItems);
       
-      // Criar despesas se existirem
       if (orderExpenses.length > 0) {
-        // Aqui você pode adicionar a lógica para criar as despesas
-        // Por enquanto, vamos apenas loggar
         console.log("Despesas a serem criadas:", orderExpenses);
       }
 
@@ -228,7 +258,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="customer_id">Cliente *</Label>
-                <Select value={formData.customer_id} onValueChange={(value) => setFormData({...formData, customer_id: value})}>
+                <Select value={formData.customer_id} onValueChange={(value) => setFormData({...formData, customer_id: value, delivery_address: ""})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
@@ -279,17 +309,42 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
               </div>
 
               {formData.delivery_type === "Entrega" && (
-                <div>
-                  <Label htmlFor="delivery_address">Endereço de Entrega</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      id="delivery_address"
-                      value={formData.delivery_address}
-                      onChange={(e) => setFormData({...formData, delivery_address: e.target.value})}
-                      placeholder="Endereço completo para entrega"
-                      className="pl-10"
-                    />
+                <div className="space-y-3">
+                  {customerAddresses.length > 0 && (
+                    <div>
+                      <Label htmlFor="saved_address">Endereços Salvos</Label>
+                      <Select value={formData.delivery_address} onValueChange={(value) => setFormData({...formData, delivery_address: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um endereço salvo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {customerAddresses.map((address) => (
+                            <SelectItem key={address.id} value={address.address}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{address.label}</span>
+                                <span className="text-sm text-gray-500">{address.address}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <Label htmlFor="delivery_address">
+                      {customerAddresses.length > 0 ? "Ou digite um endereço personalizado" : "Endereço de Entrega"}
+                    </Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        id="delivery_address"
+                        value={formData.delivery_address}
+                        onChange={(e) => setFormData({...formData, delivery_address: e.target.value})}
+                        placeholder="Endereço completo para entrega"
+                        className="pl-10"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
