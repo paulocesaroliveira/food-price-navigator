@@ -14,36 +14,37 @@ export const useCurrencyMask = (initialValue: number = 0) => {
   const [displayValue, setDisplayValue] = useState(() => formatCurrency(initialValue));
 
   const parseCurrency = useCallback((value: string): number => {
-    // Remove todos os caracteres não numéricos exceto vírgula
-    const numericValue = value.replace(/[^\d,]/g, '');
+    // Remove todos os caracteres não numéricos
+    const numericValue = value.replace(/[^\d]/g, '');
     
-    // Converte vírgula para ponto e transforma em número
-    const parsed = parseFloat(numericValue.replace(',', '.')) || 0;
+    // Se não há dígitos, retorna 0
+    if (!numericValue) return 0;
+    
+    // Converte para centavos (últimos 2 dígitos são centavos)
+    const parsed = parseFloat(numericValue) / 100;
     
     return parsed;
   }, []);
 
   const handleChange = useCallback((value: string) => {
-    // Remove caracteres não numéricos exceto vírgula
-    let numericValue = value.replace(/[^\d,]/g, '');
+    // Remove todos os caracteres não numéricos
+    const numericValue = value.replace(/[^\d]/g, '');
     
-    // Garante que só tenha uma vírgula
-    const parts = numericValue.split(',');
-    if (parts.length > 2) {
-      numericValue = parts[0] + ',' + parts.slice(1).join('');
+    // Se não há dígitos, limpa o campo
+    if (!numericValue) {
+      setDisplayValue('');
+      return 0;
     }
     
-    // Limita casas decimais a 2
-    if (parts[1] && parts[1].length > 2) {
-      numericValue = parts[0] + ',' + parts[1].substring(0, 2);
-    }
+    // Converte para número (em centavos)
+    const parsed = parseFloat(numericValue) / 100;
     
-    const parsed = parseCurrency(numericValue);
+    // Formata como currency
     const formatted = formatCurrency(parsed);
     
     setDisplayValue(formatted);
     return parsed;
-  }, [formatCurrency, parseCurrency]);
+  }, [formatCurrency]);
 
   const setValue = useCallback((value: number) => {
     const formatted = formatCurrency(value);
