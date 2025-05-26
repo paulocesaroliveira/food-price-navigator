@@ -41,6 +41,9 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
   
   const [results, setResults] = useState<any>(null);
 
+  // Flag to prevent infinite loops during bidirectional updates
+  const [isUpdatingFromCalculation, setIsUpdatingFromCalculation] = useState(false);
+
   // Carregar dados existentes quando um config é fornecido
   useEffect(() => {
     if (existingConfig) {
@@ -50,9 +53,59 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       setMarginPercentage(existingConfig.desiredMarginPercentage);
       setPlatformFeePercentage(existingConfig.platformFeePercentage);
       setTaxPercentage(existingConfig.taxPercentage);
-      setActualSellingPrice(existingConfig.idealPrice.toString());
+      setActualSellingPrice(existingConfig.actualSellingPrice?.toString() || '');
     }
   }, [existingConfig]);
+
+  // Calculate total cost for bidirectional calculations
+  const calculateTotalCost = () => {
+    const baseCost = product.totalCost - product.packagingCost;
+    const packagingCost = product.packagingCost;
+    
+    const totalAdditionalCost = additionalCosts.reduce((sum, cost) => {
+      if (cost.type === 'percentage') {
+        return sum + (baseCost + packagingCost) * (cost.value / 100);
+      }
+      return sum + cost.value;
+    }, 0);
+    
+    const totalCost = baseCost + packagingCost + totalAdditionalCost;
+    const wastageMultiplier = 1 + (wastagePercentage / 100);
+    return totalCost * wastageMultiplier;
+  };
+
+  // Handle margin change - calculate actual selling price
+  const handleMarginChange = (newMargin: number) => {
+    setMarginPercentage(newMargin);
+    
+    if (!isUpdatingFromCalculation) {
+      const totalCost = calculateTotalCost();
+      const marginMultiplier = 1 / (1 - (newMargin / 100));
+      const calculatedPrice = totalCost * marginMultiplier;
+      
+      setIsUpdatingFromCalculation(true);
+      setActualSellingPrice(calculatedPrice.toFixed(2));
+      setTimeout(() => setIsUpdatingFromCalculation(false), 0);
+    }
+  };
+
+  // Handle actual selling price change - calculate margin
+  const handleActualPriceChange = (priceStr: string) => {
+    setActualSellingPrice(priceStr);
+    
+    if (!isUpdatingFromCalculation && priceStr && parseFloat(priceStr) > 0) {
+      const totalCost = calculateTotalCost();
+      const price = parseFloat(priceStr);
+      
+      if (totalCost > 0 && price > totalCost) {
+        const calculatedMargin = ((price - totalCost) / price) * 100;
+        
+        setIsUpdatingFromCalculation(true);
+        setMarginPercentage(calculatedMargin);
+        setTimeout(() => setIsUpdatingFromCalculation(false), 0);
+      }
+    }
+  };
 
   // Calcular resultados em tempo real
   useEffect(() => {
@@ -240,7 +293,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                   id="margin"
                   type="number"
                   value={marginPercentage}
-                  onChange={(e) => setMarginPercentage(Number(e.target.value) || 0)}
+                  onChange={(e) => handleMarginChange(Number(e.target.value) || 0)}
                   min="0"
                   max="100"
                   step="0.1"
@@ -273,13 +326,13 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
 
             {/* Preço Real de Venda */}
             <div>
-              <Label htmlFor="actual-price" className="text-sm">Preço Real de Venda (Opcional)</Label>
+              <Label htmlFor="actual-price" className="text-sm">Preço Real de Venda</Label>
               <div className="relative">
                 <Input
                   id="actual-price"
                   type="number"
                   value={actualSellingPrice}
-                  onChange={(e) => setActualSellingPrice(e.target.value)}
+                  onChange={(e) => handleActualPriceChange(e.target.value)}
                   min="0"
                   step="0.01"
                   className="mt-1 pl-7 border-food-vanilla focus-visible:ring-food-coral"
@@ -288,7 +341,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                 <span className="absolute left-2.5 top-[9px] text-muted-foreground text-sm">R$</span>
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                Informe o valor que você realmente cobra pelo produto
+                Este campo atualiza automaticamente a margem de lucro acima
               </div>
             </div>
 
