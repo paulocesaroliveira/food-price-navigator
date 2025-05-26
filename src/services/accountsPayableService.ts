@@ -56,7 +56,12 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
     const { data, error } = await query;
 
     if (error) throw error;
-    return data || [];
+    
+    // Ensure status is properly typed
+    return (data || []).map(account => ({
+      ...account,
+      status: account.status as 'pending' | 'paid' | 'overdue' | 'cancelled'
+    }));
   } catch (error: any) {
     console.error("Erro ao buscar contas:", error.message);
     toast({

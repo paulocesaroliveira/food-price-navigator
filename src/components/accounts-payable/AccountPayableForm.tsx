@@ -52,8 +52,13 @@ const AccountPayableForm = ({
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     onSubmit({
-      ...values,
+      description: values.description, // Ensure description is always provided
       amount: parseFloat(values.amount),
+      due_date: values.due_date,
+      category_id: values.category_id,
+      supplier: values.supplier,
+      payment_method: values.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' | undefined,
+      notes: values.notes,
       status: initialData?.status || 'pending',
       payment_date: initialData?.payment_date,
     });
