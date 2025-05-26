@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -39,9 +38,13 @@ export const ProductCategoryDialog = ({ open, onOpenChange, onCategoriesChange }
   const { data: categories = [], refetch } = useQuery({
     queryKey: ['productCategories'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('product_categories')
         .select('*')
+        .eq('user_id', user.id)
         .order('name');
       
       if (error) throw error;
@@ -51,9 +54,15 @@ export const ProductCategoryDialog = ({ open, onOpenChange, onCategoriesChange }
 
   const createMutation = useMutation({
     mutationFn: async (name: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('product_categories')
-        .insert({ name })
+        .insert({ 
+          name,
+          user_id: user.id
+        })
         .select()
         .single();
       
@@ -111,7 +120,6 @@ export const ProductCategoryDialog = ({ open, onOpenChange, onCategoriesChange }
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Verificar se há produtos usando esta categoria
       const { data: products, error: checkError } = await supabase
         .from('products')
         .select('id')
@@ -187,7 +195,6 @@ export const ProductCategoryDialog = ({ open, onOpenChange, onCategoriesChange }
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Adicionar nova categoria */}
           <div className="flex gap-2">
             <div className="flex-1">
               <Label htmlFor="newCategory">Nova Categoria</Label>
@@ -209,7 +216,6 @@ export const ProductCategoryDialog = ({ open, onOpenChange, onCategoriesChange }
             </Button>
           </div>
 
-          {/* Lista de categorias */}
           <div className="border rounded-md">
             <Table>
               <TableHeader>
