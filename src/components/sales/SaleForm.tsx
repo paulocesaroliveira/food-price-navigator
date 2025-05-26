@@ -89,9 +89,9 @@ const SaleForm: React.FC<SaleFormProps> = ({ onSuccess, onCancel }) => {
     
     if (field === 'product_id') {
       const product = products.find(p => p.id === value);
-      if (product && product.selling_price) {
-        updatedItems[index].unit_price = product.selling_price;
-        updatedItems[index].total_price = updatedItems[index].quantity * product.selling_price;
+      if (product && product.sellingPrice) {
+        updatedItems[index].unit_price = product.sellingPrice;
+        updatedItems[index].total_price = updatedItems[index].quantity * product.sellingPrice;
       }
     }
     
@@ -365,9 +365,9 @@ const SaleForm: React.FC<SaleFormProps> = ({ onSuccess, onCancel }) => {
                             <SelectItem key={product.id} value={product.id}>
                               <div className="flex flex-col">
                                 <span>{product.name}</span>
-                                {product.selling_price && (
+                                {product.sellingPrice && (
                                   <span className="text-sm text-gray-500">
-                                    {formatCurrency(product.selling_price)}
+                                    {formatCurrency(product.sellingPrice)}
                                   </span>
                                 )}
                               </div>
