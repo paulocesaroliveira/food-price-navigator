@@ -57,10 +57,11 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
 
     if (error) throw error;
     
-    // Ensure status is properly typed
+    // Ensure status and payment_method are properly typed
     return (data || []).map(account => ({
       ...account,
-      status: account.status as 'pending' | 'paid' | 'overdue' | 'cancelled'
+      status: account.status as 'pending' | 'paid' | 'overdue' | 'cancelled',
+      payment_method: account.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' | undefined
     }));
   } catch (error: any) {
     console.error("Erro ao buscar contas:", error.message);
