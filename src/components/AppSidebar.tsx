@@ -18,11 +18,11 @@ import {
   BarChart3,
   ChevronRight,
   HelpCircle,
-  Globe,
   ShoppingCart,
   Users,
   Store,
   Calendar,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +37,7 @@ const AppSidebar = () => {
     { path: "/products", name: "Produtos", icon: ShoppingBag },
     { path: "/pricing", name: "Precificação", icon: DollarSign },
     { path: "/production-schedule", name: "Agenda de Produção", icon: Calendar },
-    { path: "/website", name: "Site Público", icon: Globe },
+    { path: "/sales", name: "Vendas", icon: TrendingUp },
     { path: "/orders", name: "Pedidos", icon: ShoppingCart },
     { path: "/customers", name: "Clientes", icon: Users },
   ];

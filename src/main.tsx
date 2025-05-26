@@ -23,7 +23,7 @@ import ProductionSchedule from './pages/ProductionSchedule'
 import Customers from './pages/Customers'
 import Pricing from './pages/Pricing'
 import Settings from './pages/Settings'
-import Website from './pages/Website'
+import Sales from './pages/Sales'
 import Index from './pages/Index'
 import NotFound from './pages/NotFound'
 
@@ -60,7 +60,7 @@ const router = createBrowserRouter(
         <Route path="customers" element={<Customers />} />
         <Route path="pricing" element={<Pricing />} />
         <Route path="settings" element={<Settings />} />
-        <Route path="website" element={<Website />} />
+        <Route path="sales" element={<Sales />} />
       </Route>
       
       {/* 404 route */}

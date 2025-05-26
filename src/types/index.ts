@@ -176,3 +176,47 @@ export interface Customer {
   created_at: string;
   updated_at?: string;
 }
+
+// Sales types
+export interface Sale {
+  id: string;
+  sale_number: string;
+  sale_date: string;
+  total_amount: number;
+  total_cost: number;
+  gross_profit: number;
+  net_profit: number;
+  notes?: string;
+  status: 'completed' | 'cancelled' | 'pending';
+  created_at: string;
+  updated_at: string;
+  items?: SaleItem[];
+  expenses?: SaleExpense[];
+}
+
+export interface SaleItem {
+  id: string;
+  sale_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  unit_cost: number;
+  total_cost: number;
+  created_at: string;
+  product?: {
+    id: string;
+    name: string;
+    total_cost: number;
+  };
+}
+
+export interface SaleExpense {
+  id: string;
+  sale_id: string;
+  name: string;
+  amount: number;
+  type: 'expense' | 'tax' | 'fee';
+  description?: string;
+  created_at: string;
+}
