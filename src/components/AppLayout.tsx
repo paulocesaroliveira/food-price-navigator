@@ -30,10 +30,6 @@ const AppLayout = () => {
             <div className="h-full flex items-center justify-between px-4">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="text-foreground hover:text-primary transition-colors" />
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-6 w-6 text-primary md:hidden" />
-                  <span className="font-poppins font-semibold text-lg hidden md:block">TastyHub</span>
-                </div>
               </div>
               <div className="flex items-center gap-2">
                 <TooltipProvider>

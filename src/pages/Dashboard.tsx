@@ -98,11 +98,11 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header with Store Name and Filters */}
+      {/* Header with Filters */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">TastyHub</h1>
-          <p className="text-muted-foreground">usuario@exemplo.com</p>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Visão geral do seu negócio</p>
         </div>
         
         <div className="flex flex-wrap gap-3 items-center">
@@ -236,7 +236,7 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sales Chart */}
+        {/* Sales Chart - Usando dados reais do Supabase */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Vendas do Período</CardTitle>
@@ -247,8 +247,9 @@ const Dashboard = () => {
                 <div className="text-muted-foreground">Carregando dados...</div>
               </div>
             ) : !salesData || salesData.length === 0 ? (
-              <div className="h-80 flex items-center justify-center">
+              <div className="h-80 flex items-center justify-center flex-col gap-2">
                 <div className="text-muted-foreground">Nenhum dado de vendas encontrado</div>
+                <p className="text-sm text-muted-foreground">Comece registrando suas primeiras vendas</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
@@ -270,43 +271,35 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Products Distribution - usando dados mockados por enquanto */}
+        {/* Status de Estoque - dados estáticos por enquanto */}
         <Card>
           <CardHeader>
-            <CardTitle>Categorias Mais Vendidas</CardTitle>
+            <CardTitle>Status Geral</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm">Bolos</span>
-                <span className="text-sm font-medium">45%</span>
+                <span className="text-sm">Produtos Ativos</span>
+                <span className="text-sm font-medium">12</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-primary h-2 rounded-full" style={{ width: '45%' }}></div>
+                <div className="bg-primary h-2 rounded-full" style={{ width: '80%' }}></div>
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-sm">Doces</span>
-                <span className="text-sm font-medium">30%</span>
+                <span className="text-sm">Receitas</span>
+                <span className="text-sm font-medium">8</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-secondary h-2 rounded-full" style={{ width: '30%' }}></div>
+                <div className="bg-secondary h-2 rounded-full" style={{ width: '60%' }}></div>
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-sm">Salgados</span>
-                <span className="text-sm font-medium">15%</span>
+                <span className="text-sm">Pedidos Pendentes</span>
+                <span className="text-sm font-medium">{currentStats.todayOrders}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-amber-500 h-2 rounded-full" style={{ width: '15%' }}></div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Bebidas</span>
-                <span className="text-sm font-medium">10%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: '10%' }}></div>
+                <div className="bg-amber-500 h-2 rounded-full" style={{ width: '40%' }}></div>
               </div>
             </div>
           </CardContent>
@@ -315,7 +308,7 @@ const Dashboard = () => {
 
       {/* Recent Orders & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Orders */}
+        {/* Recent Orders - Dados reais do Supabase */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Pedidos Recentes</CardTitle>
@@ -361,7 +354,8 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                Nenhum pedido encontrado
+                <div className="mb-2">Nenhum pedido encontrado</div>
+                <p className="text-sm">Comece criando seu primeiro pedido</p>
               </div>
             )}
           </CardContent>

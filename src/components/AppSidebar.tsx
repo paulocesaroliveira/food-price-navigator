@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Receipt,
   UserCheck,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,7 @@ const AppSidebar = () => {
     { path: "/customers", name: "Clientes", icon: Users },
     { path: "/resale", name: "Revenda", icon: UserCheck },
     { path: "/accounts-payable", name: "Contas a Pagar", icon: Receipt },
+    { path: "/relatorios", name: "Relatórios", icon: BarChart3 },
   ];
 
   return (
@@ -52,7 +54,7 @@ const AppSidebar = () => {
           <Store className="h-8 w-8 text-primary" />
           <div className="flex flex-col">
             <span className="text-xl font-poppins font-semibold tracking-tight text-sidebar-foreground">TastyHub</span>
-            <span className="text-xs text-sidebar-foreground/70">Gestão de Confeitaria</span>
+            <span className="text-xs text-sidebar-foreground/70">usuario@exemplo.com</span>
           </div>
         </div>
       </SidebarHeader>
@@ -88,7 +90,7 @@ const AppSidebar = () => {
           </Link>
           <div className="px-4 py-4 mt-4 text-xs text-muted-foreground text-center">
             TastyHub v1.0.0
-            <div className="mt-1">Gestão de Confeitaria</div>
+            <div className="mt-1">Sistema de Gestão</div>
           </div>
         </div>
       </SidebarFooter>
