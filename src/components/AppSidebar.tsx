@@ -6,6 +6,12 @@ import {
   SidebarContent, 
   SidebarHeader, 
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { 
   LayoutDashboard, 
@@ -33,20 +39,45 @@ const AppSidebar = () => {
   const location = useLocation();
   const { user, loading } = useAuth();
   
-  const navItems = [
-    { path: "/dashboard", name: "Dashboard", icon: LayoutDashboard },
-    { path: "/ingredients", name: "Ingredientes", icon: Egg },
-    { path: "/recipes", name: "Receitas", icon: ChefHat },
-    { path: "/packaging", name: "Embalagens", icon: Package },
-    { path: "/products", name: "Produtos", icon: ShoppingBag },
-    { path: "/pricing", name: "Precificação", icon: DollarSign },
-    { path: "/production-schedule", name: "Agenda de Produção", icon: Calendar },
-    { path: "/sales", name: "Vendas", icon: TrendingUp },
-    { path: "/orders", name: "Pedidos", icon: ShoppingCart },
-    { path: "/customers", name: "Clientes", icon: Users },
-    { path: "/resale", name: "Revenda", icon: UserCheck },
-    { path: "/accounts-payable", name: "Contas a Pagar", icon: Receipt },
-    { path: "/relatorios", name: "Relatórios", icon: BarChart3 },
+  const menuGroups = [
+    {
+      label: "Dashboard",
+      items: [
+        { path: "/dashboard", name: "Dashboard", icon: LayoutDashboard },
+      ]
+    },
+    {
+      label: "Cadastros",
+      items: [
+        { path: "/ingredients", name: "Ingredientes", icon: Egg },
+        { path: "/recipes", name: "Receitas", icon: ChefHat },
+        { path: "/packaging", name: "Embalagens", icon: Package },
+        { path: "/products", name: "Produtos", icon: ShoppingBag },
+        { path: "/customers", name: "Clientes", icon: Users },
+      ]
+    },
+    {
+      label: "Vendas & Produção",
+      items: [
+        { path: "/sales", name: "Vendas", icon: TrendingUp },
+        { path: "/orders", name: "Pedidos", icon: ShoppingCart },
+        { path: "/resale", name: "Revenda", icon: UserCheck },
+        { path: "/production-schedule", name: "Agenda de Produção", icon: Calendar },
+      ]
+    },
+    {
+      label: "Gestão",
+      items: [
+        { path: "/pricing", name: "Precificação", icon: DollarSign },
+        { path: "/accounts-payable", name: "Contas a Pagar", icon: Receipt },
+      ]
+    },
+    {
+      label: "Relatórios",
+      items: [
+        { path: "/relatorios", name: "Relatórios", icon: BarChart3 },
+      ]
+    }
   ];
 
   return (
@@ -64,34 +95,51 @@ const AppSidebar = () => {
       </SidebarHeader>
       
       <SidebarContent>
-        <nav className="space-y-1 px-3 py-4">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "sidebar-link group",
-                location.pathname === item.path && "active"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              <span className="flex-1 text-sm font-medium">{item.name}</span>
-              <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-70 transition-opacity" />
-            </Link>
+        <div className="px-3 py-4 space-y-6">
+          {menuGroups.map((group) => (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider mb-2">
+                {group.label}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton asChild isActive={location.pathname === item.path}>
+                        <Link to={item.path} className="flex items-center gap-3">
+                          <item.icon className="h-5 w-5" />
+                          <span className="text-sm font-medium">{item.name}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
           ))}
-        </nav>
+        </div>
       </SidebarContent>
       
       <SidebarFooter>
         <div className="px-3 py-4 space-y-1">
-          <Link to="/settings" className="sidebar-link group">
-            <Settings className="h-5 w-5" />
-            <span className="text-sm font-medium">Configurações</span>
-          </Link>
-          <Link to="/help" className="sidebar-link group">
-            <HelpCircle className="h-5 w-5" />
-            <span className="text-sm font-medium">Ajuda</span>
-          </Link>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={location.pathname === "/settings"}>
+                <Link to="/settings" className="flex items-center gap-3">
+                  <Settings className="h-5 w-5" />
+                  <span className="text-sm font-medium">Configurações</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link to="/help" className="flex items-center gap-3">
+                  <HelpCircle className="h-5 w-5" />
+                  <span className="text-sm font-medium">Ajuda</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
           <div className="px-4 py-4 mt-4 text-xs text-muted-foreground text-center">
             TastyHub v1.0.0
             <div className="mt-1">Sistema de Gestão</div>

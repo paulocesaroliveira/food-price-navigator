@@ -2,8 +2,8 @@
 import React, { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/AppSidebar";
-import { Outlet } from "react-router-dom";
-import { Bell, User, HelpCircle, BarChart3 } from "lucide-react";
+import { Outlet, useNavigate } from "react-router-dom";
+import { Bell, User, HelpCircle, LogOut } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -16,10 +16,52 @@ import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ThemeSelector from "./ThemeSelector";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const AppLayout = () => {
   const { toast } = useToast();
   const { theme, changeTheme } = useTheme();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/");
+    }
+  }, [user, loading, navigate]);
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso.",
+      });
+      
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Erro ao fazer logout",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <SidebarProvider>
@@ -94,12 +136,22 @@ const AppLayout = () => {
                   <DropdownMenuContent align="end" className="w-56">
                     <div className="px-4 py-3 border-b">
                       <p className="text-sm font-medium font-poppins">Seu Perfil</p>
-                      <p className="text-xs text-muted-foreground">usuario@exemplo.com</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
                     </div>
-                    <DropdownMenuItem className="cursor-pointer">Perfil</DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer">Configurações</DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="cursor-pointer"
+                      onClick={() => navigate("/settings")}
+                    >
+                      Configurações
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer">Sair</DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="cursor-pointer text-red-600 focus:text-red-600"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sair
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

@@ -11,6 +11,7 @@ import './index.css'
 
 // Core app layout
 import AppLayout from './components/AppLayout'
+import ProtectedRoute from './components/ProtectedRoute'
 
 // Pages
 import Dashboard from './pages/Dashboard'
@@ -54,7 +55,11 @@ const router = createBrowserRouter(
       <Route path="/auth" element={<Auth />} />
       
       {/* Admin app routes - protected */}
-      <Route path="/" element={<AppLayout />}>
+      <Route path="/" element={
+        <ProtectedRoute>
+          <AppLayout />
+        </ProtectedRoute>
+      }>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="orders" element={<Orders />} />
         <Route path="products" element={<Products />} />
