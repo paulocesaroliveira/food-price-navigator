@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Trash2, Package, DollarSign, Tag } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { PlusCircle, Trash2, Package, DollarSign, Tag, ChefHat } from "lucide-react";
 import { Product, Recipe, Packaging, ProductCategory } from "@/types";
 import { formatCurrency } from "@/utils/calculations";
 import { ProductCategoryManager } from "@/components/products/ProductCategoryManager";
@@ -35,7 +37,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [formData, setFormData] = useState({
     name: product?.name || "",
     categoryId: product?.categoryId || "",
-    sellingPrice: product?.sellingPrice || 0, // Novo campo
+    sellingPrice: product?.sellingPrice || 0,
   });
 
   const [items, setItems] = useState(product?.items || []);
@@ -84,6 +86,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     setItems([
       ...items,
       {
+        id: `temp-${Date.now()}`,
         recipeId: selectedRecipe,
         quantity: recipeQuantity,
         cost: cost,
@@ -105,11 +108,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const handleRecipeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const recipeId = e.target.value;
-    setSelectedRecipe(recipeId);
+  const handleRecipeChange = (value: string) => {
+    setSelectedRecipe(value);
 
-    const recipe = recipes.find((r) => r.id === recipeId);
+    const recipe = recipes.find((r) => r.id === value);
     if (recipe) {
       setRecipeCost(recipe.unitCost * recipeQuantity);
     } else {
@@ -154,6 +156,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     setPackagingItems([
       ...packagingItems,
       {
+        id: `temp-${Date.now()}`,
         packagingId: selectedPackaging,
         quantity: packagingQuantity,
         cost: cost,
@@ -181,11 +184,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     setPackagingItems(packagingItems.filter((_, i) => i !== index));
   };
 
-  const handlePackagingChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const packagingId = e.target.value;
-    setSelectedPackaging(packagingId);
+  const handlePackagingChange = (value: string) => {
+    setSelectedPackaging(value);
 
-    const packagingItem = packaging.find((p) => p.id === packagingId);
+    const packagingItem = packaging.find((p) => p.id === value);
     if (packagingItem) {
       setPackagingCost(packagingItem.unitCost * packagingQuantity);
     } else {
@@ -235,7 +237,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       items,
       packagingItems,
       totalCost: itemsCost + packagingCost,
-      sellingPrice: formData.sellingPrice, // Incluir valor de venda
+      sellingPrice: formData.sellingPrice,
     };
 
     onSubmit(productData);
@@ -322,7 +324,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <Label htmlFor="recipe">Receita</Label>
-              <Select id="recipe" value={selectedRecipe || ""} onValueChange={handleRecipeChange}>
+              <Select value={selectedRecipe || ""} onValueChange={handleRecipeChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma receita" />
                 </SelectTrigger>
@@ -392,7 +394,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <Label htmlFor="packaging">Embalagem</Label>
-              <Select id="packaging" value={selectedPackaging || ""} onValueChange={handlePackagingChange}>
+              <Select value={selectedPackaging || ""} onValueChange={handlePackagingChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma embalagem" />
                 </SelectTrigger>
@@ -418,11 +420,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
-            <Input
+            <Checkbox
               id="is-primary"
-              type="checkbox"
               checked={isPrimaryPackaging}
-              onChange={(e) => setIsPrimaryPackaging(e.target.checked)}
+              onCheckedChange={(checked) => setIsPrimaryPackaging(checked === true)}
             />
             <Label htmlFor="is-primary">Embalagem Primária</Label>
           </div>

@@ -728,6 +728,7 @@ export type Database = {
           name: string
           packaging_cost: number
           packaging_id: string | null
+          selling_price: number | null
           total_cost: number
           updated_at: string
         }
@@ -738,6 +739,7 @@ export type Database = {
           name: string
           packaging_cost?: number
           packaging_id?: string | null
+          selling_price?: number | null
           total_cost?: number
           updated_at?: string
         }
@@ -748,6 +750,7 @@ export type Database = {
           name?: string
           packaging_cost?: number
           packaging_id?: string | null
+          selling_price?: number | null
           total_cost?: number
           updated_at?: string
         }

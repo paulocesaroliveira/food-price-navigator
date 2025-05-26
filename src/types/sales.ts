@@ -1,3 +1,4 @@
+
 export interface Sale {
   id: string;
   sale_number: string;
