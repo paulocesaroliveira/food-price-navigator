@@ -60,13 +60,13 @@ const AppLayout = () => {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <main className="flex-1 overflow-auto">
-          <header className="sticky top-0 z-10 bg-food-white dark:bg-food-dark shadow-soft dark:shadow-card-dark h-16">
+          <header className="sticky top-0 z-10 bg-background border-b shadow-sm h-16">
             <div className="h-full flex items-center justify-between px-4">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="text-food-dark dark:text-food-textdark hover:text-food-coral dark:hover:text-food-coralDark transition-colors" />
+                <SidebarTrigger className="text-foreground hover:text-primary transition-colors" />
                 <div className="flex items-center gap-2">
-                  <BarChart3 className="h-6 w-6 text-food-coral dark:text-food-coralDark md:hidden" />
-                  <span className="font-poppins font-semibold text-lg hidden md:block">FoodPrice</span>
+                  <BarChart3 className="h-6 w-6 text-primary md:hidden" />
+                  <span className="font-poppins font-semibold text-lg hidden md:block">TastyHub</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -80,7 +80,7 @@ const AppLayout = () => {
                           title: "Sem notificações", 
                           description: "Você não tem novas notificações." 
                         })}
-                        className="text-food-dark dark:text-food-textdark hover:text-food-coral dark:hover:text-food-coralDark hover:bg-food-cream dark:hover:bg-food-carddark transition-colors"
+                        className="text-foreground hover:text-primary hover:bg-accent transition-colors"
                       >
                         <Bell className="h-5 w-5" />
                       </Button>
@@ -98,7 +98,7 @@ const AppLayout = () => {
                         variant="ghost" 
                         size="icon" 
                         onClick={toggleTheme}
-                        className="text-food-dark dark:text-food-textdark hover:text-food-coral dark:hover:text-food-coralDark hover:bg-food-cream dark:hover:bg-food-carddark transition-colors"
+                        className="text-foreground hover:text-primary hover:bg-accent transition-colors"
                       >
                         {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                       </Button>
@@ -115,7 +115,7 @@ const AppLayout = () => {
                       <Button 
                         variant="ghost" 
                         size="icon"
-                        className="text-food-dark dark:text-food-textdark hover:text-food-coral dark:hover:text-food-coralDark hover:bg-food-cream dark:hover:bg-food-carddark transition-colors"
+                        className="text-foreground hover:text-primary hover:bg-accent transition-colors"
                       >
                         <HelpCircle className="h-5 w-5" />
                       </Button>
@@ -131,9 +131,9 @@ const AppLayout = () => {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="rounded-full hover:bg-food-cream dark:hover:bg-food-carddark transition-colors"
+                      className="rounded-full hover:bg-accent transition-colors"
                     >
-                      <User className="h-5 w-5 text-food-dark dark:text-food-textdark hover:text-food-coral dark:hover:text-food-coralDark" />
+                      <User className="h-5 w-5 text-foreground hover:text-primary" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
