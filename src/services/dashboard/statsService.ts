@@ -1,25 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-
-export interface DashboardStats {
-  todayRevenue: number;
-  todayOrders: number;
-  weekRevenue: number;
-  weekOrders: number;
-  monthRevenue: number;
-  monthOrders: number;
-  revenueGrowth: number;
-  ordersGrowth: number;
-  avgOrderValue: number;
-  totalCustomers: number;
-}
-
-export interface DashboardFilters {
-  period: 'today' | 'week' | 'month' | 'custom';
-  startDate?: string;
-  endDate?: string;
-}
+import { DashboardStats, DashboardFilters } from "./types";
 
 export async function getDashboardStats(filters: DashboardFilters): Promise<DashboardStats | null> {
   try {
@@ -136,96 +118,5 @@ export async function getDashboardStats(filters: DashboardFilters): Promise<Dash
       variant: "destructive",
     });
     return null;
-  }
-}
-
-export async function getRecentOrders() {
-  try {
-    const { data: orders, error } = await supabase
-      .from("orders")
-      .select(`
-        *,
-        customer:customers(name)
-      `)
-      .order("created_at", { ascending: false })
-      .limit(4);
-
-    if (error) throw error;
-
-    return orders?.map(order => ({
-      id: order.order_number,
-      customer: order.customer?.name || 'Cliente não encontrado',
-      value: order.total_amount,
-      status: order.status,
-      time: new Date(order.created_at).toLocaleString('pt-BR')
-    })) || [];
-
-  } catch (error: any) {
-    console.error("Erro ao buscar pedidos recentes:", error.message);
-    toast({
-      title: "Erro",
-      description: `Não foi possível carregar pedidos recentes: ${error.message}`,
-      variant: "destructive",
-    });
-    return [];
-  }
-}
-
-export async function getSalesData(filters: DashboardFilters) {
-  try {
-    const today = new Date();
-    let startDate: Date;
-    
-    switch (filters.period) {
-      case 'today':
-        startDate = new Date(today);
-        startDate.setHours(0, 0, 0, 0);
-        break;
-      case 'week':
-        startDate = new Date(today);
-        startDate.setDate(startDate.getDate() - 7);
-        break;
-      case 'month':
-        startDate = new Date(today);
-        startDate.setMonth(startDate.getMonth() - 1);
-        break;
-      case 'custom':
-        startDate = filters.startDate ? new Date(filters.startDate) : new Date(today);
-        break;
-      default:
-        startDate = new Date(today);
-        startDate.setDate(startDate.getDate() - 7);
-    }
-
-    const { data: sales, error } = await supabase
-      .from("sales")
-      .select("*")
-      .gte("sale_date", startDate.toISOString().split('T')[0])
-      .order("sale_date", { ascending: true });
-
-    if (error) throw error;
-
-    // Agrupar vendas por dia
-    const salesByDay = sales?.reduce((acc, sale) => {
-      const date = new Date(sale.sale_date);
-      const dayName = date.toLocaleDateString('pt-BR', { weekday: 'short' });
-      
-      if (!acc[dayName]) {
-        acc[dayName] = 0;
-      }
-      acc[dayName] += sale.total_amount || 0;
-      return acc;
-    }, {} as Record<string, number>) || {};
-
-    const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    
-    return days.map(day => ({
-      day,
-      value: salesByDay[day] || 0
-    }));
-
-  } catch (error: any) {
-    console.error("Erro ao buscar dados de vendas:", error.message);
-    return [];
   }
 }
