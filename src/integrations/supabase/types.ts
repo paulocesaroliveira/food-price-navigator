@@ -44,6 +44,41 @@ export type Database = {
           },
         ]
       }
+      customer_addresses: {
+        Row: {
+          address: string
+          created_at: string
+          customer_id: string
+          id: string
+          is_primary: boolean
+          label: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          is_primary?: boolean
+          label: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          is_primary?: boolean
+          label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_customer_addresses_customer_id"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address1: string | null
@@ -53,7 +88,6 @@ export type Database = {
           id: string
           name: string
           notes: string | null
-          origin: string
           phone: string | null
           updated_at: string
         }
@@ -65,7 +99,6 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
-          origin: string
           phone?: string | null
           updated_at?: string
         }
@@ -77,7 +110,6 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
-          origin?: string
           phone?: string | null
           updated_at?: string
         }
@@ -150,6 +182,44 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "ingredient_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          order_id: string
+          type: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          order_id: string
+          type?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          order_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_order_expenses_order_id"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]

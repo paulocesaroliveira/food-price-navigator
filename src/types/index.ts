@@ -1,3 +1,4 @@
+
 // Basic types
 export interface Category {
   id: string;
@@ -110,7 +111,7 @@ export interface AdditionalCost {
   id: string;
   name: string;
   value: number;
-  type: 'fixed' | 'percentage'; // Novo campo para tipo
+  type: 'fixed' | 'percentage';
   isPerUnit: boolean;
 }
 
@@ -123,6 +124,16 @@ export interface PricingResult {
   priceWithCommission: number;
   priceWithTaxes: number;
   minimumRecommendedPrice: number;
+}
+
+export interface OrderExpense {
+  id: string;
+  order_id: string;
+  name: string;
+  amount: number;
+  type: 'expense' | 'tax' | 'fee' | 'delivery';
+  description?: string;
+  created_at: string;
 }
 
 export interface OrderItem {
@@ -160,21 +171,28 @@ export interface Order {
     phone: string | null;
   };
   items?: OrderItem[];
+  expenses?: OrderExpense[];
 }
 
-// Customer type definition
+export interface CustomerAddress {
+  id: string;
+  customer_id: string;
+  label: string;
+  address: string;
+  is_primary: boolean;
+  created_at: string;
+}
+
+// Customer type definition - removido o campo origin
 export interface Customer {
   id: string;
   name: string;
   email: string | null;
   phone: string | null;
-  address?: string | null;
-  address1?: string | null;
-  address2?: string | null;
   notes?: string | null;
-  origin?: "site" | "manual";
   created_at: string;
   updated_at?: string;
+  addresses?: CustomerAddress[];
 }
 
 // Sales types
