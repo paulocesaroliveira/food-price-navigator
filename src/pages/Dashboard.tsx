@@ -96,21 +96,13 @@ const Dashboard = () => {
 
   const currentStats = stats || defaultStats;
 
-  // Mock data para produtos mais vendidos (pode ser implementado depois)
-  const productsSold = [
-    { name: "Bolos", value: 45, color: "#E76F51" },
-    { name: "Doces", value: 30, color: "#2A9D8F" },
-    { name: "Salgados", value: 15, color: "#F4A261" },
-    { name: "Bebidas", value: 10, color: "#264653" }
-  ];
-
   return (
     <div className="space-y-6 p-6">
-      {/* Header with Filters */}
+      {/* Header with Store Name and Filters */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Visão geral do seu negócio</p>
+          <h1 className="text-3xl font-bold">TastyHub</h1>
+          <p className="text-muted-foreground">usuario@exemplo.com</p>
         </div>
         
         <div className="flex flex-wrap gap-3 items-center">
@@ -152,9 +144,11 @@ const Dashboard = () => {
             </div>
           )}
 
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            Relatórios
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/relatorios">
+              <Calendar className="h-4 w-4 mr-2" />
+              Relatórios
+            </Link>
           </Button>
         </div>
       </div>
@@ -252,6 +246,10 @@ const Dashboard = () => {
               <div className="h-80 flex items-center justify-center">
                 <div className="text-muted-foreground">Carregando dados...</div>
               </div>
+            ) : !salesData || salesData.length === 0 ? (
+              <div className="h-80 flex items-center justify-center">
+                <div className="text-muted-foreground">Nenhum dado de vendas encontrado</div>
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={salesData}>
@@ -272,31 +270,45 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Products Distribution */}
+        {/* Products Distribution - usando dados mockados por enquanto */}
         <Card>
           <CardHeader>
-            <CardTitle>Produtos Mais Vendidos</CardTitle>
+            <CardTitle>Categorias Mais Vendidas</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={productsSold}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {productsSold.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Bolos</span>
+                <span className="text-sm font-medium">45%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-primary h-2 rounded-full" style={{ width: '45%' }}></div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Doces</span>
+                <span className="text-sm font-medium">30%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-secondary h-2 rounded-full" style={{ width: '30%' }}></div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Salgados</span>
+                <span className="text-sm font-medium">15%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-amber-500 h-2 rounded-full" style={{ width: '15%' }}></div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Bebidas</span>
+                <span className="text-sm font-medium">10%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-green-500 h-2 rounded-full" style={{ width: '10%' }}></div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

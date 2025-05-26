@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
-import { Bell, Sun, Moon, User, HelpCircle, BarChart3 } from "lucide-react";
+import { Bell, User, HelpCircle, BarChart3 } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -14,46 +14,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import ThemeSelector from "./ThemeSelector";
+import { useTheme } from "@/hooks/useTheme";
 
 const AppLayout = () => {
   const { toast } = useToast();
-  const [theme, setTheme] = React.useState<"light" | "dark">("light");
-
-  // Check for saved theme in localStorage on component mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    
-    if (savedTheme === "dark") {
-      setTheme("dark");
-      document.documentElement.classList.add("dark");
-    } else {
-      setTheme("light");
-      document.documentElement.classList.remove("dark");
-    }
-  }, []);
-
-  // Toggle theme function with localStorage persistence
-  const toggleTheme = () => {
-    if (theme === "light") {
-      setTheme("dark");
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      toast({
-        title: "Modo escuro ativado",
-        description: "O tema foi alterado com sucesso.",
-        duration: 2000,
-      });
-    } else {
-      setTheme("light");
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-      toast({
-        title: "Modo claro ativado",
-        description: "O tema foi alterado com sucesso.",
-        duration: 2000,
-      });
-    }
-  };
+  const { theme, changeTheme } = useTheme();
 
   return (
     <SidebarProvider>
@@ -94,17 +60,10 @@ const AppLayout = () => {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={toggleTheme}
-                        className="text-foreground hover:text-primary hover:bg-accent transition-colors"
-                      >
-                        {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                      </Button>
+                      <ThemeSelector currentTheme={theme} onThemeChange={changeTheme} />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Alternar tema</p>
+                      <p>Alterar tema</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

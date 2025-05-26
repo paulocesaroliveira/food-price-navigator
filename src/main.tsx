@@ -29,6 +29,7 @@ import Auth from './pages/Auth'
 import NotFound from './pages/NotFound'
 import AccountsPayable from './pages/AccountsPayable'
 import Resale from './pages/Resale'
+import Relatorios from './pages/Relatorios'
 
 // Providers
 import { Toaster } from '@/components/ui/toaster'
@@ -67,6 +68,7 @@ const router = createBrowserRouter(
         <Route path="sales" element={<Sales />} />
         <Route path="accounts-payable" element={<AccountsPayable />} />
         <Route path="resale" element={<Resale />} />
+        <Route path="relatorios" element={<Relatorios />} />
       </Route>
       
       {/* 404 route */}
