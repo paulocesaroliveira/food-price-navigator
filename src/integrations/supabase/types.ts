@@ -174,6 +174,33 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           color: string | null
@@ -1146,9 +1173,37 @@ export type Database = {
         }
         Relationships: []
       }
+      sale_expense_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sale_expenses: {
         Row: {
           amount: number
+          category_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -1158,6 +1213,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          category_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1167,6 +1223,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          category_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1175,6 +1232,13 @@ export type Database = {
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sale_expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "sale_expense_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sale_expenses_sale_id_fkey"
             columns: ["sale_id"]
@@ -1263,6 +1327,7 @@ export type Database = {
         Row: {
           created_at: string
           discount_amount: number | null
+          discount_category_id: string | null
           gross_profit: number
           id: string
           net_profit: number
@@ -1278,6 +1343,7 @@ export type Database = {
         Insert: {
           created_at?: string
           discount_amount?: number | null
+          discount_category_id?: string | null
           gross_profit?: number
           id?: string
           net_profit?: number
@@ -1293,6 +1359,7 @@ export type Database = {
         Update: {
           created_at?: string
           discount_amount?: number | null
+          discount_category_id?: string | null
           gross_profit?: number
           id?: string
           net_profit?: number
@@ -1306,6 +1373,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_discount_category_id_fkey"
+            columns: ["discount_category_id"]
+            isOneToOne: false
+            referencedRelation: "discount_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_sale_point_id_fkey"
             columns: ["sale_point_id"]

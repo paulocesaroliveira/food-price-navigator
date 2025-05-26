@@ -7,8 +7,9 @@ export interface Sale {
   total_cost: number;
   gross_profit: number;
   net_profit: number;
-  discount_amount?: number; // Novo campo
-  sale_point_id?: string; // Novo campo
+  discount_amount?: number;
+  discount_category_id?: string;
+  sale_point_id?: string;
   notes?: string;
   status: 'completed' | 'cancelled' | 'pending';
   created_at: string;
@@ -41,13 +42,15 @@ export interface SaleExpense {
   amount: number;
   type: 'expense' | 'tax' | 'fee';
   description?: string;
+  category_id?: string;
   created_at: string;
 }
 
 export interface CreateSaleRequest {
   sale_date: string;
-  discount_amount?: number; // Novo campo
-  sale_point_id?: string; // Novo campo
+  discount_amount?: number;
+  discount_category_id?: string;
+  sale_point_id?: string;
   notes?: string;
   items: CreateSaleItemRequest[];
   expenses?: CreateSaleExpenseRequest[];
@@ -64,17 +67,18 @@ export interface CreateSaleExpenseRequest {
   amount: number;
   type: 'expense' | 'tax' | 'fee';
   description?: string;
+  category_id?: string;
 }
 
-// Tipo específico para inserção no banco, onde sale_number é opcional
 export interface SaleInsert {
   sale_date: string;
   total_amount: number;
   total_cost: number;
   gross_profit: number;
   net_profit: number;
-  discount_amount?: number; // Novo campo
-  sale_point_id?: string; // Novo campo
+  discount_amount?: number;
+  discount_category_id?: string;
+  sale_point_id?: string;
   notes?: string;
   status?: 'completed' | 'cancelled' | 'pending';
   sale_number?: string;

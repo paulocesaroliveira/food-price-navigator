@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,8 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { createSale } from "@/services/salesService";
 import { CreateSaleRequest, CreateSaleItemRequest, CreateSaleExpenseRequest } from "@/types/sales";
-import { ArrowLeft, Plus, Trash2, ShoppingCart, Receipt } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, ShoppingCart, Receipt, Percent, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getDiscountCategories, createDiscountCategory } from "@/services/discountCategoryService";
+import { getSaleExpenseCategories, createSaleExpenseCategory } from "@/services/saleExpenseCategoryService";
+import { toast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface SalesFormProps {
   onClose: () => void;
@@ -21,9 +24,14 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [discountCategoryId, setDiscountCategoryId] = useState("");
   const [items, setItems] = useState<CreateSaleItemRequest[]>([]);
   const [expenses, setExpenses] = useState<CreateSaleExpenseRequest[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDiscountCategoryDialog, setShowDiscountCategoryDialog] = useState(false);
+  const [showExpenseCategoryDialog, setShowExpenseCategoryDialog] = useState(false);
+  const [newDiscountCategoryName, setNewDiscountCategoryName] = useState("");
+  const [newExpenseCategoryName, setNewExpenseCategoryName] = useState("");
 
   const { data: products = [] } = useQuery({
     queryKey: ['products-for-sales'],
@@ -36,6 +44,16 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
       if (error) throw error;
       return data;
     }
+  });
+
+  const { data: discountCategories = [], refetch: refetchDiscountCategories } = useQuery({
+    queryKey: ['discount-categories'],
+    queryFn: getDiscountCategories
+  });
+
+  const { data: saleExpenseCategories = [], refetch: refetchSaleExpenseCategories } = useQuery({
+    queryKey: ['sale-expense-categories'],
+    queryFn: getSaleExpenseCategories
   });
 
   const addItem = () => {
@@ -54,7 +72,6 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
     const updatedItems = [...items];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
     
-    // Auto-populate price when product is selected
     if (field === 'product_id') {
       const selectedProduct = products.find(p => p.id === value);
       if (selectedProduct && selectedProduct.selling_price) {
@@ -71,6 +88,7 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
       amount: 0,
       type: "expense",
       description: "",
+      category_id: "",
     }]);
   };
 
@@ -82,6 +100,49 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
     const updatedExpenses = [...expenses];
     updatedExpenses[index] = { ...updatedExpenses[index], [field]: value };
     setExpenses(updatedExpenses);
+  };
+
+  const handleCreateDiscountCategory = async () => {
+    if (!newDiscountCategoryName.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite o nome da categoria",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const result = await createDiscountCategory({
+      name: newDiscountCategoryName,
+    });
+
+    if (result) {
+      setNewDiscountCategoryName("");
+      setShowDiscountCategoryDialog(false);
+      refetchDiscountCategories();
+      setDiscountCategoryId(result.id);
+    }
+  };
+
+  const handleCreateExpenseCategory = async () => {
+    if (!newExpenseCategoryName.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite o nome da categoria",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const result = await createSaleExpenseCategory({
+      name: newExpenseCategoryName,
+    });
+
+    if (result) {
+      setNewExpenseCategoryName("");
+      setShowExpenseCategoryDialog(false);
+      refetchSaleExpenseCategories();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,6 +163,7 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
     const saleData: CreateSaleRequest = {
       sale_date: saleDate,
       discount_amount: discountAmount > 0 ? discountAmount : undefined,
+      discount_category_id: discountCategoryId || undefined,
       notes: notes || undefined,
       items,
       expenses: expenses.length > 0 ? expenses : undefined,
@@ -131,8 +193,8 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Informações gerais */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Informações gerais */}
           <Card>
             <CardHeader>
               <CardTitle>Informações da Venda</CardTitle>
@@ -147,19 +209,6 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
                   value={saleDate}
                   onChange={(e) => setSaleDate(e.target.value)}
                   required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="discount">Desconto (R$)</Label>
-                <Input
-                  id="discount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={discountAmount}
-                  onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
-                  placeholder="0,00"
                 />
               </div>
               
@@ -260,7 +309,7 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
             </CardContent>
           </Card>
 
-          {/* Despesas */}
+          {/* Despesas e Taxas */}
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
@@ -271,10 +320,47 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
                   </CardTitle>
                   <CardDescription>Adicione despesas relacionadas à venda</CardDescription>
                 </div>
-                <Button type="button" onClick={addExpense} variant="outline" size="sm">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Adicionar Despesa
-                </Button>
+                <div className="flex gap-2">
+                  <Dialog open={showExpenseCategoryDialog} onOpenChange={setShowExpenseCategoryDialog}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Categorias
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Nova Categoria de Despesa</DialogTitle>
+                        <DialogDescription>
+                          Crie uma nova categoria para organizar suas despesas
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="category-name">Nome da Categoria</Label>
+                          <Input
+                            id="category-name"
+                            value={newExpenseCategoryName}
+                            onChange={(e) => setNewExpenseCategoryName(e.target.value)}
+                            placeholder="Ex: Comissões, Taxas de Entrega..."
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowExpenseCategoryDialog(false)}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={handleCreateExpenseCategory}>
+                          Criar Categoria
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  <Button type="button" onClick={addExpense} variant="outline" size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar Despesa
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -285,7 +371,7 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
               ) : (
                 <div className="space-y-4">
                   {expenses.map((expense, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg">
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
                       <div>
                         <Label>Nome</Label>
                         <Input
@@ -293,6 +379,25 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
                           onChange={(e) => updateExpense(index, 'name', e.target.value)}
                           placeholder="Ex: Taxa de entrega"
                         />
+                      </div>
+                      
+                      <div>
+                        <Label>Categoria</Label>
+                        <Select
+                          value={expense.category_id}
+                          onValueChange={(value) => updateExpense(index, 'category_id', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Categoria" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {saleExpenseCategories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       <div>
@@ -347,6 +452,91 @@ const SalesForm = ({ onClose, onSuccess }: SalesFormProps) => {
                   ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Seção de Desconto */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Percent className="h-5 w-5" />
+                    Desconto
+                  </CardTitle>
+                  <CardDescription>Configure desconto para esta venda</CardDescription>
+                </div>
+                <Dialog open={showDiscountCategoryDialog} onOpenChange={setShowDiscountCategoryDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Categorias
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Nova Categoria de Desconto</DialogTitle>
+                      <DialogDescription>
+                        Crie uma nova categoria para organizar seus descontos
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="discount-category-name">Nome da Categoria</Label>
+                        <Input
+                          id="discount-category-name"
+                          value={newDiscountCategoryName}
+                          onChange={(e) => setNewDiscountCategoryName(e.target.value)}
+                          placeholder="Ex: Desconto Cliente VIP, Promoção..."
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowDiscountCategoryDialog(false)}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleCreateDiscountCategory}>
+                        Criar Categoria
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="discount_category">Categoria do Desconto</Label>
+                  <Select
+                    value={discountCategoryId}
+                    onValueChange={setDiscountCategoryId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {discountCategories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="discount">Valor do Desconto (R$)</Label>
+                  <Input
+                    id="discount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={discountAmount}
+                    onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
+                    placeholder="0,00"
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

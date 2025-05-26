@@ -1,376 +1,259 @@
 
 import React, { useState } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  PlusCircle, 
-  Search, 
-  Loader2, 
-  FilterIcon,
-  Image as ImageIcon
-} from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { formatCurrency } from "@/utils/calculations";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  fetchRecipes, 
-  fetchRecipeCategories,
-  fetchIngredients,
-  createRecipe,
-  updateRecipe,
-  deleteRecipe,
-  saveRecipeIngredients
-} from "@/services/recipeService";
-import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Search, Eye, Edit, Trash2, ChefHat, DollarSign } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import RecipeForm from "@/components/recipes/RecipeForm";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Recipe, RecipeIngredient } from "@/types";
+
+interface Recipe {
+  id: string;
+  name: string;
+  portions: number;
+  total_cost: number;
+  unit_cost: number;
+  notes?: string;
+  image_url?: string;
+  created_at: string;
+  category?: {
+    id: string;
+    name: string;
+  };
+}
 
 const Recipes = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingRecipe, setEditingRecipe] = useState<any>(null);
-  const [recipeToDelete, setRecipeToDelete] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const queryClient = useQueryClient();
-  
-  const { 
-    data: recipes = [], 
-    isLoading,
-    error
-  } = useQuery({
-    queryKey: ["recipes"],
-    queryFn: fetchRecipes
-  });
 
-  const { 
-    data: categories = []
-  } = useQuery({
-    queryKey: ["recipeCategories"],
-    queryFn: fetchRecipeCategories
-  });
+  const { data: recipes = [], isLoading } = useQuery({
+    queryKey: ['recipes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('recipes')
+        .select(`
+          *,
+          category:recipe_categories(id, name)
+        `)
+        .order('created_at', { ascending: false });
 
-  const {
-    data: ingredients = []
-  } = useQuery({
-    queryKey: ["ingredients"],
-    queryFn: fetchIngredients
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const baseIngredients = data.baseIngredients || [];
-      const portionIngredients = data.portionIngredients || [];
-      
-      const recipeData: Omit<Recipe, "id"> = {
-        name: data.name,
-        image: data.image_url,
-        categoryId: data.category_id,
-        portions: parseInt(data.portions),
-        totalCost: data.total_cost,
-        unitCost: data.unit_cost,
-        notes: data.notes,
-        baseIngredients: baseIngredients.map((ing: any) => ({
-          ingredient_id: ing.ingredient_id,
-          quantity: parseFloat(ing.quantity),
-          cost: parseFloat(ing.cost)
-        })),
-        portionIngredients: portionIngredients.map((ing: any) => ({
-          ingredient_id: ing.ingredient_id,
-          quantity: parseFloat(ing.quantity),
-          cost: parseFloat(ing.cost)
-        }))
-      };
-      
-      const recipe = await createRecipe(recipeData);
-      
-      await saveRecipeIngredients(
-        recipe.id,
-        baseIngredients,
-        portionIngredients
-      );
-      
-      return recipe;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      if (error) throw error;
+      return data as Recipe[];
     }
   });
 
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const baseIngredients = data.baseIngredients || [];
-      const portionIngredients = data.portionIngredients || [];
-      
-      const recipeData = {
-        name: data.name,
-        image: data.image_url,
-        categoryId: data.category_id,
-        portions: data.portions,
-        totalCost: data.total_cost,
-        unitCost: data.unit_cost,
-        notes: data.notes
-      };
-      
-      const recipe = await updateRecipe(id, recipeData);
-      
-      await saveRecipeIngredients(
-        id,
-        baseIngredients,
-        portionIngredients
-      );
-      
-      return recipe;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recipes"] });
-    }
-  });
+  const filteredRecipes = recipes.filter(recipe =>
+    recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    recipe.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    recipe.category?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteRecipe(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('recipes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
       toast({
         title: "Receita excluída",
-        description: "A receita foi excluída com sucesso.",
+        description: "A receita foi excluída com sucesso",
       });
-    },
-    onError: () => {
+
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    } catch (error: any) {
+      console.error("Erro ao excluir receita:", error.message);
       toast({
-        title: "Erro ao excluir",
-        description: "Não foi possível excluir a receita. Tente novamente.",
-        variant: "destructive"
+        title: "Erro",
+        description: "Não foi possível excluir a receita",
+        variant: "destructive",
       });
     }
-  });
-
-  const formatCurrencyBR = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
   };
 
-  const filteredRecipes = recipes.filter((recipe: any) => {
-    const matchesSearch = recipe.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !categoryFilter || categoryFilter === "all" || recipe.category_id === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
-
-  const handleOpenForm = (recipe?: any) => {
-    console.log("Opening form with recipe:", recipe);
-    setEditingRecipe(recipe);
-    setIsFormOpen(true);
-  };
-
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
+  const handleFormClose = () => {
+    setShowForm(false);
     setEditingRecipe(null);
   };
 
-  const handleSubmit = async (data: any) => {
-    if (editingRecipe) {
-      await updateMutation.mutateAsync({ id: editingRecipe.id, data });
-    } else {
-      await createMutation.mutateAsync(data);
-    }
+  const handleFormSuccess = () => {
+    handleFormClose();
+    queryClient.invalidateQueries({ queryKey: ['recipes'] });
   };
 
-  const handleDelete = (id: string) => {
-    setRecipeToDelete(id);
-  };
-
-  const confirmDelete = () => {
-    if (recipeToDelete) {
-      deleteMutation.mutate(recipeToDelete);
-      setRecipeToDelete(null);
-    }
-  };
-
-  if (error) {
-    toast({
-      title: "Erro ao carregar receitas",
-      description: "Não foi possível carregar as receitas. Tente novamente mais tarde.",
-      variant: "destructive"
-    });
+  if (showForm || editingRecipe) {
+    return (
+      <RecipeForm
+        recipe={editingRecipe}
+        onClose={handleFormClose}
+        onSuccess={handleFormSuccess}
+      />
+    );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Receitas</h1>
-        <Button className="gap-2" onClick={() => handleOpenForm()}>
-          <PlusCircle className="h-4 w-4" />
+        <Button
+          onClick={() => setShowForm(true)}
+          className="bg-food-coral hover:bg-food-coral/90 text-white dark:bg-food-coralDark dark:hover:bg-food-coralDark/90"
+        >
+          <Plus className="mr-2 h-4 w-4" />
           Nova Receita
         </Button>
       </div>
-      
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CardTitle>Lista de Receitas</CardTitle>
-            <div className="flex flex-col md:flex-row items-center gap-3">
-              <div className="relative w-full md:w-auto">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Buscar receita..."
-                  className="pl-9 w-full md:w-[250px]"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Select 
-                value={categoryFilter} 
-                onValueChange={setCategoryFilter}
-              >
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Todas as categorias" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as categorias</SelectItem>
-                  {categories.map((category: any) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Receitas</CardTitle>
+            <ChefHat className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{recipes.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Receitas cadastradas
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Custo Médio</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              R$ {recipes.length > 0 ? (recipes.reduce((sum, recipe) => sum + recipe.unit_cost, 0) / recipes.length).toFixed(2) : '0,00'}
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">
+              Por porção
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Porções</CardTitle>
+            <ChefHat className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {recipes.reduce((sum, recipe) => sum + recipe.portions, 0)}
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-muted border-b">
-                    <th className="text-left p-3">Imagem</th>
-                    <th className="text-left p-3">Nome</th>
-                    <th className="text-left p-3">Categoria</th>
-                    <th className="text-left p-3">Unidades</th>
-                    <th className="text-left p-3">Custo Total</th>
-                    <th className="text-left p-3">Custo por Unidade</th>
-                    <th className="text-left p-3">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRecipes.length > 0 ? (
-                    filteredRecipes.map((recipe: any) => (
-                      <tr key={recipe.id} className="border-b hover:bg-muted/50">
-                        <td className="p-3">
-                          {recipe.image_url ? (
-                            <div className="h-10 w-10 rounded-md overflow-hidden">
-                              <img 
-                                src={recipe.image_url} 
-                                alt={recipe.name} 
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
-                              <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          )}
-                        </td>
-                        <td className="p-3">{recipe.name}</td>
-                        <td className="p-3">{recipe.recipe_categories?.name}</td>
-                        <td className="p-3">{recipe.portions}</td>
-                        <td className="p-3">{formatCurrencyBR(recipe.total_cost || 0)}</td>
-                        <td className="p-3">{formatCurrencyBR(recipe.unit_cost || 0)}</td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleOpenForm(recipe)}
-                            >
-                              Editar
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-destructive"
-                              onClick={() => handleDelete(recipe.id)}
-                            >
-                              Excluir
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                        {recipes.length === 0 
-                          ? "Nenhuma receita cadastrada. Adicione sua primeira receita!" 
-                          : "Nenhuma receita encontrada com esse termo de busca."}
-                      </td>
-                    </tr>
+            <p className="text-xs text-muted-foreground">
+              Porções totais
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Busca */}
+      <div className="flex items-center space-x-2">
+        <Search className="h-4 w-4 text-gray-400" />
+        <Input
+          placeholder="Buscar por nome, categoria ou observações..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
+      {/* Lista de receitas */}
+      <div className="grid gap-4">
+        {isLoading ? (
+          <div className="text-center py-8">Carregando receitas...</div>
+        ) : filteredRecipes.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-8">
+              <p className="text-gray-500">
+                {searchTerm ? "Nenhuma receita encontrada para sua busca." : "Nenhuma receita cadastrada ainda."}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredRecipes.map((recipe) => (
+              <Card key={recipe.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{recipe.name}</CardTitle>
+                      <CardDescription>
+                        {recipe.portions} {recipe.portions === 1 ? 'porção' : 'porções'}
+                      </CardDescription>
+                    </div>
+                    {recipe.category && (
+                      <Badge variant="secondary">
+                        {recipe.category.name}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Custo Total</p>
+                      <p className="font-semibold">R$ {recipe.total_cost.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Custo por Porção</p>
+                      <p className="font-semibold">R$ {recipe.unit_cost.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  
+                  {recipe.notes && (
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.notes}</p>
                   )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <RecipeForm
-        open={isFormOpen}
-        onClose={handleCloseForm}
-        onSubmit={handleSubmit}
-        editingRecipe={editingRecipe}
-        categories={categories}
-        ingredients={ingredients}
-      />
-
-      <AlertDialog open={!!recipeToDelete} onOpenChange={(open) => !open && setRecipeToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir esta receita? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                  
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingRecipe(recipe)}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Editar
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir a receita "{recipe.name}"? Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(recipe.id)}>
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
