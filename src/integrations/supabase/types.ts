@@ -1229,15 +1229,41 @@ export type Database = {
           },
         ]
       }
+      sale_points: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sales: {
         Row: {
           created_at: string
+          discount_amount: number | null
           gross_profit: number
           id: string
           net_profit: number
           notes: string | null
           sale_date: string
           sale_number: string
+          sale_point_id: string | null
           status: string
           total_amount: number
           total_cost: number
@@ -1245,12 +1271,14 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          discount_amount?: number | null
           gross_profit?: number
           id?: string
           net_profit?: number
           notes?: string | null
           sale_date?: string
           sale_number: string
+          sale_point_id?: string | null
           status?: string
           total_amount?: number
           total_cost?: number
@@ -1258,18 +1286,28 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          discount_amount?: number | null
           gross_profit?: number
           id?: string
           net_profit?: number
           notes?: string | null
           sale_date?: string
           sale_number?: string
+          sale_point_id?: string | null
           status?: string
           total_amount?: number
           total_cost?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sales_sale_point_id_fkey"
+            columns: ["sale_point_id"]
+            isOneToOne: false
+            referencedRelation: "sale_points"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

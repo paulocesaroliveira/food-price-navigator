@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { 
   Card, 
@@ -308,8 +309,8 @@ const Recipes = () => {
                         <td className="p-3">{recipe.name}</td>
                         <td className="p-3">{recipe.recipe_categories?.name}</td>
                         <td className="p-3">{recipe.portions}</td>
-                        <td className="p-3">{formatCurrencyBR(recipe.total_cost)}</td>
-                        <td className="p-3">{formatCurrencyBR(recipe.unit_cost)}</td>
+                        <td className="p-3">{formatCurrencyBR(recipe.total_cost || 0)}</td>
+                        <td className="p-3">{formatCurrencyBR(recipe.unit_cost || 0)}</td>
                         <td className="p-3">
                           <div className="flex items-center gap-2">
                             <Button 
