@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Calendar, DollarSign } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DollarSign, Settings } from "lucide-react";
 import type { AccountPayable, ExpenseCategory } from "@/types/accountsPayable";
 
 const formSchema = z.object({
@@ -24,10 +24,11 @@ const formSchema = z.object({
 
 interface AccountPayableFormProps {
   categories: ExpenseCategory[];
-  onSubmit: (data: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at'>) => void;
+  onSubmit: (data: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => void;
   initialData?: AccountPayable;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onManageCategories: () => void;
 }
 
 const AccountPayableForm = ({ 
@@ -35,7 +36,8 @@ const AccountPayableForm = ({
   onSubmit, 
   initialData, 
   isOpen, 
-  onOpenChange 
+  onOpenChange,
+  onManageCategories
 }: AccountPayableFormProps) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,15 +52,39 @@ const AccountPayableForm = ({
     },
   });
 
+  React.useEffect(() => {
+    if (initialData) {
+      form.reset({
+        description: initialData.description || "",
+        amount: initialData.amount?.toString() || "",
+        due_date: initialData.due_date || "",
+        category_id: initialData.category_id || "",
+        supplier: initialData.supplier || "",
+        payment_method: initialData.payment_method || "",
+        notes: initialData.notes || "",
+      });
+    } else {
+      form.reset({
+        description: "",
+        amount: "",
+        due_date: "",
+        category_id: "",
+        supplier: "",
+        payment_method: "",
+        notes: "",
+      });
+    }
+  }, [initialData, form]);
+
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     onSubmit({
-      description: values.description, // Ensure description is always provided
+      description: values.description,
       amount: parseFloat(values.amount),
       due_date: values.due_date,
-      category_id: values.category_id,
-      supplier: values.supplier,
+      category_id: values.category_id || undefined,
+      supplier: values.supplier || undefined,
       payment_method: values.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' | undefined,
-      notes: values.notes,
+      notes: values.notes || undefined,
       status: initialData?.status || 'pending',
       payment_date: initialData?.payment_date,
     });
@@ -132,7 +158,19 @@ const AccountPayableForm = ({
               name="category_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Categoria</FormLabel>
+                  <FormLabel className="flex items-center justify-between">
+                    Categoria
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={onManageCategories}
+                      className="h-6 px-2"
+                    >
+                      <Settings className="h-3 w-3 mr-1" />
+                      Gerenciar
+                    </Button>
+                  </FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>

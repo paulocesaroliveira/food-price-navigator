@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -6,10 +7,11 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search, Edit, Trash, Package, Image as ImageIcon, FileText } from "lucide-react";
+import { PlusCircle, Search, Edit, Trash, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { formatCurrency, formatPercentage } from "@/utils/calculations";
+import { formatCurrency } from "@/utils/calculations";
 import { Product, Recipe, Packaging, ProductCategory } from "@/types";
 import { 
   Dialog, 
@@ -29,17 +31,8 @@ import {
 } from "@/services/productService";
 import { fetchRecipes } from "@/services/recipeService";
 import { getPackagingList } from "@/services/packagingService";
-import { getPricingConfigs } from "@/services/pricingService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell
-} from "@/components/ui/table";
 
 const mapRecipesData = (recipesData: any[]): Recipe[] => {
   return recipesData.map(recipe => ({
@@ -47,8 +40,8 @@ const mapRecipesData = (recipesData: any[]): Recipe[] => {
     name: recipe.name,
     image: recipe.image_url,
     categoryId: recipe.category_id,
-    baseIngredients: [],  // These aren't needed in the Products context
-    portionIngredients: [], // These aren't needed in the Products context
+    baseIngredients: [],
+    portionIngredients: [],
     portions: recipe.portions,
     totalCost: recipe.total_cost,
     unitCost: recipe.unit_cost,
@@ -99,15 +92,6 @@ const Products = () => {
   } = useQuery({
     queryKey: ['productCategories'],
     queryFn: getProductCategories,
-  });
-
-  // Buscar configurações de preços para todos os produtos
-  const { 
-    data: pricingConfigs = [],
-    isLoading: isLoadingPricing
-  } = useQuery({
-    queryKey: ['pricing-configs'],
-    queryFn: () => getPricingConfigs(),
   });
 
   const createProductMutation = useMutation({
@@ -253,17 +237,6 @@ const Products = () => {
     setDeleteDialogOpen(true);
   };
 
-  // Função para buscar a configuração de preço mais recente de um produto
-  const getLatestPricingConfig = (productId: string) => {
-    const productConfigs = pricingConfigs.filter(config => config.productId === productId);
-    if (productConfigs.length === 0) return null;
-    
-    // Retornar a configuração mais recente
-    return productConfigs.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )[0];
-  };
-
   const isLoading = isLoadingProducts || isLoadingRecipes || isLoadingPackaging || isLoadingCategories;
 
   return (
@@ -308,90 +281,97 @@ const Products = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Foto</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Qtd. Itens</TableHead>
-                    <TableHead>Qtd. Embalagens</TableHead>
-                    <TableHead>Custo Total</TableHead>
-                    <TableHead>Valor de Venda</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {products.map((product) => {
-                    const totalItems = product.items.reduce((acc, item) => acc + item.quantity, 0);
-                    const totalPackaging = product.packagingItems?.reduce((acc, pkg) => acc + pkg.quantity, 0) || 0;
-                    
-                    return (
-                      <TableRow key={product.id}>
-                        <TableCell>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((product) => {
+                const totalItems = product.items.reduce((acc, item) => acc + item.quantity, 0);
+                const totalPackaging = product.packagingItems?.reduce((acc, pkg) => acc + pkg.quantity, 0) || 0;
+                
+                return (
+                  <Card key={product.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col space-y-3">
+                        {/* Product Image */}
+                        <div className="aspect-square w-full rounded-lg overflow-hidden bg-muted flex items-center justify-center">
                           {product.imageUrl ? (
-                            <div className="h-10 w-10 rounded-md overflow-hidden">
-                              <img 
-                                src={product.imageUrl} 
-                                alt={product.name} 
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
+                            <img 
+                              src={product.imageUrl} 
+                              alt={product.name} 
+                              className="w-full h-full object-cover"
+                            />
                           ) : product.packagingItems?.find(pkg => pkg.isPrimary)?.packaging?.imageUrl ? (
-                            <div className="h-10 w-10 rounded-md overflow-hidden">
-                              <img 
-                                src={product.packagingItems?.find(pkg => pkg.isPrimary)?.packaging?.imageUrl} 
-                                alt={product.name} 
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
+                            <img 
+                              src={product.packagingItems?.find(pkg => pkg.isPrimary)?.packaging?.imageUrl} 
+                              alt={product.name} 
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
-                            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
-                              <Package className="h-4 w-4 text-muted-foreground" />
-                            </div>
+                            <Package className="h-12 w-12 text-muted-foreground" />
                           )}
-                        </TableCell>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell>{product.category?.name || "Sem categoria"}</TableCell>
-                        <TableCell>{totalItems}</TableCell>
-                        <TableCell>{totalPackaging}</TableCell>
-                        <TableCell>{formatCurrency(product.totalCost)}</TableCell>
-                        <TableCell>
-                          {product.sellingPrice > 0 ? (
-                            <span className="font-medium text-green-600">
-                              {formatCurrency(product.sellingPrice)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => window.innerWidth >= 768 ? openEditDialog(product) : openEditSheet(product)}
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Editar
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-destructive"
-                              onClick={() => openDeleteDialog(product)}
-                            >
-                              <Trash className="h-4 w-4 mr-1" />
-                              Excluir
-                            </Button>
+                        </div>
+                        
+                        {/* Product Info */}
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between">
+                            <h3 className="font-semibold text-lg truncate flex-1 mr-2">{product.name}</h3>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                          
+                          {product.category && (
+                            <Badge variant="secondary" className="text-xs">
+                              {product.category.name}
+                            </Badge>
+                          )}
+                          
+                          <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                            <div>
+                              <span className="font-medium">Itens:</span> {totalItems}
+                            </div>
+                            <div>
+                              <span className="font-medium">Embalagens:</span> {totalPackaging}
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Custo Total:</span>
+                              <span className="text-sm">{formatCurrency(product.totalCost)}</span>
+                            </div>
+                            
+                            {product.sellingPrice > 0 && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium">Preço de Venda:</span>
+                                <span className="text-sm font-semibold text-green-600">
+                                  {formatCurrency(product.sellingPrice)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Actions */}
+                        <div className="flex gap-2 pt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => window.innerWidth >= 768 ? openEditDialog(product) : openEditSheet(product)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => openDeleteDialog(product)}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </CardContent>

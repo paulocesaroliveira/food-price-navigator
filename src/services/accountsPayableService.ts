@@ -5,9 +5,13 @@ import type { AccountPayable, ExpenseCategory, AccountsPayableFilters } from "@/
 
 export async function getExpenseCategories(): Promise<ExpenseCategory[]> {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from("expense_categories")
       .select("*")
+      .eq("user_id", user.id)
       .order("name");
 
     if (error) throw error;
@@ -25,12 +29,16 @@ export async function getExpenseCategories(): Promise<ExpenseCategory[]> {
 
 export async function getAccountsPayable(filters: AccountsPayableFilters = {}): Promise<AccountPayable[]> {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     let query = supabase
       .from("accounts_payable")
       .select(`
         *,
         category:expense_categories(*)
       `)
+      .eq("user_id", user.id)
       .order("due_date", { ascending: true });
 
     if (filters.status) {
@@ -74,11 +82,17 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
   }
 }
 
-export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> {
+export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at' | 'user_id'>): Promise<boolean> {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { error } = await supabase
       .from("accounts_payable")
-      .insert([account]);
+      .insert([{
+        ...account,
+        user_id: user.id
+      }]);
 
     if (error) throw error;
 
