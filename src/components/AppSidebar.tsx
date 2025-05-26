@@ -23,6 +23,7 @@ import {
   Calendar,
   TrendingUp,
   Receipt,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,7 @@ const AppSidebar = () => {
     { path: "/sales", name: "Vendas", icon: TrendingUp },
     { path: "/orders", name: "Pedidos", icon: ShoppingCart },
     { path: "/customers", name: "Clientes", icon: Users },
+    { path: "/resale", name: "Revenda", icon: UserCheck },
     { path: "/accounts-payable", name: "Contas a Pagar", icon: Receipt },
   ];
 

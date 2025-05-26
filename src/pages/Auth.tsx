@@ -26,7 +26,7 @@ const Auth = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        navigate("/");
+        navigate("/dashboard");
       }
     });
 
@@ -50,6 +50,8 @@ const Auth = () => {
           title: "Sucesso!",
           description: "Login realizado com sucesso.",
         });
+        
+        navigate("/dashboard");
       } else {
         if (formData.password !== formData.confirmPassword) {
           throw new Error("As senhas não coincidem");
@@ -74,8 +76,10 @@ const Auth = () => {
 
         toast({
           title: "Conta criada!",
-          description: "Sua conta foi criada com sucesso. Verifique seu email para confirmar.",
+          description: "Sua conta foi criada com sucesso. Você será redirecionado para o dashboard.",
         });
+        
+        navigate("/dashboard");
       }
     } catch (error: any) {
       toast({

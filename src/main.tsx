@@ -27,6 +27,8 @@ import Sales from './pages/Sales'
 import Index from './pages/Index'
 import Auth from './pages/Auth'
 import NotFound from './pages/NotFound'
+import AccountsPayable from './pages/AccountsPayable'
+import Resale from './pages/Resale'
 
 // Providers
 import { Toaster } from '@/components/ui/toaster'
@@ -63,6 +65,8 @@ const router = createBrowserRouter(
         <Route path="pricing" element={<Pricing />} />
         <Route path="settings" element={<Settings />} />
         <Route path="sales" element={<Sales />} />
+        <Route path="accounts-payable" element={<AccountsPayable />} />
+        <Route path="resale" element={<Resale />} />
       </Route>
       
       {/* 404 route */}
