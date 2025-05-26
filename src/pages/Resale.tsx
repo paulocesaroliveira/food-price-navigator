@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,85 +19,72 @@ import {
   Edit,
   Trash2,
   UserPlus,
-  ShoppingCart
+  ShoppingCart,
+  Loader2
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
-interface Seller {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  commission: number;
-  totalSales: number;
-  status: 'active' | 'inactive';
-  joinDate: string;
-}
-
-interface ResaleTransaction {
-  id: string;
-  sellerId: string;
-  sellerName: string;
-  products: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    unitPrice: number;
-    total: number;
-  }>;
-  totalAmount: number;
-  commission: number;
-  status: 'pending' | 'delivered' | 'paid';
-  date: string;
-  notes?: string;
-}
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { resaleService } from "@/services/resaleService";
+import type { Reseller, ResaleTransaction, CreateResellerRequest } from "@/types/resale";
 
 const Resale = () => {
   const [activeTab, setActiveTab] = useState("transactions");
   const [searchTerm, setSearchTerm] = useState("");
   const [showSellerForm, setShowSellerForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [newSeller, setNewSeller] = useState<CreateResellerRequest>({
+    name: "",
+    email: "",
+    phone: "",
+    commission_percentage: 15,
+    notes: ""
+  });
 
-  // Mock data
-  const [sellers] = useState<Seller[]>([
-    {
-      id: "1",
-      name: "Maria Silva",
-      email: "maria@email.com",
-      phone: "(11) 99999-9999",
-      commission: 15,
-      totalSales: 2500,
-      status: 'active',
-      joinDate: "2024-01-15"
+  const queryClient = useQueryClient();
+
+  // Queries
+  const { data: resellers = [], isLoading: loadingResellers } = useQuery({
+    queryKey: ['resellers'],
+    queryFn: resaleService.getResellers
+  });
+
+  const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
+    queryKey: ['resale-transactions'],
+    queryFn: resaleService.getTransactions
+  });
+
+  // Mutations
+  const createResellerMutation = useMutation({
+    mutationFn: resaleService.createReseller,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resellers'] });
+      toast({ title: "Sucesso", description: "Vendedor cadastrado com sucesso!" });
+      setShowSellerForm(false);
+      setNewSeller({ name: "", email: "", phone: "", commission_percentage: 15, notes: "" });
     },
-    {
-      id: "2",
-      name: "João Santos",
-      email: "joao@email.com",
-      phone: "(11) 88888-8888",
-      commission: 12,
-      totalSales: 1800,
-      status: 'active',
-      joinDate: "2024-02-01"
+    onError: (error) => {
+      toast({ 
+        title: "Erro", 
+        description: `Erro ao cadastrar vendedor: ${error.message}`,
+        variant: "destructive"
+      });
     }
-  ]);
+  });
 
-  const [transactions] = useState<ResaleTransaction[]>([
-    {
-      id: "T001",
-      sellerId: "1",
-      sellerName: "Maria Silva",
-      products: [
-        { id: "P1", name: "Bolo de Chocolate", quantity: 5, unitPrice: 25, total: 125 },
-        { id: "P2", name: "Doce de Leite", quantity: 10, unitPrice: 8, total: 80 }
-      ],
-      totalAmount: 205,
-      commission: 30.75,
-      status: 'delivered',
-      date: "2024-01-20",
-      notes: "Entrega para evento corporativo"
+  const deleteResellerMutation = useMutation({
+    mutationFn: resaleService.deleteReseller,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resellers'] });
+      toast({ title: "Sucesso", description: "Vendedor removido com sucesso!" });
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Erro", 
+        description: `Erro ao remover vendedor: ${error.message}`,
+        variant: "destructive"
+      });
     }
-  ]);
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -117,6 +104,41 @@ const Resale = () => {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "active": return "Ativo";
+      case "inactive": return "Inativo";
+      case "pending": return "Pendente";
+      case "delivered": return "Entregue";
+      case "paid": return "Pago";
+      case "cancelled": return "Cancelado";
+      default: return status;
+    }
+  };
+
+  const handleCreateSeller = () => {
+    if (!newSeller.name.trim()) {
+      toast({ 
+        title: "Erro", 
+        description: "Nome é obrigatório",
+        variant: "destructive"
+      });
+      return;
+    }
+    createResellerMutation.mutate(newSeller);
+  };
+
+  const handleDeleteSeller = (id: string) => {
+    if (confirm("Tem certeza que deseja remover este vendedor?")) {
+      deleteResellerMutation.mutate(id);
+    }
+  };
+
+  // Calculate stats
+  const totalSales = transactions.reduce((sum, t) => sum + t.total_amount, 0);
+  const totalCommissions = transactions.reduce((sum, t) => sum + t.commission_amount, 0);
+  const pendingTransactions = transactions.filter(t => t.status === 'pending').length;
+
   const SellerForm = () => (
     <Card className="mb-6">
       <CardHeader>
@@ -126,114 +148,61 @@ const Resale = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="sellerName">Nome Completo</Label>
-            <Input id="sellerName" placeholder="Nome do vendedor" />
+            <Input 
+              id="sellerName" 
+              placeholder="Nome do vendedor"
+              value={newSeller.name}
+              onChange={(e) => setNewSeller({ ...newSeller, name: e.target.value })}
+            />
           </div>
           <div>
             <Label htmlFor="sellerEmail">Email</Label>
-            <Input id="sellerEmail" type="email" placeholder="email@exemplo.com" />
+            <Input 
+              id="sellerEmail" 
+              type="email" 
+              placeholder="email@exemplo.com"
+              value={newSeller.email}
+              onChange={(e) => setNewSeller({ ...newSeller, email: e.target.value })}
+            />
           </div>
           <div>
             <Label htmlFor="sellerPhone">Telefone</Label>
-            <Input id="sellerPhone" placeholder="(11) 99999-9999" />
+            <Input 
+              id="sellerPhone" 
+              placeholder="(11) 99999-9999"
+              value={newSeller.phone}
+              onChange={(e) => setNewSeller({ ...newSeller, phone: e.target.value })}
+            />
           </div>
           <div>
             <Label htmlFor="commission">Comissão (%)</Label>
-            <Input id="commission" type="number" placeholder="15" />
+            <Input 
+              id="commission" 
+              type="number" 
+              placeholder="15"
+              value={newSeller.commission_percentage}
+              onChange={(e) => setNewSeller({ ...newSeller, commission_percentage: Number(e.target.value) })}
+            />
           </div>
         </div>
         <div className="mt-4">
           <Label htmlFor="notes">Observações</Label>
-          <Textarea id="notes" placeholder="Informações adicionais sobre o vendedor" />
+          <Textarea 
+            id="notes" 
+            placeholder="Informações adicionais sobre o vendedor"
+            value={newSeller.notes}
+            onChange={(e) => setNewSeller({ ...newSeller, notes: e.target.value })}
+          />
         </div>
         <div className="flex gap-2 mt-4">
-          <Button onClick={() => {
-            toast({ title: "Sucesso", description: "Vendedor cadastrado com sucesso!" });
-            setShowSellerForm(false);
-          }}>
+          <Button 
+            onClick={handleCreateSeller}
+            disabled={createResellerMutation.isPending}
+          >
+            {createResellerMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Cadastrar Vendedor
           </Button>
           <Button variant="outline" onClick={() => setShowSellerForm(false)}>
-            Cancelar
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  const TransactionForm = () => (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Nova Transação de Revenda</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="transactionSeller">Vendedor</Label>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o vendedor" />
-              </SelectTrigger>
-              <SelectContent>
-                {sellers.map((seller) => (
-                  <SelectItem key={seller.id} value={seller.id}>
-                    {seller.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="transactionDate">Data</Label>
-            <Input id="transactionDate" type="date" />
-          </div>
-        </div>
-        
-        <div className="mt-6">
-          <h4 className="text-lg font-medium mb-4">Produtos</h4>
-          <div className="border rounded-lg p-4 space-y-4">
-            <div className="grid grid-cols-4 gap-4">
-              <div>
-                <Label>Produto</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar produto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bolo-chocolate">Bolo de Chocolate</SelectItem>
-                    <SelectItem value="doce-leite">Doce de Leite</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Quantidade</Label>
-                <Input type="number" placeholder="1" />
-              </div>
-              <div>
-                <Label>Preço Unitário</Label>
-                <Input type="number" placeholder="25.00" />
-              </div>
-              <div className="flex items-end">
-                <Button size="sm">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <Label htmlFor="transactionNotes">Observações</Label>
-          <Textarea id="transactionNotes" placeholder="Informações sobre a transação" />
-        </div>
-
-        <div className="flex gap-2 mt-4">
-          <Button onClick={() => {
-            toast({ title: "Sucesso", description: "Transação registrada com sucesso!" });
-            setShowTransactionForm(false);
-          }}>
-            Registrar Transação
-          </Button>
-          <Button variant="outline" onClick={() => setShowTransactionForm(false)}>
             Cancelar
           </Button>
         </div>
@@ -270,9 +239,9 @@ const Resale = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{sellers.length}</div>
+            <div className="text-2xl font-bold">{resellers.length}</div>
             <p className="text-xs text-muted-foreground">
-              {sellers.filter(s => s.status === 'active').length} ativos
+              {resellers.filter(s => s.status === 'active').length} ativos
             </p>
           </CardContent>
         </Card>
@@ -283,10 +252,10 @@ const Resale = () => {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(4300)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalSales)}</div>
             <p className="text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 inline mr-1" />
-              +12% em relação ao mês anterior
+              {transactions.length} transações
             </p>
           </CardContent>
         </Card>
@@ -297,9 +266,9 @@ const Resale = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(645)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalCommissions)}</div>
             <p className="text-xs text-muted-foreground">
-              Para 2 vendedores
+              Para {resellers.length} vendedores
             </p>
           </CardContent>
         </Card>
@@ -310,7 +279,7 @@ const Resale = () => {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            <div className="text-2xl font-bold">{pendingTransactions}</div>
             <p className="text-xs text-muted-foreground">
               Aguardando entrega
             </p>
@@ -320,7 +289,6 @@ const Resale = () => {
 
       {/* Forms */}
       {showSellerForm && <SellerForm />}
-      {showTransactionForm && <TransactionForm />}
 
       {/* Search */}
       <div className="flex items-center space-x-2">
@@ -348,60 +316,69 @@ const Resale = () => {
               <CardTitle>Transações de Revenda</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {transactions.map((transaction) => (
-                  <div key={transaction.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">#{transaction.id}</span>
-                          <Badge className={getStatusColor(transaction.status)}>
-                            {transaction.status === 'pending' ? 'Pendente' :
-                             transaction.status === 'delivered' ? 'Entregue' : 'Pago'}
-                          </Badge>
+              {loadingTransactions ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : transactions.length === 0 ? (
+                <div className="text-center p-4 text-muted-foreground">
+                  Nenhuma transação encontrada. Crie uma nova transação para começar.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {transactions.map((transaction) => (
+                    <div key={transaction.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">#{transaction.id.slice(0, 8)}</span>
+                            <Badge className={getStatusColor(transaction.status)}>
+                              {getStatusLabel(transaction.status)}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Vendedor: {transaction.reseller?.name} • {new Date(transaction.transaction_date).toLocaleDateString('pt-BR')}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Vendedor: {transaction.sellerName} • {transaction.date}
-                        </p>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">Total:</span>
+                          <p>{formatCurrency(transaction.total_amount)}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Comissão:</span>
+                          <p>{formatCurrency(transaction.commission_amount)}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Itens:</span>
+                          <p>{transaction.resale_transaction_items?.length || 0} itens</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Status:</span>
+                          <p>{getStatusLabel(transaction.status)}</p>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium">Total:</span>
-                        <p>{formatCurrency(transaction.totalAmount)}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">Comissão:</span>
-                        <p>{formatCurrency(transaction.commission)}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">Produtos:</span>
-                        <p>{transaction.products.length} itens</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">Status:</span>
-                        <p className="capitalize">{transaction.status}</p>
-                      </div>
-                    </div>
 
-                    {transaction.notes && (
-                      <div className="mt-3 p-2 bg-gray-50 rounded">
-                        <span className="text-sm font-medium">Observações: </span>
-                        <span className="text-sm">{transaction.notes}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      {transaction.notes && (
+                        <div className="mt-3 p-2 bg-gray-50 rounded">
+                          <span className="text-sm font-medium">Observações: </span>
+                          <span className="text-sm">{transaction.notes}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -412,48 +389,63 @@ const Resale = () => {
               <CardTitle>Vendedores Cadastrados</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {sellers.map((seller) => (
-                  <div key={seller.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-medium">{seller.name}</h3>
-                          <Badge className={getStatusColor(seller.status)}>
-                            {seller.status === 'active' ? 'Ativo' : 'Inativo'}
-                          </Badge>
+              {loadingResellers ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : resellers.length === 0 ? (
+                <div className="text-center p-4 text-muted-foreground">
+                  Nenhum vendedor cadastrado. Cadastre um novo vendedor para começar.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {resellers.map((seller) => (
+                    <div key={seller.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-medium">{seller.name}</h3>
+                            <Badge className={getStatusColor(seller.status)}>
+                              {getStatusLabel(seller.status)}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                            <div>
+                              <span className="font-medium">Email:</span>
+                              <p>{seller.email || 'Não informado'}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium">Telefone:</span>
+                              <p>{seller.phone || 'Não informado'}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium">Comissão:</span>
+                              <p>{seller.commission_percentage}%</p>
+                            </div>
+                            <div>
+                              <span className="font-medium">Total Vendas:</span>
+                              <p>{formatCurrency(seller.total_sales)}</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                          <div>
-                            <span className="font-medium">Email:</span>
-                            <p>{seller.email}</p>
-                          </div>
-                          <div>
-                            <span className="font-medium">Telefone:</span>
-                            <p>{seller.phone}</p>
-                          </div>
-                          <div>
-                            <span className="font-medium">Comissão:</span>
-                            <p>{seller.commission}%</p>
-                          </div>
-                          <div>
-                            <span className="font-medium">Total Vendas:</span>
-                            <p>{formatCurrency(seller.totalSales)}</p>
-                          </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDeleteSeller(seller.id)}
+                            disabled={deleteResellerMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

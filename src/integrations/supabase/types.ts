@@ -1042,6 +1042,143 @@ export type Database = {
           },
         ]
       }
+      resale_transaction_items: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          total_price: number
+          transaction_id: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity?: number
+          total_price: number
+          transaction_id: string
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          total_price?: number
+          transaction_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resale_transaction_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resale_transaction_items_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "resale_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resale_transactions: {
+        Row: {
+          commission_amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          reseller_id: string
+          status: string
+          total_amount: number
+          transaction_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commission_amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reseller_id: string
+          status?: string
+          total_amount?: number
+          transaction_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commission_amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reseller_id?: string
+          status?: string
+          total_amount?: number
+          transaction_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resale_transactions_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resellers: {
+        Row: {
+          commission_percentage: number
+          created_at: string
+          email: string | null
+          id: string
+          join_date: string
+          name: string
+          notes: string | null
+          phone: string | null
+          status: string
+          total_sales: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commission_percentage?: number
+          created_at?: string
+          email?: string | null
+          id?: string
+          join_date?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          total_sales?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commission_percentage?: number
+          created_at?: string
+          email?: string | null
+          id?: string
+          join_date?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          total_sales?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sale_expenses: {
         Row: {
           amount: number
