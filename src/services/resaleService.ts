@@ -136,10 +136,14 @@ export const resaleService = {
 
     if (error) throw error;
     
-    // Ensure status is properly typed
+    // Ensure status is properly typed for both transaction and reseller
     return (data || []).map(transaction => ({
       ...transaction,
-      status: transaction.status as 'pending' | 'delivered' | 'paid' | 'cancelled'
+      status: transaction.status as 'pending' | 'delivered' | 'paid' | 'cancelled',
+      reseller: transaction.reseller ? {
+        ...transaction.reseller,
+        status: transaction.reseller.status as 'active' | 'inactive'
+      } : undefined
     }));
   },
 
@@ -151,10 +155,10 @@ export const resaleService = {
     const totalAmount = transaction.items.reduce((sum, item) => 
       sum + (item.quantity * item.unit_price), 0);
 
-    // Get reseller commission
+    // Get reseller commission and current total sales
     const { data: reseller } = await supabase
       .from('resellers')
-      .select('commission_percentage')
+      .select('commission_percentage, total_sales')
       .eq('id', transaction.reseller_id)
       .single();
 
