@@ -34,10 +34,36 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const AppSidebar = () => {
   const location = useLocation();
   const { user, loading } = useAuth();
+  
+  // Buscar dados do perfil do usuário
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('store_name')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Erro ao buscar perfil:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!user?.id
+  });
+  
+  const storeName = profile?.store_name || "TastyHub";
   
   const menuGroups = [
     {
@@ -86,7 +112,7 @@ const AppSidebar = () => {
         <div className="flex items-center gap-3 px-4 py-5">
           <Store className="h-8 w-8 text-primary" />
           <div className="flex flex-col">
-            <span className="text-xl font-poppins font-semibold tracking-tight text-sidebar-foreground">TastyHub</span>
+            <span className="text-xl font-poppins font-semibold tracking-tight text-sidebar-foreground">{storeName}</span>
             <span className="text-xs text-sidebar-foreground/70">
               {loading ? "Carregando..." : user?.email || "usuario@exemplo.com"}
             </span>

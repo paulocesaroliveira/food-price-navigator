@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -265,7 +264,7 @@ const Products = () => {
     )[0];
   };
 
-  const isLoading = isLoadingProducts || isLoadingRecipes || isLoadingPackaging || isLoadingCategories || isLoadingPricing;
+  const isLoading = isLoadingProducts || isLoadingRecipes || isLoadingPackaging || isLoadingCategories;
 
   return (
     <div className="space-y-6">
@@ -318,15 +317,12 @@ const Products = () => {
                     <TableHead>Categoria</TableHead>
                     <TableHead>Qtd. Itens</TableHead>
                     <TableHead>Custo Total</TableHead>
-                    <TableHead>Margem</TableHead>
-                    <TableHead>Preço de Venda</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products.map((product) => {
                     const totalItems = product.items.reduce((acc, item) => acc + item.quantity, 0);
-                    const latestPricing = getLatestPricingConfig(product.id);
                     
                     return (
                       <TableRow key={product.id}>
@@ -357,24 +353,6 @@ const Products = () => {
                         <TableCell>{product.category?.name || "Sem categoria"}</TableCell>
                         <TableCell>{totalItems}</TableCell>
                         <TableCell>{formatCurrency(product.totalCost)}</TableCell>
-                        <TableCell>
-                          {latestPricing ? (
-                            <span className="text-green-600 font-medium">
-                              {formatPercentage(latestPricing.desiredMarginPercentage)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {latestPricing ? (
-                            <span className="font-medium">
-                              {formatCurrency(latestPricing.idealPrice)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             <Button 

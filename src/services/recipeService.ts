@@ -11,6 +11,26 @@ export const fetchRecipes = async () => {
     .order('name');
   
   if (error) throw error;
+  
+  // Recalcular custos para todas as receitas para garantir que estejam corretos
+  if (data) {
+    for (const recipe of data) {
+      await supabase.rpc('calculate_recipe_costs', { recipe_id_param: recipe.id });
+    }
+    
+    // Buscar novamente os dados atualizados
+    const { data: updatedData, error: updateError } = await supabase
+      .from('recipes')
+      .select(`
+        *,
+        recipe_categories(name)
+      `)
+      .order('name');
+    
+    if (updateError) throw updateError;
+    return updatedData || [];
+  }
+  
   return data || [];
 };
 
