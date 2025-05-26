@@ -2,7 +2,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Sale, CreateSaleRequest, SaleItem, SaleExpense, SaleInsert } from "@/types/sales";
+import { Sale, CreateSaleRequest, SaleItem, SaleExpense } from "@/types/sales";
 
 export async function getSales() {
   try {
@@ -122,9 +122,10 @@ export async function createSale(saleData: CreateSaleRequest) {
     };
 
     // Criar venda (o sale_number será gerado automaticamente pelo trigger)
+    // Usar 'any' para contornar a verificação de tipo do sale_number
     const { data: sale, error: saleError } = await supabase
       .from("sales")
-      .insert(saleInsertData)
+      .insert(saleInsertData as any)
       .select()
       .single();
 
