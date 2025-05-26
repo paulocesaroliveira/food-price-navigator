@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,9 @@ import {
   User,
   MapPin,
   Clock,
-  Package
+  Package,
+  CreditCard,
+  Printer
 } from "lucide-react";
 import { formatCurrency } from "@/utils/calculations";
 import { toast } from "@/hooks/use-toast";
@@ -54,13 +55,15 @@ interface OrderExpenseInput {
 const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
     customer_id: "",
-    delivery_type: "Entrega" as Order["delivery_type"],
+    delivery_type: "Entrega" as "Entrega" | "Retirada",
     delivery_address: "",
     scheduled_date: "",
     scheduled_time: "",
     notes: "",
-    status: "Novo" as Order["status"],
-    origin: "manual" as Order["origin"]
+    status: "Novo" as "Novo" | "Em preparo" | "Pronto" | "Finalizado" | "Cancelado",
+    origin: "manual" as "manual",
+    payment_method: "dinheiro" as "dinheiro" | "pix" | "cartao_credito" | "cartao_debito" | "transferencia",
+    payment_status: "pendente" as "pendente" | "pago"
   });
 
   const [orderItems, setOrderItems] = useState<OrderItemInput[]>([]);
@@ -243,6 +246,38 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
     }
   };
 
+  const handlePrintOrder = () => {
+    // Implementação básica para impressão
+    const printContent = `
+      Resumo do Pedido
+      ================
+      
+      Cliente: ${selectedCustomer?.name || 'N/A'}
+      Tipo: ${formData.delivery_type}
+      ${formData.delivery_address ? `Endereço: ${formData.delivery_address}` : ''}
+      
+      Produtos:
+      ${orderItems.map(item => {
+        const product = getProductById(item.product_id);
+        return `- ${product?.name || 'N/A'} x${item.quantity} = ${formatCurrency(item.total_price)}`;
+      }).join('\n')}
+      
+      ${orderExpenses.length > 0 ? `\nDespesas:\n${orderExpenses.map(exp => `- ${exp.name}: ${formatCurrency(exp.amount)}`).join('\n')}` : ''}
+      
+      Forma de Pagamento: ${formData.payment_method}
+      Status Pagamento: ${formData.payment_status}
+      
+      Total: ${formatCurrency(getTotalAmount())}
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`<pre>${printContent}</pre>`);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -280,7 +315,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="delivery_type">Tipo de Entrega</Label>
-                  <Select value={formData.delivery_type} onValueChange={(value) => setFormData({...formData, delivery_type: value as Order["delivery_type"]})}>
+                  <Select value={formData.delivery_type} onValueChange={(value) => setFormData({...formData, delivery_type: value as "Entrega" | "Retirada"})}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -293,7 +328,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
 
                 <div>
                   <Label htmlFor="status">Status</Label>
-                  <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value as Order["status"]})}>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value as "Novo" | "Em preparo" | "Pronto" | "Finalizado" | "Cancelado"})}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -402,6 +437,41 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
                   placeholder="Observações sobre o pedido..."
                   rows={3}
                 />
+              </div>
+
+              {/* Campos de Pagamento */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="payment_method">Forma de Pagamento</Label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Select value={formData.payment_method} onValueChange={(value) => setFormData({...formData, payment_method: value as any})}>
+                      <SelectTrigger className="pl-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                        <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                        <SelectItem value="transferencia">Transferência</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="payment_status">Status do Pagamento</Label>
+                  <Select value={formData.payment_status} onValueChange={(value) => setFormData({...formData, payment_status: value as "pendente" | "pago"})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="pago">Pago</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -644,6 +714,19 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
                     <span className="font-bold text-xl text-blue-600">{formatCurrency(getTotalAmount())}</span>
                   </div>
                 </div>
+
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex justify-between text-sm">
+                    <span>Forma de Pagamento:</span>
+                    <span className="font-medium capitalize">{formData.payment_method.replace('_', ' ')}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-1">
+                    <span>Status:</span>
+                    <span className={`font-medium ${formData.payment_status === 'pago' ? 'text-green-600' : 'text-orange-600'}`}>
+                      {formData.payment_status === 'pago' ? 'Pago' : 'Pendente'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2 pt-4">
@@ -653,6 +736,17 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
                   disabled={isSubmitting || orderItems.length === 0}
                 >
                   {isSubmitting ? "Salvando..." : order ? "Atualizar Pedido" : "Criar Pedido"}
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={handlePrintOrder}
+                  disabled={orderItems.length === 0}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Imprimir Resumo
                 </Button>
                 
                 <Button 
