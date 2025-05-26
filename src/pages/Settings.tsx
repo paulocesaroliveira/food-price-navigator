@@ -25,10 +25,11 @@ import { useNavigate } from "react-router-dom";
 
 interface UserProfile {
   id: string;
-  store_name: string;
-  phone: string;
-  address: string;
+  store_name: string | null;
+  phone: string | null;
+  address: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 const Settings = () => {
@@ -71,25 +72,29 @@ const Settings = () => {
     if (!user?.id) return;
 
     try {
-      // Primeiro, verificar se o perfil existe
+      console.log('Carregando perfil do usuário:', user.id);
+      
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
+      if (fetchError) {
         console.error('Erro ao buscar perfil:', fetchError);
         return;
       }
 
       if (existingProfile) {
+        console.log('Perfil encontrado:', existingProfile);
         setProfileData(prev => ({
           ...prev,
           store_name: existingProfile.store_name || "",
           phone: existingProfile.phone || "",
           address: existingProfile.address || ""
         }));
+      } else {
+        console.log('Nenhum perfil encontrado para o usuário');
       }
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
@@ -102,24 +107,37 @@ const Settings = () => {
     setIsLoading(true);
     
     try {
+      console.log('Atualizando perfil:', {
+        id: user.id,
+        store_name: profileData.store_name,
+        phone: profileData.phone,
+        address: profileData.address
+      });
+
       const { data, error } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
-          store_name: profileData.store_name,
-          phone: profileData.phone,
-          address: profileData.address
+          store_name: profileData.store_name || null,
+          phone: profileData.phone || null,
+          address: profileData.address || null
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao salvar perfil:', error);
+        throw error;
+      }
+
+      console.log('Perfil salvo com sucesso:', data);
 
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram salvas com sucesso.",
       });
     } catch (error: any) {
+      console.error('Erro completo:', error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível atualizar o perfil.",
@@ -198,7 +216,6 @@ const Settings = () => {
 
   const handleDeleteAccount = async () => {
     if (window.confirm('Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.')) {
-      // Implementar exclusão de conta aqui
       toast({
         title: "Funcionalidade em desenvolvimento",
         description: "A exclusão de conta será implementada em breve.",
@@ -453,7 +470,6 @@ const Settings = () => {
           </Card>
         </TabsContent>
 
-        {/* Aba Conta */}
         <TabsContent value="account" className="space-y-6">
           <Card>
             <CardHeader>
