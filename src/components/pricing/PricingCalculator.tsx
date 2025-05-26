@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Product, AdditionalCost } from "@/types";
+import { Product, AdditionalCost, PricingConfiguration } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,12 +17,14 @@ interface PricingCalculatorProps {
   product: Product;
   onSave: (pricingData: any) => void;
   isLoading?: boolean;
+  existingConfig?: PricingConfiguration | null;
 }
 
 const PricingCalculator: React.FC<PricingCalculatorProps> = ({
   product,
   onSave,
-  isLoading = false
+  isLoading = false,
+  existingConfig
 }) => {
   const [configName, setConfigName] = useState(`Precificação - ${product.name}`);
   const [wastagePercentage, setWastagePercentage] = useState(5);
@@ -32,11 +34,25 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
   const [pricingMode, setPricingMode] = useState<'margin' | 'target'>('margin');
   const [marginPercentage, setMarginPercentage] = useState(30);
   const [targetPrice, setTargetPrice] = useState<string>('');
+  const [actualSellingPrice, setActualSellingPrice] = useState<string>('');
   
   const [platformFeePercentage, setPlatformFeePercentage] = useState(0);
   const [taxPercentage, setTaxPercentage] = useState(0);
   
   const [results, setResults] = useState<any>(null);
+
+  // Carregar dados existentes quando um config é fornecido
+  useEffect(() => {
+    if (existingConfig) {
+      setConfigName(existingConfig.name);
+      setWastagePercentage(existingConfig.wastagePercentage);
+      setAdditionalCosts(existingConfig.additionalCosts || []);
+      setMarginPercentage(existingConfig.desiredMarginPercentage);
+      setPlatformFeePercentage(existingConfig.platformFeePercentage);
+      setTaxPercentage(existingConfig.taxPercentage);
+      setActualSellingPrice(existingConfig.idealPrice.toString());
+    }
+  }, [existingConfig]);
 
   // Calcular resultados em tempo real
   useEffect(() => {
@@ -101,6 +117,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
     const finalPrice = pricingMode === 'target' ? results.targetPrice : results.sellingPrice;
 
     const pricingData = {
+      id: existingConfig?.id,
       name: configName,
       productId: product.id,
       baseCost: product.totalCost - product.packagingCost,
@@ -114,7 +131,8 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       idealPrice: finalPrice,
       finalPrice: results.priceWithTaxes,
       unitProfit: results.unitProfit,
-      actualMargin: results.appliedMarkup
+      actualMargin: results.appliedMarkup,
+      actualSellingPrice: actualSellingPrice ? parseFloat(actualSellingPrice) : finalPrice
     };
 
     onSave(pricingData);
@@ -130,7 +148,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
         <CardHeader className="bg-gradient-to-r from-food-vanilla to-food-cream">
           <CardTitle className="flex items-center gap-2 text-food-dark">
             <Calculator className="h-5 w-5 text-food-coral" />
-            Configuração de Preços
+            {existingConfig ? 'Editar Precificação' : 'Nova Precificação'}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
@@ -253,6 +271,27 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
               </div>
             )}
 
+            {/* Preço Real de Venda */}
+            <div>
+              <Label htmlFor="actual-price" className="text-sm">Preço Real de Venda (Opcional)</Label>
+              <div className="relative">
+                <Input
+                  id="actual-price"
+                  type="number"
+                  value={actualSellingPrice}
+                  onChange={(e) => setActualSellingPrice(e.target.value)}
+                  min="0"
+                  step="0.01"
+                  className="mt-1 pl-7 border-food-vanilla focus-visible:ring-food-coral"
+                  placeholder="0,00"
+                />
+                <span className="absolute left-2.5 top-[9px] text-muted-foreground text-sm">R$</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Informe o valor que você realmente cobra pelo produto
+              </div>
+            </div>
+
             <div>
               <Label htmlFor="platform-fee" className="text-sm">Comissão de Plataforma (%)</Label>
               <Input
@@ -289,7 +328,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
             disabled={isLoading || !results}
             className="w-full bg-food-coral hover:bg-food-amber text-white"
           >
-            {isLoading ? "Salvando..." : "Salvar Precificação"}
+            {isLoading ? "Salvando..." : existingConfig ? "Atualizar Precificação" : "Salvar Precificação"}
           </Button>
         </CardContent>
       </Card>
@@ -325,6 +364,19 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                   Lucro: {formatCurrency(results.unitProfit)} ({formatPercentage(pricingMode === 'target' ? results.calculatedMargin : results.appliedMarkup)})
                 </div>
               </div>
+
+              {/* Preço Real vs Ideal */}
+              {actualSellingPrice && parseFloat(actualSellingPrice) > 0 && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="text-sm text-blue-700">Preço Real de Venda</div>
+                  <div className="text-2xl font-bold text-blue-800">
+                    {formatCurrency(parseFloat(actualSellingPrice))}
+                  </div>
+                  <div className="text-xs text-blue-600 mt-1">
+                    Diferença: {formatCurrency(parseFloat(actualSellingPrice) - (pricingMode === 'target' && results.targetPrice ? results.targetPrice : results.sellingPrice))}
+                  </div>
+                </div>
+              )}
 
               {/* Preços com Taxas */}
               <div className="grid grid-cols-2 gap-3">

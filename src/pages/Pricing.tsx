@@ -1,21 +1,29 @@
 
 import React, { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Product } from "@/types";
+import { Product, PricingConfiguration } from "@/types";
 import { Calculator, ArrowLeft, Sparkles } from "lucide-react";
 import ProductSelector from "@/components/pricing/ProductSelector";
 import PricingCalculator from "@/components/pricing/PricingCalculator";
-import { createPricingConfig } from "@/services/pricingService";
+import { createPricingConfig, updatePricingConfig, getPricingConfigs } from "@/services/pricingService";
 
 const Pricing = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<PricingConfiguration | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Get existing pricing configs for the selected product
+  const { data: existingConfigs = [] } = useQuery({
+    queryKey: ["pricing-configs", selectedProduct?.id],
+    queryFn: () => selectedProduct ? getPricingConfigs(selectedProduct.id) : Promise.resolve([]),
+    enabled: !!selectedProduct
+  });
 
   // Create pricing config mutation
   const createMutation = useMutation({
@@ -26,6 +34,7 @@ const Pricing = () => {
         description: "A configuração de preço foi salva e está disponível para consulta.",
       });
       queryClient.invalidateQueries({ queryKey: ["pricing-configs"] });
+      queryClient.invalidateQueries({ queryKey: ["all-pricing-configs"] });
       handleReset();
     },
     onError: (error) => {
@@ -37,19 +46,57 @@ const Pricing = () => {
     }
   });
 
+  // Update pricing config mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, config }: { id: string; config: any }) => updatePricingConfig(id, config),
+    onSuccess: () => {
+      toast({
+        title: "Precificação atualizada com sucesso!",
+        description: "A configuração de preço foi atualizada.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["pricing-configs"] });
+      queryClient.invalidateQueries({ queryKey: ["all-pricing-configs"] });
+      handleReset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar precificação",
+        description: `Ocorreu um erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
+    setEditingConfig(null);
+    setShowCalculator(true);
+  };
+
+  const handleEditConfig = (product: Product, config: PricingConfiguration) => {
+    setSelectedProduct(product);
+    setEditingConfig(config);
     setShowCalculator(true);
   };
 
   const handleSavePricing = async (pricingData: any) => {
-    createMutation.mutate(pricingData);
+    if (editingConfig && pricingData.id) {
+      // Update existing config
+      updateMutation.mutate({ id: pricingData.id, config: pricingData });
+    } else {
+      // Create new config
+      createMutation.mutate(pricingData);
+    }
   };
 
   const handleReset = () => {
     setSelectedProduct(null);
     setShowCalculator(false);
+    setEditingConfig(null);
   };
+
+  // Get the latest config for editing if available
+  const latestConfig = existingConfigs.length > 0 ? existingConfigs[0] : null;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -151,6 +198,7 @@ const Pricing = () => {
                   <li>• Margem de lucro configurável</li>
                   <li>• Comissões de plataforma</li>
                   <li>• Impostos e taxas</li>
+                  <li>• Preço real de venda</li>
                   <li>• Preço mínimo recomendado</li>
                 </ul>
               </div>
@@ -162,7 +210,8 @@ const Pricing = () => {
           <PricingCalculator
             product={selectedProduct}
             onSave={handleSavePricing}
-            isLoading={createMutation.isPending}
+            isLoading={createMutation.isPending || updateMutation.isPending}
+            existingConfig={editingConfig || latestConfig}
           />
         )
       )}
