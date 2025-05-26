@@ -71,7 +71,12 @@ export const resaleService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Ensure status is properly typed
+    return (data || []).map(reseller => ({
+      ...reseller,
+      status: reseller.status as 'active' | 'inactive'
+    }));
   },
 
   async createReseller(reseller: CreateResellerRequest): Promise<Reseller> {
@@ -88,7 +93,10 @@ export const resaleService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return {
+      ...data,
+      status: data.status as 'active' | 'inactive'
+    };
   },
 
   async updateReseller(id: string, updates: Partial<CreateResellerRequest>): Promise<Reseller> {
@@ -100,7 +108,10 @@ export const resaleService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return {
+      ...data,
+      status: data.status as 'active' | 'inactive'
+    };
   },
 
   async deleteReseller(id: string): Promise<void> {
@@ -124,7 +135,12 @@ export const resaleService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Ensure status is properly typed
+    return (data || []).map(transaction => ({
+      ...transaction,
+      status: transaction.status as 'pending' | 'delivered' | 'paid' | 'cancelled'
+    }));
   },
 
   async createTransaction(transaction: CreateTransactionRequest): Promise<ResaleTransaction> {
@@ -176,15 +192,20 @@ export const resaleService = {
 
     if (itemsError) throw itemsError;
 
-    // Update reseller total sales
-    await supabase.rpc('increment', {
-      table_name: 'resellers',
-      row_id: transaction.reseller_id,
-      column_name: 'total_sales',
-      value: totalAmount
-    });
+    // Update reseller total sales using direct SQL update
+    const { error: updateError } = await supabase
+      .from('resellers')
+      .update({ 
+        total_sales: reseller ? reseller.total_sales + totalAmount : totalAmount 
+      })
+      .eq('id', transaction.reseller_id);
 
-    return newTransaction;
+    if (updateError) throw updateError;
+
+    return {
+      ...newTransaction,
+      status: newTransaction.status as 'pending' | 'delivered' | 'paid' | 'cancelled'
+    };
   },
 
   async updateTransactionStatus(id: string, status: ResaleTransaction['status']): Promise<void> {

@@ -194,7 +194,7 @@ const AccountsPayable = () => {
   };
 
   const isOverdue = (dueDate: string, status: string) => {
-    return status === 'pending' && new Date(dueDate) < new Date() && status !== 'paid';
+    return status === 'pending' && new Date(dueDate) < new Date();
   };
 
   const filteredPayables = payables.filter(payable => {
