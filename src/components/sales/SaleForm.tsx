@@ -10,7 +10,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useQuery } from "@tanstack/react-query";
 import { getProductList } from "@/services/productService";
-import { getSalePoints, createSalePoint, deleteSalePoint } from "@/services/salePointService";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,10 +19,7 @@ import {
   Trash2, 
   ShoppingCart, 
   Receipt, 
-  MapPin,
-  Store,
-  Percent,
-  X
+  Percent
 } from "lucide-react";
 import { formatCurrency } from "@/utils/calculations";
 import { toast } from "@/hooks/use-toast";
@@ -51,7 +47,6 @@ const SaleForm: React.FC<SaleFormProps> = ({ onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
     sale_date: format(new Date(), "yyyy-MM-dd"),
     discount_amount: 0,
-    sale_point_id: "",
     notes: "",
   });
 
@@ -59,17 +54,10 @@ const SaleForm: React.FC<SaleFormProps> = ({ onSuccess, onCancel }) => {
   const [saleExpenses, setSaleExpenses] = useState<SaleExpenseInput[]>([]);
   const [saleDate, setSaleDate] = useState<Date>(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newSalePointName, setNewSalePointName] = useState("");
-  const [showNewSalePointInput, setShowNewSalePointInput] = useState(false);
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
     queryFn: getProductList
-  });
-
-  const { data: salePoints = [], refetch: refetchSalePoints } = useQuery({
-    queryKey: ['sale-points'],
-    queryFn: getSalePoints
   });
 
   const addSaleItem = () => {
@@ -137,39 +125,6 @@ const SaleForm: React.FC<SaleFormProps> = ({ onSuccess, onCancel }) => {
 
   const getTotalAmount = () => {
     return getSubtotal() - formData.discount_amount;
-  };
-
-  const handleCreateSalePoint = async () => {
-    if (!newSalePointName.trim()) {
-      toast({
-        title: "Erro",
-        description: "Digite o nome do ponto de venda",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const result = await createSalePoint({
-      name: newSalePointName,
-      is_active: true
-    });
-
-    if (result) {
-      setNewSalePointName("");
-      setShowNewSalePointInput(false);
-      refetchSalePoints();
-      setFormData({ ...formData, sale_point_id: result.id });
-    }
-  };
-
-  const handleDeleteSalePoint = async (id: string) => {
-    const success = await deleteSalePoint(id);
-    if (success) {
-      refetchSalePoints();
-      if (formData.sale_point_id === id) {
-        setFormData({ ...formData, sale_point_id: "" });
-      }
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -261,58 +216,6 @@ const SaleForm: React.FC<SaleFormProps> = ({ onSuccess, onCancel }) => {
                   />
                 </PopoverContent>
               </Popover>
-            </div>
-
-            <div>
-              <Label htmlFor="sale_point">Ponto de Venda</Label>
-              <div className="flex gap-2">
-                <Select value={formData.sale_point_id} onValueChange={(value) => setFormData({...formData, sale_point_id: value})}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Selecione o ponto de venda" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {salePoints.map((point) => (
-                      <SelectItem key={point.id} value={point.id}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{point.name}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteSalePoint(point.id);
-                            }}
-                            className="ml-2 h-4 w-4 p-0"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowNewSalePointInput(!showNewSalePointInput)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              {showNewSalePointInput && (
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    placeholder="Nome do novo ponto de venda"
-                    value={newSalePointName}
-                    onChange={(e) => setNewSalePointName(e.target.value)}
-                  />
-                  <Button type="button" onClick={handleCreateSalePoint} size="sm">
-                    Criar
-                  </Button>
-                </div>
-              )}
             </div>
           </div>
 
