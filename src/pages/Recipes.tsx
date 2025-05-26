@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, Edit, Trash2, ChefHat, DollarSign } from "lucide-react";
+import { Plus, Search, Edit, Trash2, ChefHat, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -48,6 +48,32 @@ const Recipes = () => {
     }
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['recipe-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('recipe_categories')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: ingredients = [] } = useQuery({
+    queryKey: ['ingredients'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ingredients')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
   const filteredRecipes = recipes.filter(recipe =>
     recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     recipe.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,20 +110,34 @@ const Recipes = () => {
     setEditingRecipe(null);
   };
 
-  const handleFormSuccess = () => {
-    handleFormClose();
-    queryClient.invalidateQueries({ queryKey: ['recipes'] });
+  const handleFormSubmit = async (data: any) => {
+    try {
+      if (editingRecipe) {
+        const { error } = await supabase
+          .from('recipes')
+          .update(data)
+          .eq('id', editingRecipe.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('recipes')
+          .insert([data]);
+
+        if (error) throw error;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    } catch (error: any) {
+      console.error("Erro ao salvar receita:", error);
+      throw error;
+    }
   };
 
-  if (showForm || editingRecipe) {
-    return (
-      <RecipeForm
-        recipe={editingRecipe}
-        onClose={handleFormClose}
-        onSuccess={handleFormSuccess}
-      />
-    );
-  }
+  const handleEdit = (recipe: Recipe) => {
+    setEditingRecipe(recipe);
+    setShowForm(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -220,7 +260,7 @@ const Recipes = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setEditingRecipe(recipe)}
+                      onClick={() => handleEdit(recipe)}
                     >
                       <Edit className="mr-2 h-4 w-4" />
                       Editar
@@ -254,6 +294,15 @@ const Recipes = () => {
           </div>
         )}
       </div>
+
+      <RecipeForm
+        open={showForm || !!editingRecipe}
+        onClose={handleFormClose}
+        onSubmit={handleFormSubmit}
+        editingRecipe={editingRecipe}
+        categories={categories}
+        ingredients={ingredients}
+      />
     </div>
   );
 };
