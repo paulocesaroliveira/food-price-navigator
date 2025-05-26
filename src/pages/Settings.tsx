@@ -5,28 +5,42 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Settings as SettingsIcon, 
-  Building2, 
   User, 
   Lock,
   Save,
   Eye,
-  EyeOff
+  EyeOff,
+  Bell,
+  Palette,
+  Shield,
+  LogOut
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+
+interface UserProfile {
+  id: string;
+  store_name: string;
+  phone: string;
+  address: string;
+  created_at: string;
+}
 
 const Settings = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   
   const [profileData, setProfileData] = useState({
     email: "",
-    storeName: "",
+    store_name: "",
     phone: "",
     address: ""
   });
@@ -37,30 +51,78 @@ const Settings = () => {
     confirmPassword: ""
   });
 
+  const [preferences, setPreferences] = useState({
+    emailNotifications: true,
+    smsNotifications: false,
+    theme: "light"
+  });
+
   useEffect(() => {
     if (user) {
       setProfileData(prev => ({
         ...prev,
         email: user.email || ""
       }));
+      loadUserProfile();
     }
   }, [user]);
 
+  const loadUserProfile = async () => {
+    if (!user?.id) return;
+
+    try {
+      // Primeiro, verificar se o perfil existe
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Erro ao buscar perfil:', fetchError);
+        return;
+      }
+
+      if (existingProfile) {
+        setProfileData(prev => ({
+          ...prev,
+          store_name: existingProfile.store_name || "",
+          phone: existingProfile.phone || "",
+          address: existingProfile.address || ""
+        }));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar perfil:', error);
+    }
+  };
+
   const handleProfileUpdate = async () => {
+    if (!user?.id) return;
+
     setIsLoading(true);
     
     try {
-      // Aqui você pode implementar a lógica para salvar os dados do perfil
-      // Por exemplo, salvando em uma tabela de profiles no Supabase
-      
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          store_name: profileData.store_name,
+          phone: profileData.phone,
+          address: profileData.address
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram salvas com sucesso.",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o perfil.",
+        description: error.message || "Não foi possível atualizar o perfil.",
         variant: "destructive",
       });
     } finally {
@@ -124,11 +186,22 @@ const Settings = () => {
         title: "Logout realizado",
         description: "Você foi desconectado com sucesso.",
       });
+      navigate('/');
     } catch (error) {
       toast({
         title: "Erro",
         description: "Não foi possível fazer logout.",
         variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (window.confirm('Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.')) {
+      // Implementar exclusão de conta aqui
+      toast({
+        title: "Funcionalidade em desenvolvimento",
+        description: "A exclusão de conta será implementada em breve.",
       });
     }
   };
@@ -142,91 +215,98 @@ const Settings = () => {
         </div>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Configurações</h1>
-          <p className="text-gray-600">Gerencie suas informações pessoais e preferências</p>
+          <p className="text-gray-600">Gerencie suas informações e preferências</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Informações do Perfil */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Informações do Perfil
-            </CardTitle>
-            <CardDescription>
-              Atualize suas informações pessoais e da loja
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                value={profileData.email}
-                disabled
-                className="bg-gray-50"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                O e-mail não pode ser alterado
-              </p>
-            </div>
-            
-            <div>
-              <Label htmlFor="storeName">Nome da Loja</Label>
-              <Input
-                id="storeName"
-                value={profileData.storeName}
-                onChange={(e) => setProfileData(prev => ({ ...prev, storeName: e.target.value }))}
-                placeholder="Digite o nome da sua loja"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="phone">Telefone</Label>
-              <Input
-                id="phone"
-                value={profileData.phone}
-                onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="(00) 00000-0000"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="address">Endereço</Label>
-              <Input
-                id="address"
-                value={profileData.address}
-                onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
-                placeholder="Endereço da loja"
-              />
-            </div>
-            
-            <Separator />
-            
-            <Button 
-              onClick={handleProfileUpdate}
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Salvando...
-                </div>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Salvar Perfil
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="profile">Perfil</TabsTrigger>
+          <TabsTrigger value="security">Segurança</TabsTrigger>
+          <TabsTrigger value="preferences">Preferências</TabsTrigger>
+          <TabsTrigger value="account">Conta</TabsTrigger>
+        </TabsList>
 
-        {/* Segurança */}
-        <div className="space-y-6">
+        {/* Aba Perfil */}
+        <TabsContent value="profile" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Informações do Perfil
+              </CardTitle>
+              <CardDescription>
+                Atualize suas informações pessoais e da loja
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={profileData.email}
+                  disabled
+                  className="bg-gray-50"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  O e-mail não pode ser alterado
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="store_name">Nome da Loja</Label>
+                <Input
+                  id="store_name"
+                  value={profileData.store_name}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, store_name: e.target.value }))}
+                  placeholder="Digite o nome da sua loja"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  value={profileData.phone}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="address">Endereço</Label>
+                <Input
+                  id="address"
+                  value={profileData.address}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Endereço da loja"
+                />
+              </div>
+              
+              <Button 
+                onClick={handleProfileUpdate}
+                disabled={isLoading}
+                className="w-full"
+              >
+                {isLoading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Salvando...
+                  </div>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Salvar Perfil
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Aba Segurança */}
+        <TabsContent value="security" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -303,46 +383,142 @@ const Settings = () => {
               
               <Button 
                 onClick={handlePasswordChange}
-                disabled={isLoading || !passwordData.currentPassword || !passwordData.newPassword}
+                disabled={isLoading || !passwordData.newPassword}
                 className="w-full"
               >
                 Alterar Senha
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
 
-          {/* Configurações da Conta */}
+        {/* Aba Preferências */}
+        <TabsContent value="preferences" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Configurações da Conta
+                <Bell className="h-5 w-5" />
+                Notificações
               </CardTitle>
+              <CardDescription>
+                Configure como você deseja receber notificações
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">Versão do Sistema</p>
-                <p className="font-medium">TastyHub v1.0.0</p>
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">Usuário Logado</p>
-                <p className="font-medium">{user?.email}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Notificações por E-mail</p>
+                  <p className="text-sm text-gray-600">Receba atualizações importantes por e-mail</p>
+                </div>
+                <Button variant="outline" size="sm">
+                  {preferences.emailNotifications ? 'Ativado' : 'Desativado'}
+                </Button>
               </div>
               
               <Separator />
               
-              <Button 
-                onClick={handleLogout}
-                variant="destructive"
-                className="w-full"
-              >
-                Sair da Conta
-              </Button>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Notificações por SMS</p>
+                  <p className="text-sm text-gray-600">Receba lembretes urgentes por SMS</p>
+                </div>
+                <Button variant="outline" size="sm">
+                  {preferences.smsNotifications ? 'Ativado' : 'Desativado'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Aparência
+              </CardTitle>
+              <CardDescription>
+                Personalize a aparência do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Tema</p>
+                  <p className="text-sm text-gray-600">Escolha entre tema claro ou escuro</p>
+                </div>
+                <Button variant="outline" size="sm">
+                  Claro
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Aba Conta */}
+        <TabsContent value="account" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Informações da Conta
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">E-mail da Conta</p>
+                <p className="font-medium">{user?.email}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">ID do Usuário</p>
+                <p className="font-medium text-xs">{user?.id}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Membro desde</p>
+                <p className="font-medium">
+                  {user?.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : 'N/A'}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Versão do Sistema</p>
+                <p className="font-medium">TastyHub v1.0.0</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-red-600">Zona de Perigo</CardTitle>
+              <CardDescription>
+                Ações irreversíveis relacionadas à sua conta
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg">
+                <div>
+                  <p className="font-medium text-red-600">Sair da Conta</p>
+                  <p className="text-sm text-gray-600">Desconectar desta sessão</p>
+                </div>
+                <Button variant="destructive" onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg">
+                <div>
+                  <p className="font-medium text-red-600">Excluir Conta</p>
+                  <p className="text-sm text-gray-600">Deletar permanentemente sua conta e todos os dados</p>
+                </div>
+                <Button variant="destructive" onClick={handleDeleteAccount}>
+                  Excluir Conta
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
