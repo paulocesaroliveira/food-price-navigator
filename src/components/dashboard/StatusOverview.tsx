@@ -1,7 +1,6 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DashboardStats } from "@/services/dashboardService";
+import { DashboardStats } from "@/services/dashboard";
 
 interface StatusOverviewProps {
   stats: DashboardStats | null;

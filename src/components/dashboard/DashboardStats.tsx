@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -8,7 +7,7 @@ import {
   ShoppingCart,
   Users
 } from "lucide-react";
-import { DashboardStats as StatsType, DashboardFilters } from "@/services/dashboardService";
+import { DashboardStats as StatsType, DashboardFilters } from "@/services/dashboard";
 
 interface DashboardStatsProps {
   stats: StatsType | null;

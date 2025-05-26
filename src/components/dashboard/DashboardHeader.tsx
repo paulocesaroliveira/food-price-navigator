@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Filter, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
-import { DashboardFilters } from "@/services/dashboardService";
+import { DashboardFilters } from "@/services/dashboard";
 
 interface DashboardHeaderProps {
   filters: DashboardFilters;

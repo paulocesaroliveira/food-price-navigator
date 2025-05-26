@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getDashboardStats, getRecentOrders, getSalesData, DashboardFilters } from "@/services/dashboardService";
+import { getDashboardStats, getRecentOrders, getSalesData, DashboardFilters } from "@/services/dashboard";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardStats from "@/components/dashboard/DashboardStats";
 import SalesChart from "@/components/dashboard/SalesChart";
@@ -62,7 +62,7 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentOrders
-          orders={recentOrders}
+          orders={recentOrders || []}
           isLoading={ordersLoading}
         />
 
