@@ -110,17 +110,17 @@ export async function createSale(saleData: CreateSaleRequest) {
     const grossProfit = totalAmount - totalCost;
     const netProfit = grossProfit - totalExpenses;
 
-    // Criar venda
+    // Criar venda (o sale_number será gerado automaticamente pelo trigger)
     const { data: sale, error: saleError } = await supabase
       .from("sales")
-      .insert([{
+      .insert({
         sale_date: saleData.sale_date,
         total_amount: totalAmount,
         total_cost: totalCost,
         gross_profit: grossProfit,
         net_profit: netProfit,
         notes: saleData.notes,
-      }])
+      })
       .select()
       .single();
 
