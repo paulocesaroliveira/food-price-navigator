@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { ImageUpload } from "./ImageUpload";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { formatCurrency } from "@/utils/calculations";
 
 interface IngredientFormProps {
   ingredient?: any;
@@ -81,6 +83,10 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
       
       return updated;
     });
+  };
+
+  const handlePriceChange = (value: number) => {
+    handleInputChange('package_price', value);
   };
 
   const handleImageUpload = async (file: File) => {
@@ -272,14 +278,11 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
 
             <div className="space-y-2">
               <Label htmlFor="package_price">Preço da Embalagem (R$)</Label>
-              <Input
+              <CurrencyInput
                 id="package_price"
-                type="number"
-                min="0"
-                step="0.01"
                 value={formData.package_price}
-                onChange={(e) => handleInputChange('package_price', parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
+                onValueChange={handlePriceChange}
+                placeholder="R$ 0,00"
               />
             </div>
 
@@ -287,10 +290,7 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
               <Label htmlFor="unit_cost">Custo Unitário (R$)</Label>
               <Input
                 id="unit_cost"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.unit_cost.toFixed(4)}
+                value={formatCurrency(formData.unit_cost)}
                 readOnly
                 className="bg-muted"
               />
