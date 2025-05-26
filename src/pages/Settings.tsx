@@ -1,210 +1,216 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { 
   Settings as SettingsIcon, 
   Building2, 
-  Bell, 
-  Database, 
-  Users, 
-  Package, 
-  ShoppingCart,
-  TrendingUp,
+  User, 
+  Lock,
   Save,
-  CheckCircle
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
-  const [companySettings, setCompanySettings] = useState({
-    name: "",
-    tradingName: "",
-    address: "",
-    phone: "",
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  
+  const [profileData, setProfileData] = useState({
     email: "",
-    cnpj: ""
+    storeName: "",
+    phone: "",
+    address: ""
   });
 
-  const [systemSettings, setSystemSettings] = useState({
-    orderNotifications: true,
-    emailNotifications: false,
-    autoBackup: true,
-    darkMode: false
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
   });
 
-  const [isSaving, setIsSaving] = useState(false);
+  useEffect(() => {
+    if (user) {
+      setProfileData(prev => ({
+        ...prev,
+        email: user.email || ""
+      }));
+    }
+  }, [user]);
 
-  const handleSaveCompanyInfo = async () => {
-    setIsSaving(true);
+  const handleProfileUpdate = async () => {
+    setIsLoading(true);
     
-    // Simular salvamento
-    setTimeout(() => {
-      setIsSaving(false);
+    try {
+      // Aqui você pode implementar a lógica para salvar os dados do perfil
+      // Por exemplo, salvando em uma tabela de profiles no Supabase
+      
       toast({
-        title: "Configurações salvas",
-        description: "As informações da empresa foram atualizadas com sucesso.",
+        title: "Perfil atualizado",
+        description: "Suas informações foram salvas com sucesso.",
       });
-    }, 1000);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o perfil.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleToggleSetting = (setting: keyof typeof systemSettings) => {
-    setSystemSettings(prev => ({
-      ...prev,
-      [setting]: !prev[setting]
-    }));
+  const handlePasswordChange = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Erro",
+        description: "As senhas não conferem.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast({
+        title: "Erro",
+        description: "A nova senha deve ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
     
-    toast({
-      title: "Configuração atualizada",
-      description: `${setting} foi ${systemSettings[setting] ? 'desativado' : 'ativado'}.`,
-    });
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+
+      if (error) throw error;
+
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+
+      toast({
+        title: "Senha alterada",
+        description: "Sua senha foi alterada com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível alterar a senha.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const moduleStats = [
-    { name: "Clientes", count: 45, icon: Users, active: true },
-    { name: "Produtos", count: 23, icon: Package, active: true },
-    { name: "Pedidos", count: 128, icon: ShoppingCart, active: true },
-    { name: "Vendas", count: 89, icon: TrendingUp, active: true },
-  ];
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível fazer logout.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div className="container mx-auto space-y-8">
+    <div className="container mx-auto max-w-4xl space-y-8 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <SettingsIcon className="h-6 w-6 text-blue-600" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Configurações</h1>
-            <p className="text-gray-600">Gerencie as configurações do seu sistema</p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-blue-100 rounded-lg">
+          <SettingsIcon className="h-6 w-6 text-blue-600" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Configurações</h1>
+          <p className="text-gray-600">Gerencie suas informações pessoais e preferências</p>
         </div>
       </div>
 
-      {/* Status dos Módulos */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            Status dos Módulos
-          </CardTitle>
-          <CardDescription>
-            Visão geral dos módulos ativos no sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {moduleStats.map((module) => (
-              <div key={module.name} className="p-4 border rounded-lg bg-gray-50">
-                <div className="flex items-center justify-between mb-2">
-                  <module.icon className="h-5 w-5 text-gray-600" />
-                  <Badge variant={module.active ? "default" : "secondary"}>
-                    {module.active ? "Ativo" : "Inativo"}
-                  </Badge>
-                </div>
-                <div className="space-y-1">
-                  <p className="font-semibold text-gray-900">{module.name}</p>
-                  <p className="text-2xl font-bold text-blue-600">{module.count}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Informações da Empresa */}
+        {/* Informações do Perfil */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Informações da Empresa
+              <User className="h-5 w-5" />
+              Informações do Perfil
             </CardTitle>
             <CardDescription>
-              Configure os dados básicos da sua empresa
+              Atualize suas informações pessoais e da loja
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <Label htmlFor="companyName">Nome da Empresa *</Label>
-                <Input
-                  id="companyName"
-                  value={companySettings.name}
-                  onChange={(e) => setCompanySettings(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Nome da sua empresa"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="tradingName">Nome Fantasia</Label>
-                <Input
-                  id="tradingName"
-                  value={companySettings.tradingName}
-                  onChange={(e) => setCompanySettings(prev => ({ ...prev, tradingName: e.target.value }))}
-                  placeholder="Nome fantasia"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="address">Endereço</Label>
-                <Textarea
-                  id="address"
-                  value={companySettings.address}
-                  onChange={(e) => setCompanySettings(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder="Endereço completo"
-                  rows={2}
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="phone">Telefone</Label>
-                  <Input
-                    id="phone"
-                    value={companySettings.phone}
-                    onChange={(e) => setCompanySettings(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="(00) 0000-0000"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={companySettings.email}
-                    onChange={(e) => setCompanySettings(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="contato@empresa.com"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="cnpj">CNPJ</Label>
-                <Input
-                  id="cnpj"
-                  value={companySettings.cnpj}
-                  onChange={(e) => setCompanySettings(prev => ({ ...prev, cnpj: e.target.value }))}
-                  placeholder="00.000.000/0000-00"
-                />
-              </div>
+            <div>
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                value={profileData.email}
+                disabled
+                className="bg-gray-50"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                O e-mail não pode ser alterado
+              </p>
+            </div>
+            
+            <div>
+              <Label htmlFor="storeName">Nome da Loja</Label>
+              <Input
+                id="storeName"
+                value={profileData.storeName}
+                onChange={(e) => setProfileData(prev => ({ ...prev, storeName: e.target.value }))}
+                placeholder="Digite o nome da sua loja"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="phone">Telefone</Label>
+              <Input
+                id="phone"
+                value={profileData.phone}
+                onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="address">Endereço</Label>
+              <Input
+                id="address"
+                value={profileData.address}
+                onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
+                placeholder="Endereço da loja"
+              />
             </div>
             
             <Separator />
             
             <Button 
-              onClick={handleSaveCompanyInfo}
-              disabled={isSaving}
+              onClick={handleProfileUpdate}
+              disabled={isLoading}
               className="w-full"
             >
-              {isSaving ? (
+              {isLoading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Salvando...
@@ -212,119 +218,127 @@ const Settings = () => {
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  Salvar Informações
+                  Salvar Perfil
                 </>
               )}
             </Button>
           </CardContent>
         </Card>
 
-        {/* Configurações do Sistema */}
+        {/* Segurança */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notificações
+                <Lock className="h-5 w-5" />
+                Alterar Senha
               </CardTitle>
               <CardDescription>
-                Configure como deseja receber as notificações
+                Mantenha sua conta segura alterando sua senha regularmente
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Notificar Novos Pedidos</Label>
-                  <p className="text-sm text-gray-500">
-                    Receba notificações quando novos pedidos chegarem
-                  </p>
+              <div>
+                <Label htmlFor="currentPassword">Senha Atual</Label>
+                <div className="relative">
+                  <Input
+                    id="currentPassword"
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                    placeholder="Digite sua senha atual"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
-                <Switch
-                  checked={systemSettings.orderNotifications}
-                  onCheckedChange={() => handleToggleSetting('orderNotifications')}
+              </div>
+              
+              <div>
+                <Label htmlFor="newPassword">Nova Senha</Label>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showNewPassword ? "text" : "password"}
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                    placeholder="Digite a nova senha"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Confirme a nova senha"
                 />
               </div>
               
-              <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>E-mails de Notificação</Label>
-                  <p className="text-sm text-gray-500">
-                    Receba resumos por e-mail
-                  </p>
-                </div>
-                <Switch
-                  checked={systemSettings.emailNotifications}
-                  onCheckedChange={() => handleToggleSetting('emailNotifications')}
-                />
-              </div>
+              <Button 
+                onClick={handlePasswordChange}
+                disabled={isLoading || !passwordData.currentPassword || !passwordData.newPassword}
+                className="w-full"
+              >
+                Alterar Senha
+              </Button>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações Gerais</CardTitle>
-              <CardDescription>
-                Personalize a experiência do sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Backup Automático</Label>
-                  <p className="text-sm text-gray-500">
-                    Backup automático dos dados do sistema
-                  </p>
-                </div>
-                <Switch
-                  checked={systemSettings.autoBackup}
-                  onCheckedChange={() => handleToggleSetting('autoBackup')}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Modo Escuro</Label>
-                  <p className="text-sm text-gray-500">
-                    Ative o tema escuro da interface
-                  </p>
-                </div>
-                <Switch
-                  checked={systemSettings.darkMode}
-                  onCheckedChange={() => handleToggleSetting('darkMode')}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Status do Sistema */}
+          {/* Configurações da Conta */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                Status do Sistema
+                <Building2 className="h-5 w-5" />
+                Configurações da Conta
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Banco de Dados</span>
-                  <Badge variant="default" className="bg-green-100 text-green-800">
-                    Conectado
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Última Sincronização</span>
-                  <span className="text-sm text-gray-500">Há 2 minutos</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Versão do Sistema</span>
-                  <span className="text-sm text-gray-500">v1.0.0</span>
-                </div>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Versão do Sistema</p>
+                <p className="font-medium">TastyHub v1.0.0</p>
               </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Usuário Logado</p>
+                <p className="font-medium">{user?.email}</p>
+              </div>
+              
+              <Separator />
+              
+              <Button 
+                onClick={handleLogout}
+                variant="destructive"
+                className="w-full"
+              >
+                Sair da Conta
+              </Button>
             </CardContent>
           </Card>
         </div>

@@ -27,9 +27,11 @@ import {
   BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 const AppSidebar = () => {
   const location = useLocation();
+  const { user, loading } = useAuth();
   
   const navItems = [
     { path: "/dashboard", name: "Dashboard", icon: LayoutDashboard },
@@ -54,7 +56,9 @@ const AppSidebar = () => {
           <Store className="h-8 w-8 text-primary" />
           <div className="flex flex-col">
             <span className="text-xl font-poppins font-semibold tracking-tight text-sidebar-foreground">TastyHub</span>
-            <span className="text-xs text-sidebar-foreground/70">usuario@exemplo.com</span>
+            <span className="text-xs text-sidebar-foreground/70">
+              {loading ? "Carregando..." : user?.email || "usuario@exemplo.com"}
+            </span>
           </div>
         </div>
       </SidebarHeader>
