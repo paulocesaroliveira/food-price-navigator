@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,13 +53,13 @@ interface OrderExpenseInput {
 const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
     customer_id: "",
-    delivery_type: "Entrega" as const,
+    delivery_type: "Entrega" as Order["delivery_type"],
     delivery_address: "",
     scheduled_date: "",
     scheduled_time: "",
     notes: "",
-    status: "Novo" as const,
-    origin: "manual" as const
+    status: "Novo" as Order["status"],
+    origin: "manual" as Order["origin"]
   });
 
   const [orderItems, setOrderItems] = useState<OrderItemInput[]>([]);
@@ -251,7 +250,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="delivery_type">Tipo de Entrega</Label>
-                  <Select value={formData.delivery_type} onValueChange={(value) => setFormData({...formData, delivery_type: value as "Entrega" | "Retirada"})}>
+                  <Select value={formData.delivery_type} onValueChange={(value) => setFormData({...formData, delivery_type: value as Order["delivery_type"]})}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
