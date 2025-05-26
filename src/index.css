@@ -8,155 +8,74 @@
 @layer base {
   :root {
     /* Light mode */
-    --background: 40 71% 97%;      /* #FAF3E0 fundo baunilha */
-    --foreground: 0 0% 22%;        /* #3A3A3A texto principal */
-    --card: 0 0% 100%;             /* #FFFFFF */
-    --card-foreground: 0 0% 22%;   /* #3A3A3A */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 22%;
+    --popover-foreground: 222.2 84% 4.9%;
     --primary: 14 71% 61%;         /* #E76F51 coral gourmet */
     --primary-foreground: 0 0% 100%;
     --secondary: 173 58% 37%;      /* #2A9D8F verde menta */
     --secondary-foreground: 0 0% 100%;
-    --muted: 37 77% 94%;           /* #FAF3E0 vanilla */
-    --muted-foreground: 0 0% 52%;  /* #6F6F6F texto secundário */
+    --muted: 210 40% 98%;
+    --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 14 71% 61%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 1 71% 73%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 88%;            /* #E0E0E0 borda clara */
-    --input: 0 0% 100%;            /* #FFFFFF fundo input */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
     --ring: 14 71% 61%;
     --radius: 1rem;
 
-    --sidebar-background: 40 71% 97%;
-    --sidebar-foreground: 0 0% 22%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 14 71% 61%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 37 77% 94%;
-    --sidebar-accent-foreground: 0 0% 22%;
-    --sidebar-border: 0 0% 88%;
+    --sidebar-accent: 220 14.3% 95.9%;
+    --sidebar-accent-foreground: 220 8.9% 46.1%;
+    --sidebar-border: 220 13% 91%;
     --sidebar-ring: 14 71% 61%;
   }
 
   .dark {
-    /* Cores do dark mode conforme seu briefing */
-    --background: 250 6% 11%;          /* #1C1C1E fundo principal */
-    --foreground: 0 0% 96%;            /* #F5F5F5 texto principal */
-    --card: 244 5% 17%;                /* #2A2A2D cards/blocos */
-    --card-foreground: 0 0% 96%;
-    --popover: 244 5% 17%;
-    --popover-foreground: 0 0% 90%;
-    --primary: 18 88% 77%;             /* #F7A690 coral clara/vibrante */
-    --primary-foreground: 0 0% 22%;
-    --secondary: 181 49% 53%;          /* #54BAB9 verde menta dark */
-    --secondary-foreground: 0 0% 22%;
-    --muted: 250 6% 13%;               /* para destacar campos muted */
-    --muted-foreground: 0 0% 80%;      /* #CCCCCC texto secundário */
-    --accent: 18 88% 77%;
-    --accent-foreground: 0 0% 22%;
-    --destructive: 0 65% 55%;
-    --destructive-foreground: 0 0% 96%;
-    --border: 240 4% 23%;              /* #3A3A3A bordas dark */
-    --input: 244 5% 20%;               /* #333337 fundo inputs dark */
-    --ring: 18 88% 77%;
-    --radius: 1rem;
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 14 71% 61%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 173 58% 37%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 14 71% 61%;
 
-    --sidebar-background: 244 5% 17%;
-    --sidebar-foreground: 0 0% 96%;
-    --sidebar-primary: 18 88% 77%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 6% 13%;
-    --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 240 4% 23%;
-    --sidebar-ring: 18 88% 77%;
+    --sidebar-background: 224 71.4% 4.1%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 14 71% 61%;
+    --sidebar-primary-foreground: 222.2 84% 4.9%;
+    --sidebar-accent: 215 27.9% 16.9%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 215 27.9% 16.9%;
+    --sidebar-ring: 14 71% 61%;
   }
 }
 
 @layer base {
   * {
-    @apply border-border transition-colors duration-300;
+    @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground font-inter transition-colors duration-300;
-    font-family: 'Inter', sans-serif;
-  }
-  
-  h1, h2, h3 {
-    @apply font-poppins font-semibold tracking-tight;
-  }
-}
-
-@layer components {
-  .stats-card {
-    @apply bg-card rounded-xl p-6 shadow-soft border hover:shadow-card transition-all duration-300;
-  }
-  
-  .stats-value {
-    @apply text-2xl font-semibold text-food-coral;
-  }
-  
-  .stats-label {
-    @apply text-sm text-muted-foreground;
-  }
-  
-  .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-food-amber text-food-dark hover:text-food-dark transition-all duration-200 font-poppins;
-  }
-  
-  .sidebar-link.active {
-    @apply bg-food-coral text-white font-medium;
-  }
-  
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-hover hover:-translate-y-1;
-  }
-  
-  .glass-card {
-    @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-soft;
-  }
-  
-  .highlight-number {
-    @apply text-2xl font-semibold text-food-coral;
-  }
-  
-  .stat-card {
-    @apply rounded-xl p-5 border animate-fade-in;
-  }
-  
-  .pricing-result-card {
-    @apply bg-card border rounded-xl p-5 transition-all hover:shadow-soft;
-  }
-  
-  .pricing-highlight {
-    @apply bg-food-green/20 border-food-green/30 text-green-800;
-  }
-  
-  .pricing-alert {
-    @apply bg-food-red/20 border-food-red/30 text-red-800;
-  }
-  
-  .pricing-neutral {
-    @apply bg-food-vanilla border-food-vanilla/50 text-amber-800;
-  }
-  
-  .input-group {
-    @apply space-y-2;
-  }
-  .input-dark {
-    @apply bg-input border border-border text-foreground shadow-[inset_0_0_3px_rgba(255,255,255,0.05)];
-  }
-  .input-light {
-    @apply bg-input border border-border text-foreground;
-  }
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-  .card-shadow-dark {
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4) !important;
+    @apply bg-background text-foreground;
   }
 }

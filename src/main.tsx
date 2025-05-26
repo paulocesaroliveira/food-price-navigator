@@ -25,6 +25,7 @@ import Pricing from './pages/Pricing'
 import Settings from './pages/Settings'
 import Sales from './pages/Sales'
 import Index from './pages/Index'
+import Auth from './pages/Auth'
 import NotFound from './pages/NotFound'
 
 // Providers
@@ -47,8 +48,9 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <Route>
       <Route index element={<Index />} />
+      <Route path="/auth" element={<Auth />} />
       
-      {/* Admin app routes */}
+      {/* Admin app routes - protected */}
       <Route path="/" element={<AppLayout />}>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="orders" element={<Orders />} />

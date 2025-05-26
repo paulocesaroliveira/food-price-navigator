@@ -1,424 +1,312 @@
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { 
-  BarChart, 
-  LineChart, 
-  ResponsiveContainer, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Legend, 
-  Bar, 
-  Line, 
-  CartesianGrid,
-  Cell,
-  PieChart,
-  Pie 
-} from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   TrendingUp, 
-  TrendingDown, 
+  TrendingDown,
   DollarSign, 
-  Percent, 
-  UtensilsCrossed, 
-  Egg,
-  AlertTriangle,
   ShoppingCart,
   Users,
+  Package,
+  AlertTriangle,
+  Plus,
+  Eye,
   Calendar,
-  ArrowRight,
-  Package
+  BarChart3
 } from "lucide-react";
-import { dashboardChartData, recipes } from "@/utils/mockData";
-import { formatCurrency, formatPercentage } from "@/utils/calculations";
-import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar
+} from "recharts";
 
 const Dashboard = () => {
-  // Mock stats
+  // Mock data - em produção viria da API
   const stats = {
-    avgProfit: 12.35,
-    avgMargin: 38.5,
-    avgRecipeCost: 8.75,
-    totalRecipes: recipes.length,
-    totalIngredients: 35,
-    totalOrders: 28,
-    totalCustomers: 54,
-    weeklyRevenue: 3750.45,
-    monthlyRevenue: 14280.90,
-    growthRate: 12.5,
+    todayRevenue: 1250.50,
+    todayOrders: 8,
+    weekRevenue: 6750.30,
+    weekOrders: 45,
+    monthRevenue: 28500.00,
+    monthOrders: 185,
+    revenueGrowth: 12.5,
+    ordersGrowth: 8.2,
+    avgOrderValue: 67.50,
+    totalCustomers: 234
   };
-  
-  // Recent recipes data
-  const recentRecipes = recipes.slice(0, 3);
 
-  // Mock inventory warnings
-  const inventoryWarnings = [
-    { id: 1, name: "Leite Condensado", status: "low", current: 3, min: 5 },
-    { id: 2, name: "Chocolate em Pó", status: "low", current: 2, min: 4 },
-  ];
-
-  // Mock recent orders
   const recentOrders = [
-    { id: "#ORD-001", customer: "Ana Silva", total: 125.50, date: "2023-05-18", status: "Finalizado" },
-    { id: "#ORD-002", customer: "Carlos Mendes", total: 97.80, date: "2023-05-17", status: "Em preparo" },
-    { id: "#ORD-003", customer: "Maria Oliveira", total: 210.35, date: "2023-05-17", status: "Novo" },
+    { id: "#001", customer: "Maria Silva", value: 125.50, status: "Novo", time: "há 5 min" },
+    { id: "#002", customer: "João Santos", value: 89.00, status: "Em preparo", time: "há 15 min" },
+    { id: "#003", customer: "Ana Costa", value: 210.00, status: "Pronto", time: "há 30 min" },
+    { id: "#004", customer: "Carlos Lima", value: 95.50, status: "Finalizado", time: "há 1h" }
   ];
 
-  // Sales by product category (for pie chart)
-  const salesByCategory = [
-    { name: "Bolos", value: 45 },
-    { name: "Doces", value: 30 },
-    { name: "Salgados", value: 15 },
-    { name: "Bebidas", value: 10 },
+  const alerts = [
+    { type: "stock", message: "Chocolate em pó está acabando", level: "warning" },
+    { type: "order", message: "3 pedidos aguardando confirmação", level: "info" },
+    { type: "payment", message: "2 pagamentos pendentes", level: "error" }
   ];
 
-  // Colors for pie chart
-  const COLORS = ['#E76F51', '#2A9D8F', '#F4A261', '#264653'];
-  
+  const salesData = [
+    { day: "Seg", value: 1200 },
+    { day: "Ter", value: 1890 },
+    { day: "Qua", value: 1750 },
+    { day: "Qui", value: 2100 },
+    { day: "Sex", value: 2400 },
+    { day: "Sáb", value: 3200 },
+    { day: "Dom", value: 2800 }
+  ];
+
+  const productsSold = [
+    { name: "Bolos", value: 45, color: "#E76F51" },
+    { name: "Doces", value: 30, color: "#2A9D8F" },
+    { name: "Salgados", value: 15, color: "#F4A261" },
+    { name: "Bebidas", value: 10, color: "#264653" }
+  ];
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Novo": return "bg-blue-100 text-blue-800";
+      case "Em preparo": return "bg-yellow-100 text-yellow-800";
+      case "Pronto": return "bg-green-100 text-green-800";
+      case "Finalizado": return "bg-gray-100 text-gray-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="flex gap-2">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Visão geral do seu negócio</p>
+        </div>
+        <div className="flex gap-3">
           <Button variant="outline" size="sm">
-            Este Mês
+            <Calendar className="h-4 w-4 mr-2" />
+            Hoje
           </Button>
           <Button variant="outline" size="sm">
-            Exportar
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Relatórios
           </Button>
         </div>
       </div>
-      
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-food-coral/10 to-food-coral/5 border-food-coral/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-food-textlight flex justify-between items-center">
-              <span>Faturamento Mensal</span>
-              <DollarSign className="w-4 h-4 text-food-coral" />
-            </CardTitle>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Vendas Hoje</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col">
-              <div className="text-2xl font-bold">{formatCurrency(stats.monthlyRevenue)}</div>
-              <div className="flex items-center text-sm text-food-coral mt-1">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                <span>+{stats.growthRate}% em relação ao mês anterior</span>
-              </div>
-            </div>
+            <div className="text-2xl font-bold">{formatCurrency(stats.todayRevenue)}</div>
+            <p className="text-xs text-muted-foreground">
+              +{stats.revenueGrowth}% em relação a ontem
+            </p>
           </CardContent>
         </Card>
-        
-        <Card className="bg-gradient-to-br from-food-mint/10 to-food-mint/5 border-food-mint/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-food-textlight flex justify-between items-center">
-              <span>Pedidos</span>
-              <ShoppingCart className="w-4 h-4 text-food-mint" />
-            </CardTitle>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pedidos Hoje</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col">
-              <div className="text-2xl font-bold">{stats.totalOrders}</div>
-              <div className="flex items-center text-sm text-food-mint mt-1">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                <span>+5 novos pedidos hoje</span>
-              </div>
-            </div>
+            <div className="text-2xl font-bold">{stats.todayOrders}</div>
+            <p className="text-xs text-muted-foreground">
+              +{stats.ordersGrowth}% em relação a ontem
+            </p>
           </CardContent>
         </Card>
-        
-        <Card className="bg-gradient-to-br from-food-amber/10 to-food-amber/5 border-food-amber/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-food-textlight flex justify-between items-center">
-              <span>Clientes</span>
-              <Users className="w-4 h-4 text-food-amber" />
-            </CardTitle>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col">
-              <div className="text-2xl font-bold">{stats.totalCustomers}</div>
-              <div className="flex items-center text-sm text-food-amber mt-1">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                <span>+3 novos clientes esta semana</span>
-              </div>
-            </div>
+            <div className="text-2xl font-bold">{formatCurrency(stats.avgOrderValue)}</div>
+            <p className="text-xs text-muted-foreground">
+              +5.2% em relação ao mês passado
+            </p>
           </CardContent>
         </Card>
-        
-        <Card className="bg-gradient-to-br from-purple-100 to-purple-50 border-purple-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-food-textlight flex justify-between items-center">
-              <span>Margem Média</span>
-              <Percent className="w-4 h-4 text-purple-600" />
-            </CardTitle>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Clientes</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col">
-              <div className="text-2xl font-bold">{formatPercentage(stats.avgMargin)}</div>
-              <div className="flex items-center text-sm text-purple-600 mt-1">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                <span>+2.5% em relação ao trimestre anterior</span>
-              </div>
-            </div>
+            <div className="text-2xl font-bold">{stats.totalCustomers}</div>
+            <p className="text-xs text-muted-foreground">
+              +12 novos este mês
+            </p>
           </CardContent>
         </Card>
       </div>
-      
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Sales Chart */}
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Vendas Recentes</CardTitle>
-            <CardDescription>Análise dos últimos 7 dias</CardDescription>
+            <CardTitle>Vendas da Semana</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dashboardChartData.barChart}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                  <Legend />
-                  <Bar dataKey="revenue" fill="#E76F51" name="Receita" />
-                  <Bar dataKey="profit" fill="#2A9D8F" name="Lucro" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={salesData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Area 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke="#E76F51" 
+                  fill="#E76F51" 
+                  fillOpacity={0.3}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
-        
+
+        {/* Products Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Distribuição de Vendas</CardTitle>
-            <CardDescription>Por categoria de produto</CardDescription>
+            <CardTitle>Produtos Mais Vendidos</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col h-72">
-            <ResponsiveContainer width="100%" height="100%">
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={salesByCategory}
+                  data={productsSold}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  fill="#8884d8"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
                   dataKey="value"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 >
-                  {salesByCategory.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {productsSold.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `${value}%`} />
-                <Legend />
+                <Tooltip />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
-      
-      {/* Recent activities and alerts */}
+
+      {/* Recent Orders & Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Orders */}
         <Card>
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-xl">Pedidos Recentes</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/orders" className="flex items-center gap-1 text-food-coral">
-                  Ver todos <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Pedidos Recentes</CardTitle>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/orders">
+                <Eye className="h-4 w-4 mr-2" />
+                Ver todos
+              </Link>
+            </Button>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="p-2 font-medium">Pedido</th>
-                    <th className="p-2 font-medium">Cliente</th>
-                    <th className="p-2 font-medium">Valor</th>
-                    <th className="p-2 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b hover:bg-muted/50">
-                      <td className="p-2 font-medium">{order.id}</td>
-                      <td className="p-2">{order.customer}</td>
-                      <td className="p-2">{formatCurrency(order.total)}</td>
-                      <td className="p-2">
-                        <span 
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            ${order.status === 'Finalizado' ? 'bg-green-100 text-green-800' : 
-                              order.status === 'Em preparo' ? 'bg-blue-100 text-blue-800' : 
-                              'bg-amber-100 text-amber-800'}`}
-                        >
-                          {order.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-4">
+              {recentOrders.map((order) => (
+                <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex flex-col">
+                    <span className="font-medium">{order.id} - {order.customer}</span>
+                    <span className="text-sm text-muted-foreground">{order.time}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium">{formatCurrency(order.value)}</span>
+                    <Badge className={getStatusColor(order.status)}>
+                      {order.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
-        
-        {/* Alerts & Inventory */}
+
+        {/* Alerts & Quick Actions */}
         <Card>
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-xl">Alertas</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/ingredients" className="flex items-center gap-1 text-food-coral">
-                  Gerenciar <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+          <CardHeader>
+            <CardTitle>Alertas e Ações Rápidas</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Inventory Warnings */}
-            <div className="border rounded-lg p-4 bg-amber-50 border-amber-200">
-              <h3 className="font-medium flex items-center gap-2 text-amber-800 mb-2">
-                <AlertTriangle className="w-4 h-4" />
-                Estoque Baixo
-              </h3>
-              <ul className="space-y-2">
-                {inventoryWarnings.map((item) => (
-                  <li key={item.id} className="flex justify-between text-sm text-amber-700">
-                    <span>{item.name}</span>
-                    <span className="font-medium">{item.current} unidades (mín. {item.min})</span>
-                  </li>
-                ))}
-              </ul>
+            {/* Alerts */}
+            <div className="space-y-3">
+              {alerts.map((alert, index) => (
+                <div key={index} className={`p-3 rounded-lg border-l-4 ${
+                  alert.level === 'error' ? 'border-red-500 bg-red-50' :
+                  alert.level === 'warning' ? 'border-yellow-500 bg-yellow-50' :
+                  'border-blue-500 bg-blue-50'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className={`h-4 w-4 ${
+                      alert.level === 'error' ? 'text-red-500' :
+                      alert.level === 'warning' ? 'text-yellow-500' :
+                      'text-blue-500'
+                    }`} />
+                    <span className="text-sm">{alert.message}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-            
-            {/* Margin Warnings */}
-            <div className="border rounded-lg p-4 bg-red-50 border-red-200">
-              <h3 className="font-medium flex items-center gap-2 text-red-800 mb-2">
-                <AlertTriangle className="w-4 h-4" />
-                Margens Abaixo do Ideal
-              </h3>
-              <ul className="space-y-2">
-                <li className="flex justify-between text-sm text-red-700">
-                  <span>Brigadeiro Tradicional</span>
-                  <span className="font-medium">28% (meta: 35%)</span>
-                </li>
-                <li className="flex justify-between text-sm text-red-700">
-                  <span>Bolo de Cenoura</span>
-                  <span className="font-medium">32% (meta: 40%)</span>
-                </li>
-              </ul>
-            </div>
-            
-            {/* Price Update Reminders */}
-            <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
-              <h3 className="font-medium flex items-center gap-2 text-blue-800 mb-2">
-                <Calendar className="w-4 h-4" />
-                Atualizações Pendentes
-              </h3>
-              <ul className="space-y-2">
-                <li className="flex justify-between text-sm text-blue-700">
-                  <span>Atualização de preço do leite condensado</span>
-                  <Button size="sm" variant="outline" className="h-6 text-xs py-0 px-2">Atualizar</Button>
-                </li>
-                <li className="flex justify-between text-sm text-blue-700">
-                  <span>Revisão mensal de preços</span>
-                  <Button size="sm" variant="outline" className="h-6 text-xs py-0 px-2">Agendar</Button>
-                </li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Quick Access & Recent Recipes */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle>Acesso Rápido</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link to="/recipes" className="flex items-center gap-2">
-                <UtensilsCrossed className="w-4 h-4" />
-                Nova Receita
-              </Link>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link to="/products" className="flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                Novo Produto
-              </Link>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link to="/orders" className="flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4" />
-                Registrar Venda
-              </Link>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link to="/customers" className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Novo Cliente
-              </Link>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link to="/pricing" className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                Calcular Preço
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-        
-        <Card className="col-span-2">
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-xl">Receitas Recentes</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/recipes" className="flex items-center gap-1 text-food-coral">
-                  Ver todas <ArrowRight className="h-4 w-4" />
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 gap-3 pt-4 border-t">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/orders">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Pedido
                 </Link>
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-muted/50 text-left border-b">
-                    <th className="p-2 font-medium">Nome</th>
-                    <th className="p-2 font-medium">Custo</th>
-                    <th className="p-2 font-medium">Margem</th>
-                    <th className="p-2 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentRecipes.map((recipe) => (
-                    <tr key={recipe.id} className="border-b hover:bg-muted/50">
-                      <td className="p-2 font-medium">{recipe.name}</td>
-                      <td className="p-2">{formatCurrency(recipe.unitCost)}</td>
-                      <td className="p-2">{formatPercentage(40)}</td>
-                      <td className="p-2">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Ativo
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4">
-              <Button variant="default" size="sm" className="bg-food-coral" asChild>
-                <Link to="/recipes/new" className="flex items-center gap-1">
-                  Nova Receita
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/products">
+                  <Package className="h-4 w-4 mr-2" />
+                  Produtos
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/customers">
+                  <Users className="h-4 w-4 mr-2" />
+                  Clientes
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/pricing">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Preços
                 </Link>
               </Button>
             </div>
