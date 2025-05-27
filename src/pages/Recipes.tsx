@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import RecipeForm from "@/components/recipes/RecipeForm";
+import { calculateRecipeCosts } from "@/utils/recipeCalculations";
 
 interface Recipe {
   id: string;
@@ -52,14 +52,29 @@ const Recipes = () => {
       
       console.log("Raw data from database:", data);
       
-      // Ensure we're working with the correct data structure
-      const formattedRecipes = data?.map(recipe => {
-        console.log(`Processing recipe: ${recipe.name}`);
-        console.log(`- Raw total_cost: ${recipe.total_cost}`);
-        console.log(`- Raw unit_cost: ${recipe.unit_cost}`);
-        console.log(`- Portions: ${recipe.portions}`);
+      // Recalcular custos para todas as receitas para garantir valores corretos
+      if (data) {
+        for (const recipe of data) {
+          try {
+            console.log(`Recalculating costs for recipe: ${recipe.name}`);
+            await calculateRecipeCosts(recipe.id);
+          } catch (error) {
+            console.error(`Error calculating costs for recipe ${recipe.name}:`, error);
+          }
+        }
         
-        return {
+        // Buscar dados atualizados
+        const { data: updatedData, error: updateError } = await supabase
+          .from('recipes')
+          .select(`
+            *,
+            category:recipe_categories(id, name)
+          `)
+          .order('created_at', { ascending: false });
+          
+        if (updateError) throw updateError;
+        
+        const formattedRecipes = updatedData?.map(recipe => ({
           id: recipe.id,
           name: recipe.name,
           portions: recipe.portions,
@@ -69,12 +84,14 @@ const Recipes = () => {
           image_url: recipe.image_url,
           created_at: recipe.created_at,
           category: recipe.category
-        };
-      }) || [];
+        })) || [];
+        
+        console.log("Final formatted recipes:", formattedRecipes);
+        
+        return formattedRecipes as Recipe[];
+      }
       
-      console.log("Formatted recipes:", formattedRecipes);
-      
-      return formattedRecipes as Recipe[];
+      return [];
     }
   });
 
@@ -254,7 +271,7 @@ const Recipes = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredRecipes.map((recipe) => {
-              console.log(`Rendering recipe ${recipe.name}: total_cost=${recipe.total_cost}, unit_cost=${recipe.unit_cost}`);
+              console.log(`Displaying recipe ${recipe.name}: total_cost=${recipe.total_cost}, unit_cost=${recipe.unit_cost}`);
               
               return (
                 <Card key={recipe.id} className="hover:shadow-md transition-shadow">
