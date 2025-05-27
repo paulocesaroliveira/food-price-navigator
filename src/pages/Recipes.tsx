@@ -37,18 +37,6 @@ const Recipes = () => {
     queryFn: async () => {
       console.log("Fetching recipes...");
       
-      // First, recalculate costs for all recipes to ensure they're correct
-      const { data: allRecipes } = await supabase
-        .from('recipes')
-        .select('id');
-      
-      if (allRecipes) {
-        console.log("Recalculating costs for all recipes...");
-        for (const recipe of allRecipes) {
-          await supabase.rpc('calculate_recipe_costs', { recipe_id_param: recipe.id });
-        }
-      }
-
       const { data, error } = await supabase
         .from('recipes')
         .select(`
@@ -62,18 +50,31 @@ const Recipes = () => {
         throw error;
       }
       
-      console.log("Fetched recipes:", data);
+      console.log("Raw data from database:", data);
       
-      // Log individual recipe costs for debugging
-      data?.forEach(recipe => {
-        console.log(`Recipe: ${recipe.name}`);
+      // Ensure we're working with the correct data structure
+      const formattedRecipes = data?.map(recipe => {
+        console.log(`Processing recipe: ${recipe.name}`);
+        console.log(`- Raw total_cost: ${recipe.total_cost}`);
+        console.log(`- Raw unit_cost: ${recipe.unit_cost}`);
         console.log(`- Portions: ${recipe.portions}`);
-        console.log(`- Total Cost: ${recipe.total_cost}`);
-        console.log(`- Unit Cost: ${recipe.unit_cost}`);
-        console.log(`- Calculated Unit Cost: ${recipe.total_cost / recipe.portions}`);
-      });
+        
+        return {
+          id: recipe.id,
+          name: recipe.name,
+          portions: recipe.portions,
+          total_cost: Number(recipe.total_cost),
+          unit_cost: Number(recipe.unit_cost),
+          notes: recipe.notes,
+          image_url: recipe.image_url,
+          created_at: recipe.created_at,
+          category: recipe.category
+        };
+      }) || [];
       
-      return data as Recipe[];
+      console.log("Formatted recipes:", formattedRecipes);
+      
+      return formattedRecipes as Recipe[];
     }
   });
 
@@ -252,74 +253,78 @@ const Recipes = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredRecipes.map((recipe) => (
-              <Card key={recipe.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{recipe.name}</CardTitle>
-                      <CardDescription>
-                        {recipe.portions} {recipe.portions === 1 ? 'porção' : 'porções'}
-                      </CardDescription>
+            {filteredRecipes.map((recipe) => {
+              console.log(`Rendering recipe ${recipe.name}: total_cost=${recipe.total_cost}, unit_cost=${recipe.unit_cost}`);
+              
+              return (
+                <Card key={recipe.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">{recipe.name}</CardTitle>
+                        <CardDescription>
+                          {recipe.portions} {recipe.portions === 1 ? 'porção' : 'porções'}
+                        </CardDescription>
+                      </div>
+                      {recipe.category && (
+                        <Badge variant="secondary">
+                          {recipe.category.name}
+                        </Badge>
+                      )}
                     </div>
-                    {recipe.category && (
-                      <Badge variant="secondary">
-                        {recipe.category.name}
-                      </Badge>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Custo Total</p>
+                        <p className="font-semibold">R$ {recipe.total_cost.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Custo por Porção</p>
+                        <p className="font-semibold">R$ {recipe.unit_cost.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    
+                    {recipe.notes && (
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.notes}</p>
                     )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Custo Total</p>
-                      <p className="font-semibold">R$ {recipe.total_cost.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Custo por Porção</p>
-                      <p className="font-semibold">R$ {recipe.unit_cost.toFixed(2)}</p>
-                    </div>
-                  </div>
-                  
-                  {recipe.notes && (
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.notes}</p>
-                  )}
-                  
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(recipe)}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja excluir a receita "{recipe.name}"? Esta ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(recipe.id)}>
+                    
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(recipe)}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Trash2 className="mr-2 h-4 w-4" />
                             Excluir
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja excluir a receita "{recipe.name}"? Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(recipe.id)}>
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
