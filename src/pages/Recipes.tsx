@@ -35,6 +35,20 @@ const Recipes = () => {
   const { data: recipes = [], isLoading } = useQuery({
     queryKey: ['recipes'],
     queryFn: async () => {
+      console.log("Fetching recipes...");
+      
+      // First, recalculate costs for all recipes to ensure they're correct
+      const { data: allRecipes } = await supabase
+        .from('recipes')
+        .select('id');
+      
+      if (allRecipes) {
+        console.log("Recalculating costs for all recipes...");
+        for (const recipe of allRecipes) {
+          await supabase.rpc('calculate_recipe_costs', { recipe_id_param: recipe.id });
+        }
+      }
+
       const { data, error } = await supabase
         .from('recipes')
         .select(`
@@ -43,7 +57,22 @@ const Recipes = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching recipes:", error);
+        throw error;
+      }
+      
+      console.log("Fetched recipes:", data);
+      
+      // Log individual recipe costs for debugging
+      data?.forEach(recipe => {
+        console.log(`Recipe: ${recipe.name}`);
+        console.log(`- Portions: ${recipe.portions}`);
+        console.log(`- Total Cost: ${recipe.total_cost}`);
+        console.log(`- Unit Cost: ${recipe.unit_cost}`);
+        console.log(`- Calculated Unit Cost: ${recipe.total_cost / recipe.portions}`);
+      });
+      
       return data as Recipe[];
     }
   });
