@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -247,7 +248,7 @@ const Recipes = () => {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Custo por Porção</p>
-                      <p className="font-semibold">R$ {(recipe.total_cost / recipe.portions).toFixed(2)}</p>
+                      <p className="font-semibold">R$ {recipe.unit_cost.toFixed(2)}</p>
                     </div>
                   </div>
                   

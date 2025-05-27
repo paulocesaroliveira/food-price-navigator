@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { AccountPayable, ExpenseCategory, AccountsPayableFilters } from "@/types/accountsPayable";
@@ -88,12 +89,23 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
     console.log("Creating account with user_id:", user.id);
     console.log("Account data:", account);
 
+    const accountData = {
+      description: account.description,
+      amount: account.amount,
+      due_date: account.due_date,
+      category_id: account.category_id,
+      supplier: account.supplier,
+      notes: account.notes,
+      status: account.status || 'pending',
+      payment_method: account.payment_method,
+      payment_date: account.payment_date,
+      attachment_url: account.attachment_url,
+      user_id: user.id
+    };
+
     const { error } = await supabase
       .from("accounts_payable")
-      .insert([{
-        ...account,
-        user_id: user.id
-      }]);
+      .insert([accountData]);
 
     if (error) {
       console.error("Supabase error:", error);
