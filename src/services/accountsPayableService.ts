@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { AccountPayable, ExpenseCategory, AccountsPayableFilters } from "@/types/accountsPayable";
@@ -65,7 +64,6 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
 
     if (error) throw error;
     
-    // Ensure status and payment_method are properly typed
     return (data || []).map(account => ({
       ...account,
       status: account.status as 'pending' | 'paid' | 'overdue' | 'cancelled',
@@ -87,6 +85,9 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuário não autenticado');
 
+    console.log("Creating account with user_id:", user.id);
+    console.log("Account data:", account);
+
     const { error } = await supabase
       .from("accounts_payable")
       .insert([{
@@ -94,7 +95,10 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
         user_id: user.id
       }]);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase error:", error);
+      throw error;
+    }
 
     toast({
       title: "Sucesso",
@@ -105,7 +109,7 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
     console.error("Erro ao criar conta:", error.message);
     toast({
       title: "Erro",
-      description: "Não foi possível cadastrar a conta",
+      description: `Não foi possível cadastrar a conta: ${error.message}`,
       variant: "destructive",
     });
     return false;

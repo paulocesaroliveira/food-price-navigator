@@ -1,67 +1,178 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Package, ImagePlus, Edit, Trash2, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { useForm } from "react-hook-form";
-import { Packaging } from "@/types";
-import { createPackaging, getPackagingList, updatePackaging, deletePackaging, searchPackaging } from "@/services/packagingService";
-import { useFileUpload } from "@/hooks/useFileUpload";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { PackagingForm } from "@/components/packaging/PackagingForm";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
+interface Packaging {
+  id: string;
+  name: string;
+  type: string;
+  bulkQuantity: number;
+  bulkPrice: number;
+  unitCost: number;
+  imageUrl?: string;
+  notes?: string;
+}
+
 const PackagingPage = () => {
-  const [packagingList, setPackagingList] = useState<Packaging[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPackaging, setEditingPackaging] = useState<Packaging | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [packagingToDelete, setPackagingToDelete] = useState<Packaging | null>(null);
-  const [selectedPackaging, setSelectedPackaging] = useState<Packaging | null>(null);
 
-  const fetchPackagingList = async () => {
-    setLoading(true);
-    try {
-      const data = await getPackagingList();
-      setPackagingList(data);
-    } catch (error) {
-      console.error("Erro ao buscar embalagens:", error);
-    } finally {
-      setLoading(false);
+  const queryClient = useQueryClient();
+
+  const { data: packagingList = [], isLoading } = useQuery({
+    queryKey: ['packaging'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('packaging')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+
+      return (data || []).map((item) => ({
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        bulkQuantity: item.bulk_quantity,
+        bulkPrice: item.bulk_price,
+        unitCost: item.unit_cost,
+        imageUrl: item.image_url,
+        notes: item.notes,
+      }));
     }
-  };
+  });
 
-  useEffect(() => {
-    fetchPackagingList();
-  }, []);
+  const createPackagingMutation = useMutation({
+    mutationFn: async (packaging: Omit<Packaging, "id">) => {
+      const { data, error } = await supabase
+        .from("packaging")
+        .insert({
+          name: packaging.name,
+          type: packaging.type,
+          bulk_quantity: packaging.bulkQuantity,
+          bulk_price: packaging.bulkPrice,
+          unit_cost: packaging.bulkQuantity > 0 ? packaging.bulkPrice / packaging.bulkQuantity : 0,
+          image_url: packaging.imageUrl || null,
+          notes: packaging.notes,
+        })
+        .select()
+        .single();
 
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (searchQuery) {
-        try {
-          const results = await searchPackaging(searchQuery);
-          setPackagingList(results);
-        } catch (error) {
-          console.error("Erro ao buscar embalagens:", error);
-        }
-      } else {
-        fetchPackagingList();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['packaging'] });
+      toast({
+        title: "Sucesso",
+        description: "Embalagem criada com sucesso!",
+      });
+      setDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: `Não foi possível criar a embalagem: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updatePackagingMutation = useMutation({
+    mutationFn: async ({ id, packaging }: { id: string; packaging: Partial<Omit<Packaging, "id">> }) => {
+      let unitCost = undefined;
+      if (packaging.bulkQuantity && packaging.bulkPrice) {
+        unitCost = packaging.bulkPrice / packaging.bulkQuantity;
       }
-    }, 500);
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+      const updateData: any = {
+        name: packaging.name,
+        type: packaging.type,
+        bulk_quantity: packaging.bulkQuantity,
+        bulk_price: packaging.bulkPrice,
+        unit_cost: unitCost,
+        image_url: packaging.imageUrl,
+        notes: packaging.notes,
+      };
+
+      Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+      const { data, error } = await supabase
+        .from("packaging")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['packaging'] });
+      toast({
+        title: "Sucesso",
+        description: "Embalagem atualizada com sucesso!",
+      });
+      setDialogOpen(false);
+      setEditingPackaging(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: `Não foi possível atualizar a embalagem: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deletePackagingMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("packaging")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['packaging'] });
+      toast({
+        title: "Sucesso",
+        description: "Embalagem excluída com sucesso!",
+      });
+      setDeleteDialogOpen(false);
+      setPackagingToDelete(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: `Não foi possível excluir a embalagem: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const filteredPackaging = packagingList.filter(pkg =>
+    pkg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    pkg.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const openPackagingDialog = (packaging?: Packaging) => {
     setEditingPackaging(packaging || null);
     setDialogOpen(true);
-    setSelectedPackaging(packaging || null);
   };
 
   const openDeleteDialog = (packaging: Packaging) => {
@@ -69,39 +180,20 @@ const PackagingPage = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = async () => {
-    if (packagingToDelete) {
-      await deletePackaging(packagingToDelete.id);
-      setPackagingList(prev => prev.filter(p => p.id !== packagingToDelete.id));
-      setDeleteDialogOpen(false);
-      setPackagingToDelete(null);
+  const handleSubmitPackaging = async (formData: Omit<Packaging, "id" | "unitCost">) => {
+    if (editingPackaging) {
+      updatePackagingMutation.mutate({
+        id: editingPackaging.id,
+        packaging: formData
+      });
+    } else {
+      createPackagingMutation.mutate(formData as Omit<Packaging, "id">);
     }
   };
 
-  const handleSubmitPackaging = async (formData: Omit<Packaging, "id" | "unitCost">) => {
-    try {
-      if (editingPackaging) {
-        await updatePackaging(editingPackaging.id, formData);
-        toast({
-          title: "Sucesso",
-          description: "Embalagem atualizada com sucesso!",
-        });
-      } else {
-        await createPackaging(formData as Omit<Packaging, "id">);
-        toast({
-          title: "Sucesso",
-          description: "Embalagem criada com sucesso!",
-        });
-      }
-      fetchPackagingList();
-      setDialogOpen(false);
-      setEditingPackaging(null);
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Ocorreu um erro ao salvar a embalagem.",
-        variant: "destructive",
-      });
+  const confirmDelete = () => {
+    if (packagingToDelete) {
+      deletePackagingMutation.mutate(packagingToDelete.id);
     }
   };
 
@@ -148,17 +240,17 @@ const PackagingPage = () => {
             <CardTitle>Lista de Embalagens</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-food-coral" />
                 <span className="ml-2">Carregando embalagens...</span>
               </div>
-            ) : packagingList.length === 0 ? (
+            ) : filteredPackaging.length === 0 ? (
               <div className="text-center py-12">
                 <Package className="mx-auto h-12 w-12 text-muted-foreground" />
                 <h3 className="mt-4 text-lg font-medium">Nenhuma embalagem encontrada</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Comece adicionando sua primeira embalagem
+                  {searchQuery ? "Nenhuma embalagem encontrada para sua busca." : "Comece adicionando sua primeira embalagem"}
                 </p>
               </div>
             ) : (
@@ -167,12 +259,14 @@ const PackagingPage = () => {
                   <TableRow>
                     <TableHead>Embalagem</TableHead>
                     <TableHead>Tipo</TableHead>
+                    <TableHead>Quantidade/Lote</TableHead>
+                    <TableHead>Preço/Lote</TableHead>
                     <TableHead>Preço Unitário</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {packagingList.map((packaging) => (
+                  {filteredPackaging.map((packaging) => (
                     <TableRow key={packaging.id}>
                       <TableCell>
                         <div className="flex gap-2">
@@ -191,11 +285,15 @@ const PackagingPage = () => {
                           </div>
                           <div className="flex flex-col">
                             <span className="font-medium">{packaging.name}</span>
-                            <span className="text-sm text-muted-foreground">{packaging.type}</span>
+                            {packaging.notes && (
+                              <span className="text-sm text-muted-foreground">{packaging.notes}</span>
+                            )}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>{packaging.type}</TableCell>
+                      <TableCell>{packaging.bulkQuantity}</TableCell>
+                      <TableCell>R$ {packaging.bulkPrice.toFixed(2)}</TableCell>
                       <TableCell>R$ {packaging.unitCost.toFixed(2)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end items-center space-x-2">

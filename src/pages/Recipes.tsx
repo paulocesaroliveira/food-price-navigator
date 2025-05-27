@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -169,15 +168,15 @@ const Recipes = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custo Médio</CardTitle>
+            <CardTitle className="text-sm font-medium">Custo Médio por Receita</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {recipes.length > 0 ? (recipes.reduce((sum, recipe) => sum + recipe.unit_cost, 0) / recipes.length).toFixed(2) : '0,00'}
+              R$ {recipes.length > 0 ? (recipes.reduce((sum, recipe) => sum + recipe.total_cost, 0) / recipes.length).toFixed(2) : '0,00'}
             </div>
             <p className="text-xs text-muted-foreground">
-              Por porção
+              Custo total médio
             </p>
           </CardContent>
         </Card>
@@ -248,7 +247,7 @@ const Recipes = () => {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Custo por Porção</p>
-                      <p className="font-semibold">R$ {recipe.unit_cost.toFixed(2)}</p>
+                      <p className="font-semibold">R$ {(recipe.total_cost / recipe.portions).toFixed(2)}</p>
                     </div>
                   </div>
                   
