@@ -126,14 +126,11 @@ const RecipeForm = ({
     0
   );
   
-  // Calculate base cost per portion
-  const basePerPortionCost = parseFloat(portions) > 0 ? baseTotalCost / parseFloat(portions) : 0;
-  
-  // Calculate unit cost: base per portion + portion ingredients cost per unit
-  const unitCost = basePerPortionCost + portionTotalCost;
-  
-  // Calculate total recipe cost
+  // Calculate total recipe cost: base cost + (portion cost * number of portions)
   const totalCost = baseTotalCost + (portionTotalCost * parseFloat(portions));
+  
+  // Calculate unit cost: total cost / number of portions
+  const unitCost = parseFloat(portions) > 0 ? totalCost / parseFloat(portions) : 0;
 
   useEffect(() => {
     if (editingRecipe) {
@@ -219,7 +216,7 @@ const RecipeForm = ({
     ingredientId: string, 
     type: "baseIngredients" | "portionIngredients"
   ) => {
-    const quantity = parseFloat(form.getValues(`${type}.${index}.quantity`));
+    const quantity = parseFloat(form.getValues(`${type}.${index}.quantity`)) || 0;
     const cost = calculateIngredientCost(ingredientId, quantity);
     form.setValue(`${type}.${index}.cost`, String(cost));
   };
@@ -289,7 +286,7 @@ const RecipeForm = ({
       .sort((a, b) => b.cost - a.cost);
   };
 
-  const filteredBaseIngredients = (searchTerm: string) => {
+  const filteredIngredients = (searchTerm: string) => {
     return ingredients.filter(ingredient => 
       ingredient.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -298,6 +295,34 @@ const RecipeForm = ({
   const handleSubmit = async (data: any) => {
     try {
       setLoading(true);
+      
+      // Validações básicas
+      if (!data.name?.trim()) {
+        toast({
+          title: "Erro de validação",
+          description: "Nome da receita é obrigatório",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!data.category_id) {
+        toast({
+          title: "Erro de validação", 
+          description: "Categoria é obrigatória",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!data.portions || parseInt(data.portions) < 1) {
+        toast({
+          title: "Erro de validação",
+          description: "Número de porções deve ser maior que zero",
+          variant: "destructive"
+        });
+        return;
+      }
       
       const filteredBaseIngredients = data.baseIngredients.filter(
         (i: any) => i.ingredient_id && parseFloat(i.quantity) > 0
@@ -316,13 +341,18 @@ const RecipeForm = ({
       }));
       
       const submitData = {
-        ...data,
+        name: data.name.trim(),
+        image_url: data.image_url || null,
+        category_id: data.category_id,
         portions: parseInt(data.portions),
+        notes: data.notes?.trim() || null,
         baseIngredients: filteredBaseIngredients,
         portionIngredients: filteredPortionIngredients,
         total_cost: totalCost,
         unit_cost: unitCost
       };
+      
+      console.log("Dados a serem enviados:", submitData);
       
       await onSubmit(submitData);
       form.reset();
@@ -334,11 +364,11 @@ const RecipeForm = ({
           ? "A receita foi atualizada com sucesso." 
           : "A nova receita foi criada com sucesso.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar receita:", error);
       toast({
         title: "Erro ao salvar",
-        description: "Ocorreu um erro ao salvar a receita. Tente novamente.",
+        description: error?.message || "Ocorreu um erro ao salvar a receita. Tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -451,57 +481,59 @@ const RecipeForm = ({
                         />
                       </div>
                       
-                      <FormLabel>Imagem da Receita (opcional)</FormLabel>
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 mt-2">
-                        {previewImage ? (
-                          <div className="relative">
-                            <img 
-                              src={previewImage} 
-                              alt="Preview da receita" 
-                              className="w-full h-64 object-cover rounded-md"
-                            />
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-2 right-2"
-                              onClick={handleRemoveImage}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center h-64">
-                            <Upload className="h-12 w-12 text-gray-400 mb-2" />
-                            <p className="text-sm text-gray-500 mb-2">
-                              Clique para fazer upload da imagem
-                            </p>
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              id="recipe-image"
-                              onChange={handleImageUpload}
-                              disabled={isUploading}
-                            />
-                            <label htmlFor="recipe-image">
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                disabled={isUploading}
+                      <div>
+                        <FormLabel>Imagem da Receita (opcional)</FormLabel>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 mt-2">
+                          {previewImage ? (
+                            <div className="relative">
+                              <img 
+                                src={previewImage} 
+                                alt="Preview da receita" 
+                                className="w-full h-64 object-cover rounded-md"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2"
+                                onClick={handleRemoveImage}
                               >
-                                {isUploading ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Enviando...
-                                  </>
-                                ) : (
-                                  "Selecionar imagem"
-                                )}
+                                <X className="h-4 w-4" />
                               </Button>
-                            </label>
-                          </div>
-                        )}
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-64">
+                              <Upload className="h-12 w-12 text-gray-400 mb-2" />
+                              <p className="text-sm text-gray-500 mb-2">
+                                Clique para fazer upload da imagem
+                              </p>
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                id="recipe-image"
+                                onChange={handleImageUpload}
+                                disabled={isUploading}
+                              />
+                              <label htmlFor="recipe-image">
+                                <Button 
+                                  type="button" 
+                                  variant="outline" 
+                                  disabled={isUploading}
+                                >
+                                  {isUploading ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Enviando...
+                                    </>
+                                  ) : (
+                                    "Selecionar imagem"
+                                  )}
+                                </Button>
+                              </label>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </TabsContent>
@@ -576,7 +608,7 @@ const RecipeForm = ({
                                               <CommandEmpty>Nenhum ingrediente encontrado.</CommandEmpty>
                                               <CommandList className="max-h-[300px]">
                                                 <CommandGroup>
-                                                  {filteredBaseIngredients(baseSearchTerm).map(ingredient => (
+                                                  {filteredIngredients(baseSearchTerm).map(ingredient => (
                                                     <CommandItem
                                                       key={ingredient.id}
                                                       value={ingredient.id}
@@ -758,7 +790,7 @@ const RecipeForm = ({
                                               <CommandEmpty>Nenhum ingrediente encontrado.</CommandEmpty>
                                               <CommandList className="max-h-[300px]">
                                                 <CommandGroup>
-                                                  {filteredBaseIngredients(portionSearchTerm).map(ingredient => (
+                                                  {filteredIngredients(portionSearchTerm).map(ingredient => (
                                                     <CommandItem
                                                       key={ingredient.id}
                                                       value={ingredient.id}
@@ -905,51 +937,30 @@ const RecipeForm = ({
                           <div className="grid grid-cols-2 gap-3">
                             <div className="text-gray-700">Custo total dos ingredientes base:</div>
                             <div className="text-right font-medium">
-                              {new Intl.NumberFormat('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL',
-                              }).format(baseTotalCost)}
-                            </div>
-                            
-                            <div className="text-gray-700">Custo base por unidade:</div>
-                            <div className="text-right font-medium">
-                              {new Intl.NumberFormat('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL',
-                              }).format(basePerPortionCost)}
+                              {formatCurrency(baseTotalCost)}
                             </div>
                             
                             <div className="text-gray-700">Custo dos ingredientes por unidade:</div>
                             <div className="text-right font-medium">
-                              {new Intl.NumberFormat('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL',
-                              }).format(portionTotalCost)}
+                              {formatCurrency(portionTotalCost)}
                             </div>
                             
                             <div className="border-t pt-2 font-medium">Custo total por unidade:</div>
                             <div className="border-t pt-2 text-right font-medium text-primary">
-                              {new Intl.NumberFormat('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL',
-                              }).format(unitCost)}
+                              {formatCurrency(unitCost)}
                             </div>
                             
                             <div className="font-medium">Custo total da receita ({portions} unidades):</div>
                             <div className="text-right font-medium text-primary">
-                              {new Intl.NumberFormat('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL',
-                              }).format(totalCost)}
+                              {formatCurrency(totalCost)}
                             </div>
                           </div>
 
                           <div className="pt-2 mt-3 text-xs text-muted-foreground">
                             <p className="mb-1">Fórmula de cálculo:</p>
                             <ul className="list-disc pl-4 space-y-1">
-                              <li>Custo base por unidade = Total ingredientes base ÷ Número de unidades</li>
-                              <li>Custo por unidade = Custo base por unidade + Custo dos ingredientes por unidade</li>
-                              <li>Custo total da receita = Total ingredientes base + (Ingredientes por unidade × Nº de unidades)</li>
+                              <li>Custo total = Ingredientes base + (Ingredientes por unidade × Nº de unidades)</li>
+                              <li>Custo por unidade = Custo total ÷ Número de unidades</li>
                             </ul>
                           </div>
                         </div>

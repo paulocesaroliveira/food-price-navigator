@@ -52,46 +52,21 @@ const Recipes = () => {
       
       console.log("Raw data from database:", data);
       
-      // Recalcular custos para todas as receitas para garantir valores corretos
-      if (data) {
-        for (const recipe of data) {
-          try {
-            console.log(`Recalculating costs for recipe: ${recipe.name}`);
-            await calculateRecipeCosts(recipe.id);
-          } catch (error) {
-            console.error(`Error calculating costs for recipe ${recipe.name}:`, error);
-          }
-        }
-        
-        // Buscar dados atualizados
-        const { data: updatedData, error: updateError } = await supabase
-          .from('recipes')
-          .select(`
-            *,
-            category:recipe_categories(id, name)
-          `)
-          .order('created_at', { ascending: false });
-          
-        if (updateError) throw updateError;
-        
-        const formattedRecipes = updatedData?.map(recipe => ({
-          id: recipe.id,
-          name: recipe.name,
-          portions: recipe.portions,
-          total_cost: Number(recipe.total_cost),
-          unit_cost: Number(recipe.unit_cost),
-          notes: recipe.notes,
-          image_url: recipe.image_url,
-          created_at: recipe.created_at,
-          category: recipe.category
-        })) || [];
-        
-        console.log("Final formatted recipes:", formattedRecipes);
-        
-        return formattedRecipes as Recipe[];
-      }
+      const formattedRecipes = data?.map(recipe => ({
+        id: recipe.id,
+        name: recipe.name,
+        portions: recipe.portions,
+        total_cost: Number(recipe.total_cost),
+        unit_cost: Number(recipe.unit_cost),
+        notes: recipe.notes,
+        image_url: recipe.image_url,
+        created_at: recipe.created_at,
+        category: recipe.category
+      })) || [];
       
-      return [];
+      console.log("Final formatted recipes:", formattedRecipes);
+      
+      return formattedRecipes as Recipe[];
     }
   });
 
@@ -159,19 +134,114 @@ const Recipes = () => {
 
   const handleFormSubmit = async (data: any) => {
     try {
+      console.log("Salvando receita com dados:", data);
+      
       if (editingRecipe) {
-        const { error } = await supabase
+        // Atualizar receita existente
+        const { error: recipeError } = await supabase
           .from('recipes')
-          .update(data)
+          .update({
+            name: data.name,
+            image_url: data.image_url,
+            category_id: data.category_id,
+            portions: data.portions,
+            notes: data.notes
+          })
           .eq('id', editingRecipe.id);
 
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('recipes')
-          .insert([data]);
+        if (recipeError) throw recipeError;
 
-        if (error) throw error;
+        // Deletar ingredientes existentes
+        await supabase.from('recipe_base_ingredients').delete().eq('recipe_id', editingRecipe.id);
+        await supabase.from('recipe_portion_ingredients').delete().eq('recipe_id', editingRecipe.id);
+
+        // Inserir novos ingredientes base
+        if (data.baseIngredients && data.baseIngredients.length > 0) {
+          const { error: baseError } = await supabase
+            .from('recipe_base_ingredients')
+            .insert(
+              data.baseIngredients.map((ing: any) => ({
+                recipe_id: editingRecipe.id,
+                ingredient_id: ing.ingredient_id,
+                quantity: ing.quantity,
+                cost: ing.cost
+              }))
+            );
+          
+          if (baseError) throw baseError;
+        }
+
+        // Inserir novos ingredientes por porção
+        if (data.portionIngredients && data.portionIngredients.length > 0) {
+          const { error: portionError } = await supabase
+            .from('recipe_portion_ingredients')
+            .insert(
+              data.portionIngredients.map((ing: any) => ({
+                recipe_id: editingRecipe.id,
+                ingredient_id: ing.ingredient_id,
+                quantity: ing.quantity,
+                cost: ing.cost
+              }))
+            );
+          
+          if (portionError) throw portionError;
+        }
+
+        // Recalcular custos
+        await calculateRecipeCosts(editingRecipe.id);
+
+      } else {
+        // Criar nova receita
+        const { data: newRecipe, error: recipeError } = await supabase
+          .from('recipes')
+          .insert([{
+            name: data.name,
+            image_url: data.image_url,
+            category_id: data.category_id,
+            portions: data.portions,
+            notes: data.notes,
+            total_cost: 0,
+            unit_cost: 0
+          }])
+          .select()
+          .single();
+
+        if (recipeError) throw recipeError;
+
+        // Inserir ingredientes base
+        if (data.baseIngredients && data.baseIngredients.length > 0) {
+          const { error: baseError } = await supabase
+            .from('recipe_base_ingredients')
+            .insert(
+              data.baseIngredients.map((ing: any) => ({
+                recipe_id: newRecipe.id,
+                ingredient_id: ing.ingredient_id,
+                quantity: ing.quantity,
+                cost: ing.cost
+              }))
+            );
+          
+          if (baseError) throw baseError;
+        }
+
+        // Inserir ingredientes por porção
+        if (data.portionIngredients && data.portionIngredients.length > 0) {
+          const { error: portionError } = await supabase
+            .from('recipe_portion_ingredients')
+            .insert(
+              data.portionIngredients.map((ing: any) => ({
+                recipe_id: newRecipe.id,
+                ingredient_id: ing.ingredient_id,
+                quantity: ing.quantity,
+                cost: ing.cost
+              }))
+            );
+          
+          if (portionError) throw portionError;
+        }
+
+        // Recalcular custos
+        await calculateRecipeCosts(newRecipe.id);
       }
 
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
