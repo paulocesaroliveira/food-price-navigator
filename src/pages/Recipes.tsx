@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,23 +50,19 @@ const Recipes = () => {
         throw error;
       }
       
-      console.log("Data from database:", data);
+      console.log("Recipes from database:", data);
       
-      const formattedRecipes = data?.map(recipe => ({
+      return data?.map(recipe => ({
         id: recipe.id,
         name: recipe.name,
         portions: recipe.portions,
-        total_cost: Number(recipe.total_cost),
-        unit_cost: Number(recipe.unit_cost),
+        total_cost: Number(recipe.total_cost) || 0,
+        unit_cost: Number(recipe.unit_cost) || 0,
         notes: recipe.notes,
         image_url: recipe.image_url,
         created_at: recipe.created_at,
         category: recipe.category
       })) || [];
-      
-      console.log("Final formatted recipes:", formattedRecipes);
-      
-      return formattedRecipes as Recipe[];
     }
   });
 
@@ -103,6 +100,11 @@ const Recipes = () => {
 
   const handleDelete = async (id: string) => {
     try {
+      // Deletar ingredientes primeiro
+      await supabase.from('recipe_base_ingredients').delete().eq('recipe_id', id);
+      await supabase.from('recipe_portion_ingredients').delete().eq('recipe_id', id);
+      
+      // Deletar receita
       const { error } = await supabase
         .from('recipes')
         .delete()
@@ -196,8 +198,8 @@ const Recipes = () => {
             category_id: data.category_id,
             portions: data.portions,
             notes: data.notes,
-            total_cost: 0,
-            unit_cost: 0
+            total_cost: 0, // Triggers irão calcular
+            unit_cost: 0   // Triggers irão calcular
           }])
           .select()
           .single();
@@ -237,10 +239,23 @@ const Recipes = () => {
         }
       }
 
+      // Os triggers calculam automaticamente - só precisamos invalidar as queries
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      
+      toast({
+        title: "Receita salva",
+        description: "A receita foi salva com sucesso",
+      });
+      
+      handleFormClose();
     } catch (error: any) {
       console.error("Erro ao salvar receita:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar a receita",
+        variant: "destructive",
+      });
       throw error;
     }
   };

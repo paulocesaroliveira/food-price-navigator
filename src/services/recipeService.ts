@@ -59,7 +59,6 @@ export const updateRecipeCategory = async (id: string, name: string) => {
 };
 
 export const deleteRecipeCategory = async (id: string) => {
-  // Verificar se há receitas usando esta categoria
   const { data: recipes, error: checkError } = await supabase
     .from('recipes')
     .select('id')
@@ -101,8 +100,8 @@ export const createRecipe = async (recipe: Omit<Recipe, "id">) => {
       image_url: recipe.image,
       category_id: recipe.categoryId,
       portions: recipe.portions,
-      total_cost: 0,
-      unit_cost: 0,
+      total_cost: 0, // Sempre iniciar com 0 - triggers irão calcular
+      unit_cost: 0,  // Sempre iniciar com 0 - triggers irão calcular
       notes: recipe.notes
     })
     .select()
@@ -113,15 +112,21 @@ export const createRecipe = async (recipe: Omit<Recipe, "id">) => {
 };
 
 export const updateRecipe = async (id: string, recipe: Partial<Recipe>) => {
+  const updateData: any = {
+    name: recipe.name,
+    image_url: recipe.image,
+    category_id: recipe.categoryId,
+    notes: recipe.notes
+  };
+
+  // Só incluir portions se foi alterado - triggers irão recalcular automaticamente
+  if (recipe.portions !== undefined) {
+    updateData.portions = recipe.portions;
+  }
+
   const { data, error } = await supabase
     .from('recipes')
-    .update({
-      name: recipe.name,
-      image_url: recipe.image,
-      category_id: recipe.categoryId,
-      portions: recipe.portions,
-      notes: recipe.notes
-    })
+    .update(updateData)
     .eq('id', id)
     .select()
     .single();
@@ -131,11 +136,11 @@ export const updateRecipe = async (id: string, recipe: Partial<Recipe>) => {
 };
 
 export const deleteRecipe = async (id: string) => {
-  // Primeiro, deletar os ingredientes da receita
+  // Deletar ingredientes primeiro
   await supabase.from('recipe_base_ingredients').delete().eq('recipe_id', id);
   await supabase.from('recipe_portion_ingredients').delete().eq('recipe_id', id);
   
-  // Depois, deletar a receita
+  // Deletar receita
   const { error } = await supabase
     .from('recipes')
     .delete()
@@ -185,13 +190,12 @@ export const saveRecipeIngredients = async (
     if (portionError) throw portionError;
   }
   
-  // Os triggers cuidam do recálculo automaticamente
+  // Os triggers calculam automaticamente - não fazemos nada mais
 };
 
 export const fetchRecipeWithIngredients = async (recipeId: string) => {
   console.log("Fetching recipe with ID:", recipeId);
   
-  // Buscar a receita
   const { data: recipe, error: recipeError } = await supabase
     .from("recipes")
     .select(`
@@ -206,9 +210,6 @@ export const fetchRecipeWithIngredients = async (recipeId: string) => {
     throw recipeError;
   }
 
-  console.log("Recipe data:", recipe);
-
-  // Buscar ingredientes base
   const { data: baseIngredients, error: baseIngredientsError } = await supabase
     .from("recipe_base_ingredients")
     .select(`
@@ -222,9 +223,6 @@ export const fetchRecipeWithIngredients = async (recipeId: string) => {
     throw baseIngredientsError;
   }
 
-  console.log("Base ingredients:", baseIngredients);
-
-  // Buscar ingredientes por porção
   const { data: portionIngredients, error: portionIngredientsError } = await supabase
     .from("recipe_portion_ingredients")
     .select(`
@@ -238,9 +236,6 @@ export const fetchRecipeWithIngredients = async (recipeId: string) => {
     throw portionIngredientsError;
   }
 
-  console.log("Portion ingredients:", portionIngredients);
-
-  // Formatar dados para o frontend
   return {
     ...recipe,
     baseIngredients: baseIngredients || [],
