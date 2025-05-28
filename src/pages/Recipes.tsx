@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,52 +50,23 @@ const Recipes = () => {
         throw error;
       }
       
-      console.log("Raw data from database:", data);
+      console.log("Data from database:", data);
       
-      // Recalcular custos para todas as receitas para garantir que estejam corretos
-      if (data && data.length > 0) {
-        for (const recipe of data) {
-          try {
-            await calculateRecipeCosts(recipe.id);
-          } catch (error) {
-            console.error(`Error calculating costs for recipe ${recipe.id}:`, error);
-          }
-        }
-        
-        // Buscar novamente os dados atualizados
-        const { data: updatedData, error: updateError } = await supabase
-          .from('recipes')
-          .select(`
-            *,
-            category:recipe_categories(id, name)
-          `)
-          .order('created_at', { ascending: false });
-
-        if (updateError) {
-          console.error("Error fetching updated recipes:", updateError);
-          throw updateError;
-        }
-        
-        console.log("Updated data from database:", updatedData);
-        
-        const formattedRecipes = updatedData?.map(recipe => ({
-          id: recipe.id,
-          name: recipe.name,
-          portions: recipe.portions,
-          total_cost: Number(recipe.total_cost),
-          unit_cost: Number(recipe.unit_cost),
-          notes: recipe.notes,
-          image_url: recipe.image_url,
-          created_at: recipe.created_at,
-          category: recipe.category
-        })) || [];
-        
-        console.log("Final formatted recipes:", formattedRecipes);
-        
-        return formattedRecipes as Recipe[];
-      }
+      const formattedRecipes = data?.map(recipe => ({
+        id: recipe.id,
+        name: recipe.name,
+        portions: recipe.portions,
+        total_cost: Number(recipe.total_cost),
+        unit_cost: Number(recipe.unit_cost),
+        notes: recipe.notes,
+        image_url: recipe.image_url,
+        created_at: recipe.created_at,
+        category: recipe.category
+      })) || [];
       
-      return [];
+      console.log("Final formatted recipes:", formattedRecipes);
+      
+      return formattedRecipes as Recipe[];
     }
   });
 
@@ -216,7 +187,7 @@ const Recipes = () => {
           if (portionError) throw portionError;
         }
 
-        // Recalcular custos
+        // Recalcular custos (vai disparar os triggers automaticamente)
         await calculateRecipeCosts(editingRecipe.id);
 
       } else {
@@ -269,11 +240,12 @@ const Recipes = () => {
           if (portionError) throw portionError;
         }
 
-        // Recalcular custos
+        // Recalcular custos (vai disparar os triggers automaticamente)
         await calculateRecipeCosts(newRecipe.id);
       }
 
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] }); // Invalidar produtos também
     } catch (error: any) {
       console.error("Erro ao salvar receita:", error);
       throw error;

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductItem, ProductPackaging, ProductCategory, Packaging } from "@/types";
 import { toast } from "@/hooks/use-toast";
@@ -171,7 +172,7 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
         packaging_id: primaryPackaging?.packagingId || product.packagingId,
         packaging_cost: primaryPackaging?.cost || product.packagingCost,
         total_cost: totalCost,
-        selling_price: product.sellingPrice || 0, // Novo campo
+        selling_price: product.sellingPrice || 0,
       })
       .select()
       .single();
@@ -195,9 +196,7 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
     
       if (itemsError) {
         console.error("Erro ao adicionar itens ao produto:", itemsError);
-        
         await supabase.from("products").delete().eq("id", data.id);
-        
         throw new Error(itemsError.message);
       }
     }
@@ -217,13 +216,14 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
 
       if (packagingError) {
         console.error("Erro ao adicionar embalagens ao produto:", packagingError);
-        
         await supabase.from("product_items").delete().eq("product_id", data.id);
         await supabase.from("products").delete().eq("id", data.id);
-        
         throw new Error(packagingError.message);
       }
     }
+
+    // Os triggers agora recalculam automaticamente os custos quando necessário
+    // Não precisamos mais fazer recálculo manual aqui
 
     return {
       id: data.id,
@@ -235,7 +235,7 @@ export const createProduct = async (product: Omit<Product, "id">): Promise<Produ
       packagingCost: data.packaging_cost,
       packagingItems: product.packagingItems,
       totalCost: data.total_cost,
-      sellingPrice: data.selling_price, // Incluir campo
+      sellingPrice: data.selling_price,
       imageUrl: null
     };
   } catch (error: any) {
@@ -269,7 +269,7 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
         packaging_id: primaryPackaging?.packagingId || product.packagingId,
         packaging_cost: primaryPackaging?.cost || product.packagingCost,
         total_cost: totalCost,
-        selling_price: product.sellingPrice || 0, // Novo campo
+        selling_price: product.sellingPrice || 0,
       })
       .eq("id", id)
       .select()
@@ -280,6 +280,7 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
       throw new Error(error.message);
     }
 
+    // Remover itens e embalagens existentes
     const { error: deleteItemsError } = await supabase
       .from("product_items")
       .delete()
@@ -300,6 +301,7 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
       throw new Error(deletePackagingError.message);
     }
 
+    // Inserir novos itens
     if (product.items.length > 0) {
       const productItems = product.items.map((item) => ({
         product_id: id,
@@ -318,6 +320,7 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
       }
     }
 
+    // Inserir novas embalagens
     if (product.packagingItems && product.packagingItems.length > 0) {
       const packagingItems = product.packagingItems.map((pkg) => ({
         product_id: id,
@@ -337,6 +340,8 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
       }
     }
 
+    // Os triggers agora recalculam automaticamente os custos quando necessário
+
     return {
       id: data.id,
       name: data.name,
@@ -347,7 +352,7 @@ export const updateProduct = async (id: string, product: Omit<Product, "id">): P
       packagingCost: data.packaging_cost,
       packagingItems: product.packagingItems,
       totalCost: data.total_cost,
-      sellingPrice: data.selling_price, // Incluir campo
+      sellingPrice: data.selling_price,
       imageUrl: null
     };
   } catch (error: any) {

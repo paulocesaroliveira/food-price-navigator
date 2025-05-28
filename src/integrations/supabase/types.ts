@@ -1398,6 +1398,18 @@ export type Database = {
         Args: { recipe_id_param: string }
         Returns: undefined
       }
+      recalculate_product_costs: {
+        Args: { product_id_param: string }
+        Returns: undefined
+      }
+      update_product_packaging_costs: {
+        Args: { packaging_id_param: string }
+        Returns: undefined
+      }
+      update_product_recipe_costs: {
+        Args: { recipe_id_param: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
