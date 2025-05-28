@@ -9,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import RecipeForm from "@/components/recipes/RecipeForm";
-import { calculateRecipeCosts } from "@/utils/recipeCalculations";
 
 interface Recipe {
   id: string;
@@ -187,9 +186,6 @@ const Recipes = () => {
           if (portionError) throw portionError;
         }
 
-        // Recalcular custos (vai disparar os triggers automaticamente)
-        await calculateRecipeCosts(editingRecipe.id);
-
       } else {
         // Criar nova receita
         const { data: newRecipe, error: recipeError } = await supabase
@@ -239,13 +235,10 @@ const Recipes = () => {
           
           if (portionError) throw portionError;
         }
-
-        // Recalcular custos (vai disparar os triggers automaticamente)
-        await calculateRecipeCosts(newRecipe.id);
       }
 
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] }); // Invalidar produtos também
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     } catch (error: any) {
       console.error("Erro ao salvar receita:", error);
       throw error;

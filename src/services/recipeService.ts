@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Recipe, RecipeIngredient } from "@/types";
 
@@ -100,8 +101,8 @@ export const createRecipe = async (recipe: Omit<Recipe, "id">) => {
       image_url: recipe.image,
       category_id: recipe.categoryId,
       portions: recipe.portions,
-      total_cost: recipe.totalCost,
-      unit_cost: recipe.unitCost,
+      total_cost: 0,
+      unit_cost: 0,
       notes: recipe.notes
     })
     .select()
@@ -119,8 +120,6 @@ export const updateRecipe = async (id: string, recipe: Partial<Recipe>) => {
       image_url: recipe.image,
       category_id: recipe.categoryId,
       portions: recipe.portions,
-      total_cost: recipe.totalCost,
-      unit_cost: recipe.unitCost,
       notes: recipe.notes
     })
     .eq('id', id)
@@ -186,8 +185,7 @@ export const saveRecipeIngredients = async (
     if (portionError) throw portionError;
   }
   
-  // Os triggers agora cuidam do recálculo automaticamente
-  // Não precisamos mais chamar manualmente o calculate_recipe_costs
+  // Os triggers cuidam do recálculo automaticamente
 };
 
 export const fetchRecipeWithIngredients = async (recipeId: string) => {

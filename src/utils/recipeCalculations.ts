@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Calcula os custos de uma receita corretamente
+ * FÓRMULA CORRETA:
+ * - Custo total = ingredientes base + (ingredientes por porção × número de porções)
+ * - Custo por porção = custo total ÷ número de porções
  */
 export async function calculateRecipeCosts(recipeId: string) {
   console.log("Calculating costs for recipe:", recipeId);
@@ -19,7 +22,7 @@ export async function calculateRecipeCosts(recipeId: string) {
   // Buscar ingredientes base
   const { data: baseIngredients, error: baseError } = await supabase
     .from('recipe_base_ingredients')
-    .select('quantity, cost')
+    .select('cost')
     .eq('recipe_id', recipeId);
     
   if (baseError) throw baseError;
@@ -27,7 +30,7 @@ export async function calculateRecipeCosts(recipeId: string) {
   // Buscar ingredientes por porção
   const { data: portionIngredients, error: portionError } = await supabase
     .from('recipe_portion_ingredients')
-    .select('quantity, cost')
+    .select('cost')
     .eq('recipe_id', recipeId);
     
   if (portionError) throw portionError;
@@ -36,13 +39,15 @@ export async function calculateRecipeCosts(recipeId: string) {
   const baseIngredientsCost = baseIngredients?.reduce((sum, item) => sum + (Number(item.cost) || 0), 0) || 0;
   const portionIngredientsCost = portionIngredients?.reduce((sum, item) => sum + (Number(item.cost) || 0), 0) || 0;
   
-  // Custo total = ingredientes base + (ingredientes por porção * número de porções)
+  // FÓRMULA CORRETA:
+  // Custo total = ingredientes base + (ingredientes por porção × número de porções)
   const totalCost = baseIngredientsCost + (portionIngredientsCost * recipe.portions);
   
-  // Custo por porção = custo total / número de porções
+  // Custo por porção = custo total ÷ número de porções
   const unitCost = totalCost / recipe.portions;
   
   console.log("Recipe calculations:", {
+    recipeId,
     baseIngredientsCost,
     portionIngredientsCost,
     portions: recipe.portions,
