@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import RecipeForm from "@/components/recipes/RecipeForm";
+import { createRecipe, updateRecipe, deleteRecipe } from "@/services/recipeService";
 
 interface Recipe {
   id: string;
@@ -50,20 +50,29 @@ const Recipes = () => {
         throw error;
       }
       
-      console.log("Recipes from database:", data);
+      console.log("Raw recipes from database:", data);
       
-      return data?.map(recipe => ({
-        id: recipe.id,
-        name: recipe.name,
-        portions: recipe.portions,
-        total_cost: Number(recipe.total_cost) || 0,
-        unit_cost: Number(recipe.unit_cost) || 0,
-        notes: recipe.notes,
-        image_url: recipe.image_url,
-        created_at: recipe.created_at,
-        category: recipe.category
-      })) || [];
-    }
+      const processedRecipes = data?.map(recipe => {
+        console.log(`Processing recipe ${recipe.name}: total_cost=${recipe.total_cost}, unit_cost=${recipe.unit_cost}, portions=${recipe.portions}`);
+        
+        return {
+          id: recipe.id,
+          name: recipe.name,
+          portions: recipe.portions,
+          total_cost: Number(recipe.total_cost) || 0,
+          unit_cost: Number(recipe.unit_cost) || 0,
+          notes: recipe.notes,
+          image_url: recipe.image_url,
+          created_at: recipe.created_at,
+          category: recipe.category
+        };
+      }) || [];
+      
+      console.log("Processed recipes:", processedRecipes);
+      return processedRecipes;
+    },
+    refetchOnWindowFocus: true,
+    refetchInterval: 5000 // Refetch a cada 5 segundos para garantir dados atualizados
   });
 
   const { data: categories = [] } = useQuery({
@@ -100,17 +109,7 @@ const Recipes = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      // Deletar ingredientes primeiro
-      await supabase.from('recipe_base_ingredients').delete().eq('recipe_id', id);
-      await supabase.from('recipe_portion_ingredients').delete().eq('recipe_id', id);
-      
-      // Deletar receita
-      const { error } = await supabase
-        .from('recipes')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await deleteRecipe(id);
 
       toast({
         title: "Receita excluída",
@@ -138,108 +137,12 @@ const Recipes = () => {
       console.log("Salvando receita com dados:", data);
       
       if (editingRecipe) {
-        // Atualizar receita existente
-        const { error: recipeError } = await supabase
-          .from('recipes')
-          .update({
-            name: data.name,
-            image_url: data.image_url,
-            category_id: data.category_id,
-            portions: data.portions,
-            notes: data.notes
-          })
-          .eq('id', editingRecipe.id);
-
-        if (recipeError) throw recipeError;
-
-        // Deletar ingredientes existentes
-        await supabase.from('recipe_base_ingredients').delete().eq('recipe_id', editingRecipe.id);
-        await supabase.from('recipe_portion_ingredients').delete().eq('recipe_id', editingRecipe.id);
-
-        // Inserir novos ingredientes base
-        if (data.baseIngredients && data.baseIngredients.length > 0) {
-          const { error: baseError } = await supabase
-            .from('recipe_base_ingredients')
-            .insert(
-              data.baseIngredients.map((ing: any) => ({
-                recipe_id: editingRecipe.id,
-                ingredient_id: ing.ingredient_id,
-                quantity: ing.quantity,
-                cost: ing.cost
-              }))
-            );
-          
-          if (baseError) throw baseError;
-        }
-
-        // Inserir novos ingredientes por porção
-        if (data.portionIngredients && data.portionIngredients.length > 0) {
-          const { error: portionError } = await supabase
-            .from('recipe_portion_ingredients')
-            .insert(
-              data.portionIngredients.map((ing: any) => ({
-                recipe_id: editingRecipe.id,
-                ingredient_id: ing.ingredient_id,
-                quantity: ing.quantity,
-                cost: ing.cost
-              }))
-            );
-          
-          if (portionError) throw portionError;
-        }
-
+        await updateRecipe(editingRecipe.id, data);
       } else {
-        // Criar nova receita
-        const { data: newRecipe, error: recipeError } = await supabase
-          .from('recipes')
-          .insert([{
-            name: data.name,
-            image_url: data.image_url,
-            category_id: data.category_id,
-            portions: data.portions,
-            notes: data.notes,
-            total_cost: 0, // Triggers irão calcular
-            unit_cost: 0   // Triggers irão calcular
-          }])
-          .select()
-          .single();
-
-        if (recipeError) throw recipeError;
-
-        // Inserir ingredientes base
-        if (data.baseIngredients && data.baseIngredients.length > 0) {
-          const { error: baseError } = await supabase
-            .from('recipe_base_ingredients')
-            .insert(
-              data.baseIngredients.map((ing: any) => ({
-                recipe_id: newRecipe.id,
-                ingredient_id: ing.ingredient_id,
-                quantity: ing.quantity,
-                cost: ing.cost
-              }))
-            );
-          
-          if (baseError) throw baseError;
-        }
-
-        // Inserir ingredientes por porção
-        if (data.portionIngredients && data.portionIngredients.length > 0) {
-          const { error: portionError } = await supabase
-            .from('recipe_portion_ingredients')
-            .insert(
-              data.portionIngredients.map((ing: any) => ({
-                recipe_id: newRecipe.id,
-                ingredient_id: ing.ingredient_id,
-                quantity: ing.quantity,
-                cost: ing.cost
-              }))
-            );
-          
-          if (portionError) throw portionError;
-        }
+        await createRecipe(data);
       }
 
-      // Os triggers calculam automaticamente - só precisamos invalidar as queries
+      // Invalidar queries para forçar refetch
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       

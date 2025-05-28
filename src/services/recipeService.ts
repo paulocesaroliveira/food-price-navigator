@@ -93,46 +93,132 @@ export const fetchIngredients = async () => {
 };
 
 export const createRecipe = async (recipe: Omit<Recipe, "id">) => {
-  const { data, error } = await supabase
+  // Inserir receita com custos iniciais zerados
+  const { data: newRecipe, error: recipeError } = await supabase
     .from('recipes')
     .insert({
       name: recipe.name,
       image_url: recipe.image,
       category_id: recipe.categoryId,
       portions: recipe.portions,
-      total_cost: 0, // Sempre iniciar com 0 - triggers irão calcular
-      unit_cost: 0,  // Sempre iniciar com 0 - triggers irão calcular
+      total_cost: 0,
+      unit_cost: 0,
       notes: recipe.notes
     })
     .select()
     .single();
   
-  if (error) throw error;
-  return data;
+  if (recipeError) throw recipeError;
+
+  // Inserir ingredientes base
+  if (recipe.baseIngredients && recipe.baseIngredients.length > 0) {
+    const { error: baseError } = await supabase
+      .from('recipe_base_ingredients')
+      .insert(
+        recipe.baseIngredients.map(ing => ({
+          recipe_id: newRecipe.id,
+          ingredient_id: ing.ingredient_id,
+          quantity: ing.quantity,
+          cost: ing.cost
+        }))
+      );
+    
+    if (baseError) throw baseError;
+  }
+  
+  // Inserir ingredientes por porção
+  if (recipe.portionIngredients && recipe.portionIngredients.length > 0) {
+    const { error: portionError } = await supabase
+      .from('recipe_portion_ingredients')
+      .insert(
+        recipe.portionIngredients.map(ing => ({
+          recipe_id: newRecipe.id,
+          ingredient_id: ing.ingredient_id,
+          quantity: ing.quantity,
+          cost: ing.cost
+        }))
+      );
+    
+    if (portionError) throw portionError;
+  }
+  
+  // Aguardar um pouco para os triggers processarem
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  // Buscar a receita atualizada com os custos calculados pelos triggers
+  const { data: updatedRecipe, error: fetchError } = await supabase
+    .from('recipes')
+    .select('*')
+    .eq('id', newRecipe.id)
+    .single();
+  
+  if (fetchError) throw fetchError;
+  return updatedRecipe;
 };
 
 export const updateRecipe = async (id: string, recipe: Partial<Recipe>) => {
-  const updateData: any = {
-    name: recipe.name,
-    image_url: recipe.image,
-    category_id: recipe.categoryId,
-    notes: recipe.notes
-  };
+  // Atualizar dados básicos da receita
+  const { error: updateError } = await supabase
+    .from('recipes')
+    .update({
+      name: recipe.name,
+      image_url: recipe.image,
+      category_id: recipe.categoryId,
+      portions: recipe.portions,
+      notes: recipe.notes
+    })
+    .eq('id', id);
+  
+  if (updateError) throw updateError;
 
-  // Só incluir portions se foi alterado - triggers irão recalcular automaticamente
-  if (recipe.portions !== undefined) {
-    updateData.portions = recipe.portions;
+  // Deletar ingredientes existentes
+  await supabase.from('recipe_base_ingredients').delete().eq('recipe_id', id);
+  await supabase.from('recipe_portion_ingredients').delete().eq('recipe_id', id);
+
+  // Inserir novos ingredientes base
+  if (recipe.baseIngredients && recipe.baseIngredients.length > 0) {
+    const { error: baseError } = await supabase
+      .from('recipe_base_ingredients')
+      .insert(
+        recipe.baseIngredients.map(ing => ({
+          recipe_id: id,
+          ingredient_id: ing.ingredient_id,
+          quantity: ing.quantity,
+          cost: ing.cost
+        }))
+      );
+    
+    if (baseError) throw baseError;
   }
 
-  const { data, error } = await supabase
+  // Inserir novos ingredientes por porção
+  if (recipe.portionIngredients && recipe.portionIngredients.length > 0) {
+    const { error: portionError } = await supabase
+      .from('recipe_portion_ingredients')
+      .insert(
+        recipe.portionIngredients.map(ing => ({
+          recipe_id: id,
+          ingredient_id: ing.ingredient_id,
+          quantity: ing.quantity,
+          cost: ing.cost
+        }))
+      );
+    
+    if (portionError) throw portionError;
+  }
+  
+  // Aguardar um pouco para os triggers processarem
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  // Buscar a receita atualizada com os custos calculados pelos triggers
+  const { data: updatedRecipe, error: fetchError } = await supabase
     .from('recipes')
-    .update(updateData)
+    .select('*')
     .eq('id', id)
-    .select()
     .single();
   
-  if (error) throw error;
-  return data;
+  if (fetchError) throw fetchError;
+  return updatedRecipe;
 };
 
 export const deleteRecipe = async (id: string) => {
@@ -147,50 +233,6 @@ export const deleteRecipe = async (id: string) => {
     .eq('id', id);
   
   if (error) throw error;
-};
-
-export const saveRecipeIngredients = async (
-  recipeId: string, 
-  baseIngredients: RecipeIngredient[], 
-  portionIngredients: RecipeIngredient[]
-) => {
-  // Deletar ingredientes existentes
-  await supabase.from('recipe_base_ingredients').delete().eq('recipe_id', recipeId);
-  await supabase.from('recipe_portion_ingredients').delete().eq('recipe_id', recipeId);
-  
-  // Inserir ingredientes base
-  if (baseIngredients.length > 0) {
-    const { error: baseError } = await supabase
-      .from('recipe_base_ingredients')
-      .insert(
-        baseIngredients.map(ing => ({
-          recipe_id: recipeId,
-          ingredient_id: ing.ingredient_id,
-          quantity: ing.quantity,
-          cost: ing.cost
-        }))
-      );
-    
-    if (baseError) throw baseError;
-  }
-  
-  // Inserir ingredientes por porção
-  if (portionIngredients.length > 0) {
-    const { error: portionError } = await supabase
-      .from('recipe_portion_ingredients')
-      .insert(
-        portionIngredients.map(ing => ({
-          recipe_id: recipeId,
-          ingredient_id: ing.ingredient_id,
-          quantity: ing.quantity,
-          cost: ing.cost
-        }))
-      );
-    
-    if (portionError) throw portionError;
-  }
-  
-  // Os triggers calculam automaticamente - não fazemos nada mais
 };
 
 export const fetchRecipeWithIngredients = async (recipeId: string) => {
