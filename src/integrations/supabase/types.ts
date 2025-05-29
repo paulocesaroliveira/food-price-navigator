@@ -1398,6 +1398,23 @@ export type Database = {
         Args: { recipe_id_param: string }
         Returns: undefined
       }
+      recalculate_all_costs: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          updated_recipes: number
+          updated_products: number
+          errors: string[]
+        }[]
+      }
+      recalculate_ingredient_chain: {
+        Args: { ingredient_ids: string[] }
+        Returns: {
+          affected_recipes: number
+          affected_products: number
+          recipe_ids: string[]
+          product_ids: string[]
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
