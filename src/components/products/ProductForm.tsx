@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +49,37 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [packagingQuantity, setPackagingQuantity] = useState(1);
   const [packagingCost, setPackagingCost] = useState(0);
   const [isPrimaryPackaging, setIsPrimaryPackaging] = useState(false);
+
+  // Atualizar custos dos itens já selecionados quando as receitas mudam
+  useEffect(() => {
+    if (recipes.length > 0 && items.length > 0) {
+      const updatedItems = items.map(item => {
+        const updatedRecipe = recipes.find(r => r.id === item.recipeId);
+        if (updatedRecipe && updatedRecipe.unitCost !== item.recipe?.unitCost) {
+          console.log(`🔄 Atualizando custo do item ${item.recipe?.name}: ${item.recipe?.unitCost} → ${updatedRecipe.unitCost}`);
+          return {
+            ...item,
+            cost: updatedRecipe.unitCost * item.quantity,
+            recipe: {
+              ...item.recipe!,
+              unitCost: updatedRecipe.unitCost,
+            },
+          };
+        }
+        return item;
+      });
+      
+      // Só atualiza se houve mudança real
+      const hasChanges = updatedItems.some((item, index) => 
+        item.cost !== items[index].cost
+      );
+      
+      if (hasChanges) {
+        console.log('📝 Itens atualizados com novos custos das receitas');
+        setItems(updatedItems);
+      }
+    }
+  }, [recipes]);
 
   useEffect(() => {
     recalculateTotalCost();
