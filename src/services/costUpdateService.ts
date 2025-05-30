@@ -315,26 +315,48 @@ const recalculateProductCost = async (productId: string) => {
   console.log('🔄 Recalculando custo do produto:', productId);
   
   try {
-    const { error } = await supabase
+    // Buscar soma dos custos dos itens (receitas) do produto
+    const { data: itemsCost, error: itemsError } = await supabase
+      .from('product_items')
+      .select('cost')
+      .eq('product_id', productId);
+    
+    if (itemsError) {
+      console.error('❌ Erro ao buscar custos dos itens:', itemsError);
+      throw itemsError;
+    }
+    
+    // Buscar soma dos custos das embalagens do produto
+    const { data: packagingCost, error: packagingError } = await supabase
+      .from('product_packaging')
+      .select('cost')
+      .eq('product_id', productId);
+    
+    if (packagingError) {
+      console.error('❌ Erro ao buscar custos das embalagens:', packagingError);
+      throw packagingError;
+    }
+    
+    // Calcular custo total
+    const totalItemsCost = itemsCost?.reduce((sum, item) => sum + Number(item.cost), 0) || 0;
+    const totalPackagingCost = packagingCost?.reduce((sum, pkg) => sum + Number(pkg.cost), 0) || 0;
+    const totalCost = totalItemsCost + totalPackagingCost;
+    
+    // Atualizar produto
+    const { error: updateError } = await supabase
       .from('products')
       .update({
-        total_cost: supabase.sql`(
-          SELECT COALESCE(SUM(pi.cost), 0) + COALESCE(
-            (SELECT SUM(pp.cost) FROM product_packaging pp WHERE pp.product_id = ${productId}), 0
-          )
-          FROM product_items pi 
-          WHERE pi.product_id = ${productId}
-        )`,
+        total_cost: totalCost,
         updated_at: new Date().toISOString()
       })
       .eq('id', productId);
     
-    if (error) {
-      console.error('❌ Erro ao recalcular custo do produto:', error);
-      throw error;
+    if (updateError) {
+      console.error('❌ Erro ao recalcular custo do produto:', updateError);
+      throw updateError;
     }
     
-    console.log('✅ Custo do produto recalculado');
+    console.log(`✅ Custo do produto recalculado: R$ ${totalCost}`);
   } catch (error) {
     console.error('❌ Erro ao recalcular custo do produto:', error);
     throw error;
