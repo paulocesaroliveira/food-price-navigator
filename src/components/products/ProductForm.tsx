@@ -53,33 +53,45 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   // Atualizar custos dos itens já selecionados quando as receitas mudam
   useEffect(() => {
     if (recipes.length > 0 && items.length > 0) {
+      console.log('🔍 Verificando atualizações de custo das receitas...');
+      
       const updatedItems = items.map(item => {
-        const updatedRecipe = recipes.find(r => r.id === item.recipeId);
-        if (updatedRecipe && updatedRecipe.unitCost !== item.recipe?.unitCost) {
-          console.log(`🔄 Atualizando custo do item ${item.recipe?.name}: ${item.recipe?.unitCost} → ${updatedRecipe.unitCost}`);
-          return {
-            ...item,
-            cost: updatedRecipe.unitCost * item.quantity,
-            recipe: {
-              ...item.recipe!,
-              unitCost: updatedRecipe.unitCost,
-            },
-          };
+        const currentRecipe = recipes.find(r => r.id === item.recipeId);
+        if (currentRecipe) {
+          const currentUnitCost = currentRecipe.unitCost;
+          const itemRecipeUnitCost = item.recipe?.unitCost || 0;
+          
+          // Verifica se o custo mudou
+          if (Math.abs(currentUnitCost - itemRecipeUnitCost) > 0.001) {
+            const newCost = currentUnitCost * item.quantity;
+            console.log(`🔄 Atualizando custo do item ${item.recipe?.name}:`);
+            console.log(`   Custo anterior: R$ ${itemRecipeUnitCost.toFixed(2)} × ${item.quantity} = R$ ${item.cost.toFixed(2)}`);
+            console.log(`   Custo atual: R$ ${currentUnitCost.toFixed(2)} × ${item.quantity} = R$ ${newCost.toFixed(2)}`);
+            
+            return {
+              ...item,
+              cost: newCost,
+              recipe: {
+                ...item.recipe!,
+                unitCost: currentUnitCost,
+              },
+            };
+          }
         }
         return item;
       });
       
       // Só atualiza se houve mudança real
       const hasChanges = updatedItems.some((item, index) => 
-        item.cost !== items[index].cost
+        Math.abs(item.cost - items[index].cost) > 0.001
       );
       
       if (hasChanges) {
-        console.log('📝 Itens atualizados com novos custos das receitas');
+        console.log('✅ Itens atualizados com novos custos das receitas');
         setItems(updatedItems);
       }
     }
-  }, [recipes]);
+  }, [recipes.map(r => `${r.id}-${r.unitCost}`).join(','), items.length]);
 
   useEffect(() => {
     recalculateTotalCost();
