@@ -382,9 +382,57 @@ const recalculateRecipeCost = async (recipeId: string) => {
       throw updateError;
     }
     
+    // NOVO: Atualizar custos dos itens dos produtos que usam esta receita
+    await updateProductItemsCosts(recipeId, unitCost);
+    
     console.log(`✅ Custo da receita recalculado: Total R$ ${totalCost}, Unitário R$ ${unitCost}`);
   } catch (error) {
     console.error('❌ Erro ao recalcular custo da receita:', error);
+    throw error;
+  }
+};
+
+// NOVA FUNÇÃO: Atualizar custos dos itens dos produtos que usam uma receita específica
+const updateProductItemsCosts = async (recipeId: string, newUnitCost: number) => {
+  console.log('🔄 Atualizando custos dos itens dos produtos para receita:', recipeId);
+  
+  try {
+    // Buscar todos os itens de produtos que usam esta receita
+    const { data: productItems, error } = await supabase
+      .from('product_items')
+      .select('id, quantity')
+      .eq('recipe_id', recipeId);
+    
+    if (error) {
+      console.error('❌ Erro ao buscar itens dos produtos:', error);
+      throw error;
+    }
+    
+    if (!productItems || productItems.length === 0) {
+      console.log('ℹ️ Nenhum item de produto encontrado para esta receita');
+      return;
+    }
+    
+    // Atualizar cada item
+    for (const item of productItems) {
+      const newCost = Number(item.quantity) * newUnitCost;
+      
+      console.log(`📝 Atualizando item ${item.id}: ${item.quantity} × ${newUnitCost} = ${newCost}`);
+      
+      const { error: updateError } = await supabase
+        .from('product_items')
+        .update({ cost: newCost })
+        .eq('id', item.id);
+      
+      if (updateError) {
+        console.error('❌ Erro ao atualizar item do produto:', updateError);
+        throw updateError;
+      }
+    }
+    
+    console.log(`✅ ${productItems.length} itens de produtos atualizados`);
+  } catch (error) {
+    console.error('❌ Erro ao atualizar custos dos itens dos produtos:', error);
     throw error;
   }
 };
