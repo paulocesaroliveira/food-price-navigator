@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -30,6 +31,7 @@ import {
   Receipt,
   UserCheck,
   BarChart3,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -93,6 +95,7 @@ const AppSidebar = () => {
       label: "Gestão",
       items: [
         { path: "/pricing", name: "Precificação", icon: DollarSign },
+        { path: "/cost-update", name: "Atualização de Custos", icon: RefreshCw },
         { path: "/accounts-payable", name: "Contas a Pagar", icon: Receipt },
       ]
     },

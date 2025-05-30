@@ -3,36 +3,28 @@ import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { RefreshCw, AlertTriangle, CheckCircle, TrendingUp, Database, Package, ChefHat, Calculator } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { fetchRecipes } from "@/services/recipeService";
-import { getProductList } from "@/services/productService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-
-interface UpdateResult {
-  updated_recipes: number;
-  updated_products: number;
-  errors: string[];
-}
-
-interface ChainResult {
-  affected_recipes: number;
-  affected_products: number;
-  recipe_ids: string[];
-  product_ids: string[];
-}
+import { 
+  recalculateAllCosts, 
+  recalculateIngredientChain, 
+  fetchIngredients,
+  UpdateAllResult,
+  UpdateChainResult 
+} from "@/services/costUpdateService";
+import { fetchRecipes } from "@/services/recipeService";
+import { getProductList } from "@/services/productService";
 
 const CostUpdate = () => {
-  const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
-  const [chainResult, setChainResult] = useState<ChainResult | null>(null);
+  const [updateResult, setUpdateResult] = useState<UpdateAllResult | null>(null);
+  const [chainResult, setChainResult] = useState<UpdateChainResult | null>(null);
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
-  // Buscar dados para exibir estatísticas
+  // Buscar dados para estatísticas
   const { data: recipes = [] } = useQuery({
     queryKey: ['recipes'],
     queryFn: fetchRecipes,
@@ -45,23 +37,12 @@ const CostUpdate = () => {
 
   const { data: ingredients = [] } = useQuery({
     queryKey: ['ingredients'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('ingredients')
-        .select('*')
-        .order('name');
-      if (error) throw error;
-      return data || [];
-    }
+    queryFn: fetchIngredients,
   });
 
   // Mutation para recalcular todos os custos
   const recalculateAllMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.rpc('recalculate_all_costs');
-      if (error) throw error;
-      return data[0] as UpdateResult;
-    },
+    mutationFn: recalculateAllCosts,
     onSuccess: (result) => {
       setUpdateResult(result);
       setChainResult(null);
@@ -70,20 +51,21 @@ const CostUpdate = () => {
       
       if (result.errors.length > 0) {
         toast({
-          title: "Atualização concluída com avisos",
+          title: "⚠️ Atualização concluída com avisos",
           description: `${result.updated_recipes} receitas e ${result.updated_products} produtos atualizados, mas houve ${result.errors.length} erro(s).`,
           variant: "destructive"
         });
       } else {
         toast({
-          title: "Atualização concluída com sucesso!",
+          title: "✅ Atualização concluída com sucesso!",
           description: `${result.updated_recipes} receitas e ${result.updated_products} produtos foram atualizados.`,
         });
       }
     },
     onError: (error: any) => {
+      console.error('❌ Erro na atualização completa:', error);
       toast({
-        title: "Erro na atualização",
+        title: "❌ Erro na atualização",
         description: error.message,
         variant: "destructive"
       });
@@ -92,13 +74,7 @@ const CostUpdate = () => {
 
   // Mutation para recalcular cadeia específica
   const recalculateChainMutation = useMutation({
-    mutationFn: async (ingredientIds: string[]) => {
-      const { data, error } = await supabase.rpc('recalculate_ingredient_chain', {
-        ingredient_ids: ingredientIds
-      });
-      if (error) throw error;
-      return data[0] as ChainResult;
-    },
+    mutationFn: (ingredientIds: string[]) => recalculateIngredientChain(ingredientIds),
     onSuccess: (result) => {
       setChainResult(result);
       setUpdateResult(null);
@@ -106,13 +82,14 @@ const CostUpdate = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       
       toast({
-        title: "Atualização da cadeia concluída!",
+        title: "✅ Atualização da cadeia concluída!",
         description: `${result.affected_recipes} receitas e ${result.affected_products} produtos foram atualizados.`,
       });
     },
     onError: (error: any) => {
+      console.error('❌ Erro na atualização da cadeia:', error);
       toast({
-        title: "Erro na atualização da cadeia",
+        title: "❌ Erro na atualização da cadeia",
         description: error.message,
         variant: "destructive"
       });
@@ -142,7 +119,7 @@ const CostUpdate = () => {
               Atualização de Custos
             </h1>
             <p className="text-muted-foreground">
-              Controle manual das atualizações de preços em toda a cadeia produtiva
+              Sistema manual para recalcular custos em toda a cadeia produtiva
             </p>
           </div>
         </div>
@@ -246,7 +223,7 @@ const CostUpdate = () => {
         {/* Atualização Completa */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-food-dark">Atualização Completa</CardTitle>
+            <CardTitle className="text-lg text-food-dark">🔄 Atualização Completa</CardTitle>
             <p className="text-sm text-muted-foreground">
               Recalcula todos os custos da cadeia produtiva
             </p>
@@ -278,7 +255,7 @@ const CostUpdate = () => {
         {/* Atualização Seletiva */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-food-dark">Atualização Seletiva</CardTitle>
+            <CardTitle className="text-lg text-food-dark">🎯 Atualização Seletiva</CardTitle>
             <p className="text-sm text-muted-foreground">
               Recalcula apenas os itens afetados por ingredientes específicos
             </p>
@@ -297,7 +274,7 @@ const CostUpdate = () => {
                       className="rounded border-gray-300"
                     />
                     <label htmlFor={ingredient.id} className="text-sm">
-                      {ingredient.name}
+                      {ingredient.name} - R$ {ingredient.unit_cost}/{ingredient.unit}
                     </label>
                   </div>
                 ))}
@@ -320,6 +297,24 @@ const CostUpdate = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Progresso */}
+      {isLoading && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Processando atualizações...</span>
+                <span>Aguarde</span>
+              </div>
+              <Progress value={undefined} className="w-full" />
+              <p className="text-xs text-muted-foreground text-center">
+                Verifique o console do navegador para acompanhar o progresso detalhado
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Resultados */}
       {(updateResult || chainResult) && (
@@ -375,21 +370,6 @@ const CostUpdate = () => {
                 </p>
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Progresso */}
-      {isLoading && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Processando atualizações...</span>
-                <span>Aguarde</span>
-              </div>
-              <Progress value={undefined} className="w-full" />
-            </div>
           </CardContent>
         </Card>
       )}
