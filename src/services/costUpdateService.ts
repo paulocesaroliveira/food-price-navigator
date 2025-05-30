@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface UpdateAllResult {
@@ -47,20 +46,33 @@ export const recalculateIngredientChain = async (ingredientIds: string[]): Promi
     // 1. Atualizar custos dos ingredientes específicos nas receitas
     await updateSpecificRecipeIngredientCosts(ingredientIds);
     
-    // 2. Executar a função da cadeia no banco
-    const { data, error } = await supabase.rpc('recalculate_ingredient_chain', {
-      ingredient_ids: ingredientIds
-    });
+    // 2. Buscar receitas afetadas pelos ingredientes
+    const affectedRecipes = await getRecipesAffectedByIngredients(ingredientIds);
+    const recipeIds = affectedRecipes.map(r => r.id);
     
-    if (error) {
-      console.error('❌ Erro ao recalcular cadeia:', error);
-      throw error;
+    // 3. Recalcular custos das receitas afetadas
+    for (const recipe of affectedRecipes) {
+      await recalculateRecipeCost(recipe.id);
     }
     
-    console.log('✅ Recálculo da cadeia concluído:', data[0]);
-    return data[0] as UpdateChainResult;
+    // 4. Buscar produtos afetados pelas receitas e recalcular seus custos
+    const affectedProducts = await getProductsAffectedByRecipes(recipeIds);
+    const productIds = affectedProducts.map(p => p.id);
+    
+    // 5. Recalcular custos dos produtos afetados
+    for (const product of affectedProducts) {
+      await recalculateProductCost(product.id);
+    }
+    
+    console.log('✅ Recálculo da cadeia de ingredientes concluído');
+    return {
+      affected_recipes: affectedRecipes.length,
+      affected_products: affectedProducts.length,
+      recipe_ids: recipeIds,
+      product_ids: productIds
+    } as UpdateChainResult;
   } catch (error) {
-    console.error('❌ Erro geral na cadeia:', error);
+    console.error('❌ Erro geral na cadeia de ingredientes:', error);
     throw error;
   }
 };
@@ -76,16 +88,14 @@ export const recalculatePackagingChain = async (packagingIds: string[]): Promise
     const affectedProducts = await getProductsAffectedByPackaging(packagingIds);
     
     // 3. Recalcular custos dos produtos afetados
-    let productCount = 0;
     for (const product of affectedProducts) {
       await recalculateProductCost(product.id);
-      productCount++;
     }
     
     console.log('✅ Recálculo da cadeia de embalagens concluído');
     return {
       affected_recipes: 0,
-      affected_products: productCount,
+      affected_products: affectedProducts.length,
       recipe_ids: [],
       product_ids: affectedProducts.map(p => p.id)
     } as UpdateChainResult;
@@ -310,6 +320,75 @@ const updateProductPackagingCosts = async (specificPackagingIds?: string[]) => {
   console.log(`✅ ${productPackaging.length} embalagens de produtos atualizadas`);
 };
 
+// Recalcular custo total de uma receita específica
+const recalculateRecipeCost = async (recipeId: string) => {
+  console.log('🔄 Recalculando custo da receita:', recipeId);
+  
+  try {
+    // Buscar receita para obter número de porções
+    const { data: recipe, error: recipeError } = await supabase
+      .from('recipes')
+      .select('portions')
+      .eq('id', recipeId)
+      .single();
+    
+    if (recipeError) {
+      console.error('❌ Erro ao buscar receita:', recipeError);
+      throw recipeError;
+    }
+    
+    // Buscar soma dos custos dos ingredientes base
+    const { data: baseCosts, error: baseError } = await supabase
+      .from('recipe_base_ingredients')
+      .select('cost')
+      .eq('recipe_id', recipeId);
+    
+    if (baseError) {
+      console.error('❌ Erro ao buscar custos base:', baseError);
+      throw baseError;
+    }
+    
+    // Buscar soma dos custos dos ingredientes por porção
+    const { data: portionCosts, error: portionError } = await supabase
+      .from('recipe_portion_ingredients')
+      .select('cost')
+      .eq('recipe_id', recipeId);
+    
+    if (portionError) {
+      console.error('❌ Erro ao buscar custos por porção:', portionError);
+      throw portionError;
+    }
+    
+    // Calcular custos
+    const totalBaseCost = baseCosts?.reduce((sum, item) => sum + Number(item.cost), 0) || 0;
+    const totalPortionCost = portionCosts?.reduce((sum, item) => sum + Number(item.cost), 0) || 0;
+    const portions = recipe.portions || 1;
+    
+    const totalCost = totalBaseCost + (totalPortionCost * portions);
+    const unitCost = totalCost / portions;
+    
+    // Atualizar receita
+    const { error: updateError } = await supabase
+      .from('recipes')
+      .update({
+        total_cost: totalCost,
+        unit_cost: unitCost,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', recipeId);
+    
+    if (updateError) {
+      console.error('❌ Erro ao recalcular custo da receita:', updateError);
+      throw updateError;
+    }
+    
+    console.log(`✅ Custo da receita recalculado: Total R$ ${totalCost}, Unitário R$ ${unitCost}`);
+  } catch (error) {
+    console.error('❌ Erro ao recalcular custo da receita:', error);
+    throw error;
+  }
+};
+
 // Recalcular custo total de um produto específico
 const recalculateProductCost = async (productId: string) => {
   console.log('🔄 Recalculando custo do produto:', productId);
@@ -410,6 +489,31 @@ export const getRecipesAffectedByIngredients = async (ingredientIds: string[]) =
   }
   
   console.log(`📋 ${data?.length || 0} receitas encontradas`);
+  return data || [];
+};
+
+export const getProductsAffectedByRecipes = async (recipeIds: string[]) => {
+  console.log('🔍 Buscando produtos afetados pelas receitas:', recipeIds);
+  
+  if (!recipeIds || recipeIds.length === 0) {
+    return [];
+  }
+  
+  const { data, error } = await supabase
+    .from('products')
+    .select(`
+      id, 
+      name,
+      product_items!inner(recipe_id)
+    `)
+    .in('product_items.recipe_id', recipeIds);
+  
+  if (error) {
+    console.error('❌ Erro ao buscar produtos afetados pelas receitas:', error);
+    throw error;
+  }
+  
+  console.log(`📦 ${data?.length || 0} produtos encontrados`);
   return data || [];
 };
 
