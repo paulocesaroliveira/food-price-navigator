@@ -79,10 +79,11 @@ const recalculateRecipeIngredientCosts = async (specificIngredientIds?: string[]
       throw baseError;
     }
     
-    // Atualizar custos dos ingredientes base
+    // Atualizar custos dos ingredientes base - CORRIGINDO A LÓGICA
     if (baseIngredients && baseIngredients.length > 0) {
       for (const ingredient of baseIngredients) {
-        const newCost = ingredient.quantity * ingredient.ingredients.unit_cost;
+        // Calcular o custo correto: quantidade × custo unitário do ingrediente
+        const newCost = Number(ingredient.quantity) * Number(ingredient.ingredients.unit_cost);
         console.log(`Atualizando ingrediente base ${ingredient.id}: quantidade=${ingredient.quantity}, custo_unitário=${ingredient.ingredients.unit_cost}, novo_custo=${newCost}`);
         
         const { error: updateError } = await supabase
@@ -119,10 +120,11 @@ const recalculateRecipeIngredientCosts = async (specificIngredientIds?: string[]
       throw portionError;
     }
     
-    // Atualizar custos dos ingredientes por porção
+    // Atualizar custos dos ingredientes por porção - CORRIGINDO A LÓGICA
     if (portionIngredients && portionIngredients.length > 0) {
       for (const ingredient of portionIngredients) {
-        const newCost = ingredient.quantity * ingredient.ingredients.unit_cost;
+        // Calcular o custo correto: quantidade × custo unitário do ingrediente
+        const newCost = Number(ingredient.quantity) * Number(ingredient.ingredients.unit_cost);
         console.log(`Atualizando ingrediente por porção ${ingredient.id}: quantidade=${ingredient.quantity}, custo_unitário=${ingredient.ingredients.unit_cost}, novo_custo=${newCost}`);
         
         const { error: updateError } = await supabase
