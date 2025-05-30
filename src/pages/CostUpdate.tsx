@@ -10,8 +10,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { 
   recalculateAllCosts, 
-  recalculateIngredientChain, 
+  recalculateIngredientChain,
+  recalculatePackagingChain,
   fetchIngredients,
+  fetchPackaging,
   UpdateAllResult,
   UpdateChainResult 
 } from "@/services/costUpdateService";
@@ -22,6 +24,7 @@ const CostUpdate = () => {
   const [updateResult, setUpdateResult] = useState<UpdateAllResult | null>(null);
   const [chainResult, setChainResult] = useState<UpdateChainResult | null>(null);
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
+  const [selectedPackaging, setSelectedPackaging] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
   // Buscar dados para estatísticas
@@ -38,6 +41,11 @@ const CostUpdate = () => {
   const { data: ingredients = [] } = useQuery({
     queryKey: ['ingredients'],
     queryFn: fetchIngredients,
+  });
+
+  const { data: packaging = [] } = useQuery({
+    queryKey: ['packaging'],
+    queryFn: fetchPackaging,
   });
 
   // Mutation para recalcular todos os custos
@@ -72,8 +80,8 @@ const CostUpdate = () => {
     }
   });
 
-  // Mutation para recalcular cadeia específica
-  const recalculateChainMutation = useMutation({
+  // Mutation para recalcular cadeia específica de ingredientes
+  const recalculateIngredientChainMutation = useMutation({
     mutationFn: (ingredientIds: string[]) => recalculateIngredientChain(ingredientIds),
     onSuccess: (result) => {
       setChainResult(result);
@@ -82,12 +90,35 @@ const CostUpdate = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       
       toast({
-        title: "✅ Atualização da cadeia concluída!",
+        title: "✅ Atualização da cadeia de ingredientes concluída!",
         description: `${result.affected_recipes} receitas e ${result.affected_products} produtos foram atualizados.`,
       });
     },
     onError: (error: any) => {
-      console.error('❌ Erro na atualização da cadeia:', error);
+      console.error('❌ Erro na atualização da cadeia de ingredientes:', error);
+      toast({
+        title: "❌ Erro na atualização da cadeia",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Mutation para recalcular cadeia específica de embalagens
+  const recalculatePackagingChainMutation = useMutation({
+    mutationFn: (packagingIds: string[]) => recalculatePackagingChain(packagingIds),
+    onSuccess: (result) => {
+      setChainResult(result);
+      setUpdateResult(null);
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      
+      toast({
+        title: "✅ Atualização da cadeia de embalagens concluída!",
+        description: `${result.affected_products} produtos foram atualizados.`,
+      });
+    },
+    onError: (error: any) => {
+      console.error('❌ Erro na atualização da cadeia de embalagens:', error);
       toast({
         title: "❌ Erro na atualização da cadeia",
         description: error.message,
@@ -104,7 +135,17 @@ const CostUpdate = () => {
     );
   };
 
-  const isLoading = recalculateAllMutation.isPending || recalculateChainMutation.isPending;
+  const handleTogglePackaging = (packagingId: string) => {
+    setSelectedPackaging(prev => 
+      prev.includes(packagingId) 
+        ? prev.filter(id => id !== packagingId)
+        : [...prev, packagingId]
+    );
+  };
+
+  const isLoading = recalculateAllMutation.isPending || 
+                   recalculateIngredientChainMutation.isPending || 
+                   recalculatePackagingChainMutation.isPending;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -126,7 +167,7 @@ const CostUpdate = () => {
       </div>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ingredientes</CardTitle>
@@ -135,7 +176,20 @@ const CostUpdate = () => {
           <CardContent>
             <div className="text-2xl font-bold">{ingredients.length}</div>
             <p className="text-xs text-muted-foreground">
-              Base de toda a cadeia produtiva
+              Base das receitas
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Embalagens</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{packaging.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Base dos produtos
             </p>
           </CardContent>
         </Card>
@@ -161,7 +215,7 @@ const CostUpdate = () => {
           <CardContent>
             <div className="text-2xl font-bold">{products.length}</div>
             <p className="text-xs text-muted-foreground">
-              Dependem das receitas
+              Dependem das receitas e embalagens
             </p>
           </CardContent>
         </Card>
@@ -199,27 +253,27 @@ const CostUpdate = () => {
             
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-food-sage/20 flex items-center justify-center mx-auto mb-2">
-                <Calculator className="h-8 w-8 text-food-sage" />
+                <Package className="h-8 w-8 text-food-sage" />
               </div>
-              <p className="font-semibold">Produtos</p>
-              <p className="text-xs text-muted-foreground">Custo total</p>
+              <p className="font-semibold">Embalagens</p>
+              <p className="text-xs text-muted-foreground">Custo unitário</p>
             </div>
             
             <div className="text-2xl text-food-coral">→</div>
             
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-food-coral/20 flex items-center justify-center mx-auto mb-2">
-                <TrendingUp className="h-8 w-8 text-food-coral" />
+                <Calculator className="h-8 w-8 text-food-coral" />
               </div>
-              <p className="font-semibold">Precificação</p>
-              <p className="text-xs text-muted-foreground">Preço final</p>
+              <p className="font-semibold">Produtos</p>
+              <p className="text-xs text-muted-foreground">Custo total</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Opções de Atualização */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6">
         {/* Atualização Completa */}
         <Card>
           <CardHeader>
@@ -232,7 +286,7 @@ const CostUpdate = () => {
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Esta ação irá recalcular todos os custos de ingredientes, receitas e produtos.
+                Esta ação irá recalcular todos os custos de ingredientes, embalagens, receitas e produtos.
                 Use quando houver mudanças significativas nos preços.
               </AlertDescription>
             </Alert>
@@ -252,12 +306,12 @@ const CostUpdate = () => {
           </CardContent>
         </Card>
 
-        {/* Atualização Seletiva */}
+        {/* Atualização Seletiva - Ingredientes */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-food-dark">🎯 Atualização Seletiva</CardTitle>
+            <CardTitle className="text-lg text-food-dark">🎯 Ingredientes Alterados</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Recalcula apenas os itens afetados por ingredientes específicos
+              Recalcula apenas receitas afetadas por ingredientes específicos
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -282,7 +336,7 @@ const CostUpdate = () => {
             </div>
             
             <Button 
-              onClick={() => recalculateChainMutation.mutate(selectedIngredients)}
+              onClick={() => recalculateIngredientChainMutation.mutate(selectedIngredients)}
               disabled={isLoading || selectedIngredients.length === 0}
               variant="outline"
               className="w-full"
@@ -292,7 +346,52 @@ const CostUpdate = () => {
               ) : (
                 <TrendingUp className="mr-2 h-4 w-4" />
               )}
-              Recalcular Cadeia Selecionada ({selectedIngredients.length})
+              Recalcular Ingredientes ({selectedIngredients.length})
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Atualização Seletiva - Embalagens */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg text-food-dark">📦 Embalagens Alteradas</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Recalcula apenas produtos afetados por embalagens específicas
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="max-h-48 overflow-y-auto border rounded-lg p-3">
+              <p className="text-sm font-medium mb-2">Selecione as embalagens alteradas:</p>
+              <div className="space-y-2">
+                {packaging.map((pack) => (
+                  <div key={pack.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={pack.id}
+                      checked={selectedPackaging.includes(pack.id)}
+                      onChange={() => handleTogglePackaging(pack.id)}
+                      className="rounded border-gray-300"
+                    />
+                    <label htmlFor={pack.id} className="text-sm">
+                      {pack.name} ({pack.type}) - R$ {pack.unit_cost}/unidade
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <Button 
+              onClick={() => recalculatePackagingChainMutation.mutate(selectedPackaging)}
+              disabled={isLoading || selectedPackaging.length === 0}
+              variant="outline"
+              className="w-full"
+            >
+              {isLoading ? (
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <TrendingUp className="mr-2 h-4 w-4" />
+              )}
+              Recalcular Embalagens ({selectedPackaging.length})
             </Button>
           </CardContent>
         </Card>
@@ -366,7 +465,7 @@ const CostUpdate = () => {
                 </div>
                 
                 <p className="text-sm text-muted-foreground">
-                  Apenas os itens diretamente relacionados aos ingredientes selecionados foram atualizados.
+                  Apenas os itens diretamente relacionados foram atualizados.
                 </p>
               </div>
             )}
