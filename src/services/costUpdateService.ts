@@ -382,7 +382,7 @@ const recalculateRecipeCost = async (recipeId: string) => {
       throw updateError;
     }
     
-    // NOVO: Atualizar custos dos itens dos produtos que usam esta receita
+    // CRÍTICO: Atualizar custos dos itens dos produtos que usam esta receita
     await updateProductItemsCosts(recipeId, unitCost);
     
     console.log(`✅ Custo da receita recalculado: Total R$ ${totalCost}, Unitário R$ ${unitCost}`);
@@ -392,7 +392,7 @@ const recalculateRecipeCost = async (recipeId: string) => {
   }
 };
 
-// NOVA FUNÇÃO: Atualizar custos dos itens dos produtos que usam uma receita específica
+// FUNÇÃO CRÍTICA: Atualizar custos dos itens dos produtos que usam uma receita específica
 const updateProductItemsCosts = async (recipeId: string, newUnitCost: number) => {
   console.log('🔄 Atualizando custos dos itens dos produtos para receita:', recipeId);
   
@@ -400,7 +400,7 @@ const updateProductItemsCosts = async (recipeId: string, newUnitCost: number) =>
     // Buscar todos os itens de produtos que usam esta receita
     const { data: productItems, error } = await supabase
       .from('product_items')
-      .select('id, quantity')
+      .select('id, quantity, product_id')
       .eq('recipe_id', recipeId);
     
     if (error) {
@@ -431,6 +431,13 @@ const updateProductItemsCosts = async (recipeId: string, newUnitCost: number) =>
     }
     
     console.log(`✅ ${productItems.length} itens de produtos atualizados`);
+    
+    // Recalcular o custo total dos produtos afetados
+    const uniqueProductIds = [...new Set(productItems.map(item => item.product_id))];
+    for (const productId of uniqueProductIds) {
+      await recalculateProductCost(productId);
+    }
+    
   } catch (error) {
     console.error('❌ Erro ao atualizar custos dos itens dos produtos:', error);
     throw error;

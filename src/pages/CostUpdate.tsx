@@ -1,472 +1,360 @@
 
-import React, { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { RefreshCw, AlertTriangle, CheckCircle, TrendingUp, Database, Package, ChefHat, Calculator } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { RefreshCw, Package, ChefHat, AlertCircle, CheckCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
 import { 
   recalculateAllCosts, 
-  recalculateIngredientChain,
+  recalculateIngredientChain, 
   recalculatePackagingChain,
   fetchIngredients,
   fetchPackaging,
   UpdateAllResult,
-  UpdateChainResult 
+  UpdateChainResult
 } from "@/services/costUpdateService";
-import { fetchRecipes } from "@/services/recipeService";
-import { getProductList } from "@/services/productService";
+import { useQueryClient } from "@tanstack/react-query";
+
+interface Ingredient {
+  id: string;
+  name: string;
+  unit_cost: number;
+  brand: string;
+  unit: string;
+}
+
+interface Packaging {
+  id: string;
+  name: string;
+  unit_cost: number;
+  type: string;
+}
 
 const CostUpdate = () => {
-  const [updateResult, setUpdateResult] = useState<UpdateAllResult | null>(null);
-  const [chainResult, setChainResult] = useState<UpdateChainResult | null>(null);
+  const queryClient = useQueryClient();
+  const [isUpdatingAll, setIsUpdatingAll] = useState(false);
+  const [isUpdatingIngredients, setIsUpdatingIngredients] = useState(false);
+  const [isUpdatingPackaging, setIsUpdatingPackaging] = useState(false);
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [selectedPackaging, setSelectedPackaging] = useState<string[]>([]);
-  const queryClient = useQueryClient();
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [packaging, setPackaging] = useState<Packaging[]>([]);
+  const [lastUpdate, setLastUpdate] = useState<UpdateAllResult | UpdateChainResult | null>(null);
 
-  // Buscar dados para estatísticas
-  const { data: recipes = [] } = useQuery({
-    queryKey: ['recipes'],
-    queryFn: fetchRecipes,
-  });
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: getProductList,
-  });
+  const loadData = async () => {
+    try {
+      const [ingredientsData, packagingData] = await Promise.all([
+        fetchIngredients(),
+        fetchPackaging()
+      ]);
+      setIngredients(ingredientsData);
+      setPackaging(packagingData);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: `Erro ao carregar dados: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
 
-  const { data: ingredients = [] } = useQuery({
-    queryKey: ['ingredients'],
-    queryFn: fetchIngredients,
-  });
+  const invalidateAllQueries = () => {
+    // Invalidar todos os caches relacionados
+    queryClient.invalidateQueries({ queryKey: ['products'] });
+    queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+    queryClient.invalidateQueries({ queryKey: ['packaging'] });
+    
+    // Forçar recarregamento imediato
+    queryClient.refetchQueries({ queryKey: ['products'] });
+    queryClient.refetchQueries({ queryKey: ['recipes'] });
+  };
 
-  const { data: packaging = [] } = useQuery({
-    queryKey: ['packaging'],
-    queryFn: fetchPackaging,
-  });
-
-  // Mutation para recalcular todos os custos
-  const recalculateAllMutation = useMutation({
-    mutationFn: recalculateAllCosts,
-    onSuccess: (result) => {
-      setUpdateResult(result);
-      setChainResult(null);
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+  const handleUpdateAll = async () => {
+    setIsUpdatingAll(true);
+    try {
+      const result = await recalculateAllCosts();
+      setLastUpdate(result);
       
-      if (result.errors.length > 0) {
+      // Invalidar cache e forçar recarregamento
+      invalidateAllQueries();
+      
+      toast({
+        title: "Sucesso",
+        description: `Recálculo completo concluído! ${result.updated_recipes} receitas e ${result.updated_products} produtos atualizados.`,
+      });
+      
+      if (result.errors && result.errors.length > 0) {
+        console.error("Erros durante o recálculo:", result.errors);
         toast({
-          title: "⚠️ Atualização concluída com avisos",
-          description: `${result.updated_recipes} receitas e ${result.updated_products} produtos atualizados, mas houve ${result.errors.length} erro(s).`,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "✅ Atualização concluída com sucesso!",
-          description: `${result.updated_recipes} receitas e ${result.updated_products} produtos foram atualizados.`,
+          title: "Atenção",
+          description: `Alguns erros ocorreram. Verifique o console para detalhes.`,
+          variant: "destructive",
         });
       }
-    },
-    onError: (error: any) => {
-      console.error('❌ Erro na atualização completa:', error);
+    } catch (error: any) {
       toast({
-        title: "❌ Erro na atualização",
-        description: error.message,
-        variant: "destructive"
+        title: "Erro",
+        description: `Erro ao recalcular custos: ${error.message}`,
+        variant: "destructive",
       });
+    } finally {
+      setIsUpdatingAll(false);
     }
-  });
-
-  // Mutation para recalcular cadeia específica de ingredientes
-  const recalculateIngredientChainMutation = useMutation({
-    mutationFn: (ingredientIds: string[]) => recalculateIngredientChain(ingredientIds),
-    onSuccess: (result) => {
-      setChainResult(result);
-      setUpdateResult(null);
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      
-      toast({
-        title: "✅ Atualização da cadeia de ingredientes concluída!",
-        description: `${result.affected_recipes} receitas e ${result.affected_products} produtos foram atualizados.`,
-      });
-    },
-    onError: (error: any) => {
-      console.error('❌ Erro na atualização da cadeia de ingredientes:', error);
-      toast({
-        title: "❌ Erro na atualização da cadeia",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Mutation para recalcular cadeia específica de embalagens
-  const recalculatePackagingChainMutation = useMutation({
-    mutationFn: (packagingIds: string[]) => recalculatePackagingChain(packagingIds),
-    onSuccess: (result) => {
-      setChainResult(result);
-      setUpdateResult(null);
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      
-      toast({
-        title: "✅ Atualização da cadeia de embalagens concluída!",
-        description: `${result.affected_products} produtos foram atualizados.`,
-      });
-    },
-    onError: (error: any) => {
-      console.error('❌ Erro na atualização da cadeia de embalagens:', error);
-      toast({
-        title: "❌ Erro na atualização da cadeia",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
-
-  const handleToggleIngredient = (ingredientId: string) => {
-    setSelectedIngredients(prev => 
-      prev.includes(ingredientId) 
-        ? prev.filter(id => id !== ingredientId)
-        : [...prev, ingredientId]
-    );
   };
 
-  const handleTogglePackaging = (packagingId: string) => {
-    setSelectedPackaging(prev => 
-      prev.includes(packagingId) 
-        ? prev.filter(id => id !== packagingId)
-        : [...prev, packagingId]
-    );
+  const handleUpdateIngredientChain = async () => {
+    if (selectedIngredients.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Selecione pelo menos um ingrediente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpdatingIngredients(true);
+    try {
+      const result = await recalculateIngredientChain(selectedIngredients);
+      setLastUpdate(result);
+      
+      // Invalidar cache e forçar recarregamento
+      invalidateAllQueries();
+      
+      toast({
+        title: "Sucesso",
+        description: `Cadeia de ingredientes atualizada! ${result.affected_recipes} receitas e ${result.affected_products} produtos afetados.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: `Erro ao atualizar cadeia: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingIngredients(false);
+    }
   };
 
-  const isLoading = recalculateAllMutation.isPending || 
-                   recalculateIngredientChainMutation.isPending || 
-                   recalculatePackagingChainMutation.isPending;
+  const handleUpdatePackagingChain = async () => {
+    if (selectedPackaging.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Selecione pelo menos uma embalagem.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpdatingPackaging(true);
+    try {
+      const result = await recalculatePackagingChain(selectedPackaging);
+      setLastUpdate(result);
+      
+      // Invalidar cache e forçar recarregamento
+      invalidateAllQueries();
+      
+      toast({
+        title: "Sucesso",
+        description: `Cadeia de embalagens atualizada! ${result.affected_products} produtos afetados.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: `Erro ao atualizar cadeia: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingPackaging(false);
+    }
+  };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-food-vanilla via-food-cream to-food-vanilla p-6 rounded-xl border shadow-soft">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-xl bg-food-coral/20 flex items-center justify-center">
-            <Database className="h-8 w-8 text-food-coral" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-poppins font-bold text-food-dark">
-              Atualização de Custos
-            </h1>
-            <p className="text-muted-foreground">
-              Sistema manual para recalcular custos em toda a cadeia produtiva
-            </p>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Atualização de Custos</h1>
       </div>
 
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingredientes</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{ingredients.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Base das receitas
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Embalagens</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{packaging.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Base dos produtos
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receitas</CardTitle>
-            <ChefHat className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{recipes.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Dependem dos ingredientes
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Produtos</CardTitle>
-            <Calculator className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{products.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Dependem das receitas e embalagens
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Fluxo da Cadeia */}
+      {/* Atualização Completa */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-food-coral" />
-            Fluxo da Cadeia de Custos
+            <RefreshCw className="h-5 w-5" />
+            Atualização Completa
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center space-x-6">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-food-coral/20 flex items-center justify-center mx-auto mb-2">
-                <Package className="h-8 w-8 text-food-coral" />
-              </div>
-              <p className="font-semibold">Ingredientes</p>
-              <p className="text-xs text-muted-foreground">Custo unitário</p>
-            </div>
-            
-            <div className="text-2xl text-food-coral">→</div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-food-amber/20 flex items-center justify-center mx-auto mb-2">
-                <ChefHat className="h-8 w-8 text-food-amber" />
-              </div>
-              <p className="font-semibold">Receitas</p>
-              <p className="text-xs text-muted-foreground">Custo por porção</p>
-            </div>
-            
-            <div className="text-2xl text-food-coral">→</div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-food-sage/20 flex items-center justify-center mx-auto mb-2">
-                <Package className="h-8 w-8 text-food-sage" />
-              </div>
-              <p className="font-semibold">Embalagens</p>
-              <p className="text-xs text-muted-foreground">Custo unitário</p>
-            </div>
-            
-            <div className="text-2xl text-food-coral">→</div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-food-coral/20 flex items-center justify-center mx-auto mb-2">
-                <Calculator className="h-8 w-8 text-food-coral" />
-              </div>
-              <p className="font-semibold">Produtos</p>
-              <p className="text-xs text-muted-foreground">Custo total</p>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Recalcula todos os custos do sistema: ingredientes → receitas → produtos
+          </p>
+          <Button 
+            onClick={handleUpdateAll}
+            disabled={isUpdatingAll}
+            className="w-full"
+          >
+            {isUpdatingAll && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+            {isUpdatingAll ? "Atualizando..." : "Recalcular Todos os Custos"}
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Opções de Atualização */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Atualização Completa */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-food-dark">🔄 Atualização Completa</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Recalcula todos os custos da cadeia produtiva
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Esta ação irá recalcular todos os custos de ingredientes, embalagens, receitas e produtos.
-                Use quando houver mudanças significativas nos preços.
-              </AlertDescription>
-            </Alert>
-            
-            <Button 
-              onClick={() => recalculateAllMutation.mutate()}
-              disabled={isLoading}
-              className="w-full bg-food-coral hover:bg-food-coral/90"
-            >
-              {isLoading ? (
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              Recalcular Todos os Custos
-            </Button>
-          </CardContent>
-        </Card>
+      {/* Atualização por Ingredientes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ChefHat className="h-5 w-5" />
+            Atualização por Ingredientes
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Selecione ingredientes para recalcular apenas receitas e produtos afetados
+          </p>
+          
+          <Select value="" onValueChange={(value) => {
+            if (value && !selectedIngredients.includes(value)) {
+              setSelectedIngredients([...selectedIngredients, value]);
+            }
+          }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione ingredientes..." />
+            </SelectTrigger>
+            <SelectContent>
+              {ingredients.map((ingredient) => (
+                <SelectItem key={ingredient.id} value={ingredient.id}>
+                  {ingredient.name} - {ingredient.brand} (R$ {ingredient.unit_cost.toFixed(2)}/{ingredient.unit})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {/* Atualização Seletiva - Ingredientes */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-food-dark">🎯 Ingredientes Alterados</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Recalcula apenas receitas afetadas por ingredientes específicos
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="max-h-48 overflow-y-auto border rounded-lg p-3">
-              <p className="text-sm font-medium mb-2">Selecione os ingredientes alterados:</p>
-              <div className="space-y-2">
-                {ingredients.map((ingredient) => (
-                  <div key={ingredient.id} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={ingredient.id}
-                      checked={selectedIngredients.includes(ingredient.id)}
-                      onChange={() => handleToggleIngredient(ingredient.id)}
-                      className="rounded border-gray-300"
-                    />
-                    <label htmlFor={ingredient.id} className="text-sm">
-                      {ingredient.name} - R$ {ingredient.unit_cost}/{ingredient.unit}
-                    </label>
-                  </div>
-                ))}
-              </div>
+          {selectedIngredients.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {selectedIngredients.map((id) => {
+                const ingredient = ingredients.find(i => i.id === id);
+                return ingredient ? (
+                  <Badge key={id} variant="secondary" className="cursor-pointer" onClick={() => {
+                    setSelectedIngredients(selectedIngredients.filter(i => i !== id));
+                  }}>
+                    {ingredient.name} ×
+                  </Badge>
+                ) : null;
+              })}
             </div>
-            
-            <Button 
-              onClick={() => recalculateIngredientChainMutation.mutate(selectedIngredients)}
-              disabled={isLoading || selectedIngredients.length === 0}
-              variant="outline"
-              className="w-full"
-            >
-              {isLoading ? (
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <TrendingUp className="mr-2 h-4 w-4" />
-              )}
-              Recalcular Ingredientes ({selectedIngredients.length})
-            </Button>
-          </CardContent>
-        </Card>
+          )}
 
-        {/* Atualização Seletiva - Embalagens */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-food-dark">📦 Embalagens Alteradas</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Recalcula apenas produtos afetados por embalagens específicas
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="max-h-48 overflow-y-auto border rounded-lg p-3">
-              <p className="text-sm font-medium mb-2">Selecione as embalagens alteradas:</p>
-              <div className="space-y-2">
-                {packaging.map((pack) => (
-                  <div key={pack.id} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={pack.id}
-                      checked={selectedPackaging.includes(pack.id)}
-                      onChange={() => handleTogglePackaging(pack.id)}
-                      className="rounded border-gray-300"
-                    />
-                    <label htmlFor={pack.id} className="text-sm">
-                      {pack.name} ({pack.type}) - R$ {pack.unit_cost}/unidade
-                    </label>
-                  </div>
-                ))}
-              </div>
+          <Button 
+            onClick={handleUpdateIngredientChain}
+            disabled={isUpdatingIngredients || selectedIngredients.length === 0}
+            className="w-full"
+          >
+            {isUpdatingIngredients && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+            {isUpdatingIngredients ? "Atualizando..." : "Atualizar Cadeia de Ingredientes"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Atualização por Embalagens */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Atualização por Embalagens
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Selecione embalagens para recalcular apenas produtos afetados
+          </p>
+          
+          <Select value="" onValueChange={(value) => {
+            if (value && !selectedPackaging.includes(value)) {
+              setSelectedPackaging([...selectedPackaging, value]);
+            }
+          }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione embalagens..." />
+            </SelectTrigger>
+            <SelectContent>
+              {packaging.map((pkg) => (
+                <SelectItem key={pkg.id} value={pkg.id}>
+                  {pkg.name} - {pkg.type} (R$ {pkg.unit_cost.toFixed(2)})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {selectedPackaging.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {selectedPackaging.map((id) => {
+                const pkg = packaging.find(p => p.id === id);
+                return pkg ? (
+                  <Badge key={id} variant="secondary" className="cursor-pointer" onClick={() => {
+                    setSelectedPackaging(selectedPackaging.filter(p => p !== id));
+                  }}>
+                    {pkg.name} ×
+                  </Badge>
+                ) : null;
+              })}
             </div>
-            
-            <Button 
-              onClick={() => recalculatePackagingChainMutation.mutate(selectedPackaging)}
-              disabled={isLoading || selectedPackaging.length === 0}
-              variant="outline"
-              className="w-full"
-            >
-              {isLoading ? (
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <TrendingUp className="mr-2 h-4 w-4" />
-              )}
-              Recalcular Embalagens ({selectedPackaging.length})
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+          )}
 
-      {/* Progresso */}
-      {isLoading && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Processando atualizações...</span>
-                <span>Aguarde</span>
-              </div>
-              <Progress value={undefined} className="w-full" />
-              <p className="text-xs text-muted-foreground text-center">
-                Verifique o console do navegador para acompanhar o progresso detalhado
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          <Button 
+            onClick={handleUpdatePackagingChain}
+            disabled={isUpdatingPackaging || selectedPackaging.length === 0}
+            className="w-full"
+          >
+            {isUpdatingPackaging && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+            {isUpdatingPackaging ? "Atualizando..." : "Atualizar Cadeia de Embalagens"}
+          </Button>
+        </CardContent>
+      </Card>
 
-      {/* Resultados */}
-      {(updateResult || chainResult) && (
+      {/* Resultado da Última Atualização */}
+      {lastUpdate && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              Resultado da Atualização
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Última Atualização
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {updateResult && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">{updateResult.updated_recipes}</p>
-                    <p className="text-sm text-muted-foreground">Receitas atualizadas</p>
-                  </div>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600">{updateResult.updated_products}</p>
-                    <p className="text-sm text-muted-foreground">Produtos atualizados</p>
-                  </div>
+            {'updated_recipes' in lastUpdate ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Receitas Atualizadas</p>
+                  <p className="text-2xl font-bold">{lastUpdate.updated_recipes}</p>
                 </div>
-                
-                {updateResult.errors.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="font-semibold text-destructive">Erros encontrados:</p>
-                    {updateResult.errors.map((error, index) => (
-                      <div key={index} className="text-sm text-destructive bg-destructive/10 p-2 rounded">
-                        {error}
-                      </div>
-                    ))}
+                <div>
+                  <p className="text-sm text-muted-foreground">Produtos Atualizados</p>
+                  <p className="text-2xl font-bold">{lastUpdate.updated_products}</p>
+                </div>
+                {lastUpdate.errors && lastUpdate.errors.length > 0 && (
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4 text-orange-500" />
+                      Erros: {lastUpdate.errors.length}
+                    </p>
                   </div>
                 )}
               </div>
-            )}
-
-            {chainResult && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">{chainResult.affected_recipes}</p>
-                    <p className="text-sm text-muted-foreground">Receitas afetadas</p>
-                  </div>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600">{chainResult.affected_products}</p>
-                    <p className="text-sm text-muted-foreground">Produtos afetados</p>
-                  </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Receitas Afetadas</p>
+                  <p className="text-2xl font-bold">{lastUpdate.affected_recipes}</p>
                 </div>
-                
-                <p className="text-sm text-muted-foreground">
-                  Apenas os itens diretamente relacionados foram atualizados.
-                </p>
+                <div>
+                  <p className="text-sm text-muted-foreground">Produtos Afetados</p>
+                  <p className="text-2xl font-bold">{lastUpdate.affected_products}</p>
+                </div>
               </div>
             )}
           </CardContent>
