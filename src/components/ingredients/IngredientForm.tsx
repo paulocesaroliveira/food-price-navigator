@@ -1,33 +1,47 @@
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Save, Upload } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useFileUpload } from "@/hooks/useFileUpload";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getIngredientCategories } from "@/services/categoryService";
 import { ImageUpload } from "./ImageUpload";
-import { CurrencyInput } from "@/components/ui/currency-input";
-import { formatCurrency } from "@/utils/calculations";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-interface IngredientFormProps {
-  ingredient?: any;
-  onSave: () => void;
-  onCancel: () => void;
+interface Ingredient {
+  id?: string;
+  name: string;
+  category_id?: string;
+  unit: string;
+  brand: string;
+  supplier?: string;
+  package_quantity: number;
+  package_price: number;
+  unit_cost: number;
+  image_url?: string;
 }
 
-export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormProps) => {
-  const { toast } = useToast();
-  const { uploadFile, isUploading } = useFileUpload();
-  
-  const [formData, setFormData] = useState({
+interface IngredientFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  ingredient?: Ingredient | null;
+  onSuccess?: () => void;
+}
+
+export const IngredientForm: React.FC<IngredientFormProps> = ({
+  open,
+  onOpenChange,
+  ingredient,
+  onSuccess
+}) => {
+  const [formData, setFormData] = useState<Ingredient>({
     name: "",
     category_id: "",
-    unit: "g" as "g" | "ml",
+    unit: "",
     brand: "",
     supplier: "",
     package_quantity: 0,
@@ -35,18 +49,21 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
     unit_cost: 0,
     image_url: ""
   });
-  
-  const [categories, setCategories] = useState<any[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
 
+  const queryClient = useQueryClient();
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['ingredient-categories'],
+    queryFn: getIngredientCategories
+  });
+
+  // Populate form when editing
   useEffect(() => {
-    loadCategories();
-    if (ingredient) {
-      console.log('Loading ingredient data:', ingredient);
+    if (ingredient && open) {
       setFormData({
         name: ingredient.name || "",
         category_id: ingredient.category_id || "",
-        unit: ingredient.unit || "g",
+        unit: ingredient.unit || "",
         brand: ingredient.brand || "",
         supplier: ingredient.supplier || "",
         package_quantity: ingredient.package_quantity || 0,
@@ -54,292 +71,270 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
         unit_cost: ingredient.unit_cost || 0,
         image_url: ingredient.image_url || ""
       });
+    } else if (!ingredient && open) {
+      // Reset form for new ingredient
+      setFormData({
+        name: "",
+        category_id: "",
+        unit: "",
+        brand: "",
+        supplier: "",
+        package_quantity: 0,
+        package_price: 0,
+        unit_cost: 0,
+        image_url: ""
+      });
     }
-  }, [ingredient]);
+  }, [ingredient, open]);
 
-  const loadCategories = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+  // Calculate unit cost when package data changes
+  useEffect(() => {
+    if (formData.package_quantity > 0 && formData.package_price > 0) {
+      const unitCost = formData.package_price / formData.package_quantity;
+      setFormData(prev => ({ ...prev, unit_cost: Number(unitCost.toFixed(4)) }));
+    }
+  }, [formData.package_quantity, formData.package_price]);
 
-      const { data, error } = await supabase
-        .from('ingredient_categories')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('name');
-      
+  const createMutation = useMutation({
+    mutationFn: async (data: Ingredient) => {
+      const { data: result, error } = await supabase
+        .from('ingredients')
+        .insert([{
+          name: data.name,
+          category_id: data.category_id || null,
+          unit: data.unit,
+          brand: data.brand,
+          supplier: data.supplier,
+          package_quantity: data.package_quantity,
+          package_price: data.package_price,
+          unit_cost: data.unit_cost,
+          image_url: data.image_url
+        }])
+        .select()
+        .single();
+
       if (error) throw error;
-      console.log('Loaded categories:', data);
-      setCategories(data || []);
-    } catch (error) {
-      console.error("Erro ao carregar categorias:", error);
-    }
-  };
-
-  const handleInputChange = (field: string, value: any) => {
-    console.log('Updating field:', field, 'with value:', value);
-    setFormData(prev => {
-      const updated = { ...prev, [field]: value };
-      
-      if (field === 'package_price' || field === 'package_quantity') {
-        const price = field === 'package_price' ? value : updated.package_price;
-        const quantity = field === 'package_quantity' ? value : updated.package_quantity;
-        updated.unit_cost = quantity > 0 ? price / quantity : 0;
-      }
-      
-      console.log('Updated formData:', updated);
-      return updated;
-    });
-  };
-
-  const handlePriceChange = (value: number) => {
-    handleInputChange('package_price', value);
-  };
-
-  const handleImageUpload = async (file: File) => {
-    try {
-      const result = await uploadFile(file, "ingredients");
-      if (result?.url) {
-        setFormData(prev => ({ ...prev, image_url: result.url }));
-      }
-    } catch (error) {
-      console.error("Erro no upload:", error);
+      return result;
+    },
+    onSuccess: () => {
+      toast({ title: "Sucesso", description: "Ingrediente criado com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      onSuccess?.();
+      onOpenChange(false);
+    },
+    onError: (error) => {
       toast({
-        title: "Erro no upload",
-        description: "Não foi possível fazer o upload da imagem",
+        title: "Erro",
+        description: `Erro ao criar ingrediente: ${error.message}`,
         variant: "destructive"
       });
     }
-  };
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const updateMutation = useMutation({
+    mutationFn: async (data: Ingredient) => {
+      if (!ingredient?.id) throw new Error('ID do ingrediente não encontrado');
+      
+      const { data: result, error } = await supabase
+        .from('ingredients')
+        .update({
+          name: data.name,
+          category_id: data.category_id || null,
+          unit: data.unit,
+          brand: data.brand,
+          supplier: data.supplier,
+          package_quantity: data.package_quantity,
+          package_price: data.package_price,
+          unit_cost: data.unit_cost,
+          image_url: data.image_url
+        })
+        .eq('id', ingredient.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      toast({ title: "Sucesso", description: "Ingrediente atualizado com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      onSuccess?.();
+      onOpenChange(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao atualizar ingrediente: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log('Submitting form with data:', formData);
-    
+
     if (!formData.name.trim()) {
       toast({
         title: "Erro",
-        description: "Nome do ingrediente é obrigatório",
+        description: "Nome é obrigatório",
         variant: "destructive"
       });
       return;
     }
 
-    if (!formData.category_id) {
-      toast({
-        title: "Erro", 
-        description: "Categoria é obrigatória",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSaving(true);
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      const dataToSave = {
-        name: formData.name,
-        category_id: formData.category_id,
-        unit: formData.unit,
-        brand: formData.brand,
-        supplier: formData.supplier,
-        package_quantity: formData.package_quantity,
-        package_price: formData.package_price,
-        unit_cost: formData.unit_cost,
-        image_url: formData.image_url
-      };
-
-      console.log('Data to save:', dataToSave);
-
-      if (ingredient) {
-        const { error } = await supabase
-          .from('ingredients')
-          .update(dataToSave)
-          .eq('id', ingredient.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('ingredients')
-          .insert(dataToSave);
-
-        if (error) throw error;
-      }
-
-      toast({
-        title: "Sucesso",
-        description: `Ingrediente ${ingredient ? 'atualizado' : 'criado'} com sucesso`,
-      });
-
-      onSave();
-    } catch (error: any) {
-      console.error("Erro ao salvar ingrediente:", error);
-      toast({
-        title: "Erro",
-        description: `Não foi possível ${ingredient ? 'atualizar' : 'criar'} o ingrediente: ${error.message}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsSaving(false);
+    if (ingredient) {
+      updateMutation.mutate(formData);
+    } else {
+      createMutation.mutate(formData);
     }
   };
 
+  const isLoading = createMutation.isPending || updateMutation.isPending;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 p-6">
-      <Card className="max-w-4xl mx-auto border-0 shadow-2xl">
-        <CardHeader className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-t-lg">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl font-bold">
-              {ingredient ? 'Editar' : 'Novo'} Ingrediente
-            </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onCancel} className="text-white hover:bg-white/20">
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <Label htmlFor="name" className="text-lg font-semibold">Nome *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Nome do ingrediente"
-                  required
-                  className="h-12 text-lg"
-                />
-              </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+            {ingredient ? 'Editar' : 'Novo'} Ingrediente
+          </DialogTitle>
+        </DialogHeader>
 
-              <div className="space-y-3">
-                <Label htmlFor="category" className="text-lg font-semibold">Categoria *</Label>
-                <Select 
-                  value={formData.category_id} 
-                  onValueChange={(value) => handleInputChange('category_id', value)}
-                >
-                  <SelectTrigger className="h-12 text-lg">
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="brand" className="text-lg font-semibold">Marca</Label>
-                <Input
-                  id="brand"
-                  value={formData.brand}
-                  onChange={(e) => handleInputChange('brand', e.target.value)}
-                  placeholder="Marca do ingrediente"
-                  className="h-12 text-lg"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="supplier" className="text-lg font-semibold">Fornecedor</Label>
-                <Input
-                  id="supplier"
-                  value={formData.supplier}
-                  onChange={(e) => handleInputChange('supplier', e.target.value)}
-                  placeholder="Fornecedor"
-                  className="h-12 text-lg"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="unit" className="text-lg font-semibold">Unidade</Label>
-                <Select 
-                  value={formData.unit} 
-                  onValueChange={(value: "g" | "ml") => handleInputChange('unit', value)}
-                >
-                  <SelectTrigger className="h-12 text-lg">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="g">Gramas (g)</SelectItem>
-                    <SelectItem value="ml">Mililitros (ml)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="package_quantity" className="text-lg font-semibold">Quantidade da Embalagem</Label>
-                <Input
-                  id="package_quantity"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.package_quantity}
-                  onChange={(e) => handleInputChange('package_quantity', parseFloat(e.target.value) || 0)}
-                  placeholder="0"
-                  className="h-12 text-lg"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="package_price" className="text-lg font-semibold">Preço da Embalagem (R$)</Label>
-                <CurrencyInput
-                  id="package_price"
-                  value={formData.package_price}
-                  onValueChange={handlePriceChange}
-                  placeholder="R$ 0,00"
-                  className="h-12 text-lg"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="unit_cost" className="text-lg font-semibold">Custo Unitário (R$)</Label>
-                <Input
-                  id="unit_cost"
-                  value={formatCurrency(formData.unit_cost)}
-                  readOnly
-                  className="bg-muted h-12 text-lg font-semibold"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-lg font-semibold">Imagem</Label>
-              <ImageUpload
-                currentImageUrl={formData.image_url}
-                onImageUpload={handleImageUpload}
-                isUploading={isUploading}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Nome do ingrediente"
+                required
               />
             </div>
 
-            <div className="flex justify-end gap-4 pt-6">
-              <Button type="button" variant="outline" onClick={onCancel} className="h-12 px-8">
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSaving || isUploading}
-                className="h-12 px-8 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+            <div className="space-y-2">
+              <Label htmlFor="category">Categoria</Label>
+              <Select 
+                value={formData.category_id} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
               >
-                {isSaving ? (
-                  <>Salvando...</>
-                ) : (
-                  <>
-                    <Save className="h-5 w-5 mr-2" />
-                    {ingredient ? 'Atualizar' : 'Criar'} Ingrediente
-                  </>
-                )}
-              </Button>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sem categoria</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="unit">Unidade *</Label>
+              <Select 
+                value={formData.unit} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a unidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="kg">Quilograma (kg)</SelectItem>
+                  <SelectItem value="g">Grama (g)</SelectItem>
+                  <SelectItem value="l">Litro (l)</SelectItem>
+                  <SelectItem value="ml">Mililitro (ml)</SelectItem>
+                  <SelectItem value="unidade">Unidade</SelectItem>
+                  <SelectItem value="caixa">Caixa</SelectItem>
+                  <SelectItem value="pacote">Pacote</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="brand">Marca *</Label>
+              <Input
+                id="brand"
+                value={formData.brand}
+                onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
+                placeholder="Marca do ingrediente"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="supplier">Fornecedor</Label>
+              <Input
+                id="supplier"
+                value={formData.supplier}
+                onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
+                placeholder="Fornecedor"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="package_quantity">Quantidade da Embalagem *</Label>
+              <Input
+                id="package_quantity"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.package_quantity}
+                onChange={(e) => setFormData(prev => ({ ...prev, package_quantity: parseFloat(e.target.value) || 0 }))}
+                placeholder="Ex: 1000"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="package_price">Preço da Embalagem (R$) *</Label>
+              <Input
+                id="package_price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.package_price}
+                onChange={(e) => setFormData(prev => ({ ...prev, package_price: parseFloat(e.target.value) || 0 }))}
+                placeholder="Ex: 25.90"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="unit_cost">Custo Unitário (R$)</Label>
+              <Input
+                id="unit_cost"
+                type="number"
+                step="0.0001"
+                value={formData.unit_cost}
+                readOnly
+                className="bg-gray-100"
+              />
+              <p className="text-xs text-gray-500">Calculado automaticamente</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Imagem</Label>
+            <ImageUpload
+              value={formData.image_url}
+              onImageUpload={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+            />
+          </div>
+
+          <div className="flex justify-end gap-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Salvando...' : (ingredient ? 'Atualizar' : 'Criar')}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };

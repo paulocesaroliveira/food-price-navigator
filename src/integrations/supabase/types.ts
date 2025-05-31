@@ -398,6 +398,9 @@ export type Database = {
           notes: string | null
           order_number: string
           origin: string
+          payment_date: string | null
+          payment_method: string | null
+          payment_status: string | null
           scheduled_date: string | null
           scheduled_time: string | null
           status: string
@@ -413,6 +416,9 @@ export type Database = {
           notes?: string | null
           order_number: string
           origin: string
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
           scheduled_date?: string | null
           scheduled_time?: string | null
           status: string
@@ -428,6 +434,9 @@ export type Database = {
           notes?: string | null
           order_number?: string
           origin?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
           scheduled_date?: string | null
           scheduled_time?: string | null
           status?: string
@@ -552,15 +561,25 @@ export type Database = {
         Row: {
           actual_margin: number
           base_cost: number
+          competitor_price: number | null
           created_at: string
+          delivery_cost: number | null
           final_price: number
           id: string
           ideal_price: number
+          labor_cost: number | null
           margin_percentage: number
+          marketing_cost: number | null
+          maximum_price: number | null
+          minimum_price: number | null
           name: string
+          notes: string | null
+          other_costs: number | null
+          overhead_cost: number | null
           packaging_cost: number
           platform_fee_percentage: number
           product_id: string
+          target_margin_percentage: number | null
           tax_percentage: number
           total_unit_cost: number
           unit_profit: number
@@ -570,15 +589,25 @@ export type Database = {
         Insert: {
           actual_margin?: number
           base_cost?: number
+          competitor_price?: number | null
           created_at?: string
+          delivery_cost?: number | null
           final_price?: number
           id?: string
           ideal_price?: number
+          labor_cost?: number | null
           margin_percentage?: number
+          marketing_cost?: number | null
+          maximum_price?: number | null
+          minimum_price?: number | null
           name: string
+          notes?: string | null
+          other_costs?: number | null
+          overhead_cost?: number | null
           packaging_cost?: number
           platform_fee_percentage?: number
           product_id: string
+          target_margin_percentage?: number | null
           tax_percentage?: number
           total_unit_cost?: number
           unit_profit?: number
@@ -588,15 +617,25 @@ export type Database = {
         Update: {
           actual_margin?: number
           base_cost?: number
+          competitor_price?: number | null
           created_at?: string
+          delivery_cost?: number | null
           final_price?: number
           id?: string
           ideal_price?: number
+          labor_cost?: number | null
           margin_percentage?: number
+          marketing_cost?: number | null
+          maximum_price?: number | null
+          minimum_price?: number | null
           name?: string
+          notes?: string | null
+          other_costs?: number | null
+          overhead_cost?: number | null
           packaging_cost?: number
           platform_fee_percentage?: number
           product_id?: string
+          target_margin_percentage?: number | null
           tax_percentage?: number
           total_unit_cost?: number
           unit_profit?: number
@@ -1085,6 +1124,7 @@ export type Database = {
         Row: {
           commission_amount: number
           created_at: string
+          delivery_time: string | null
           id: string
           notes: string | null
           reseller_id: string
@@ -1097,6 +1137,7 @@ export type Database = {
         Insert: {
           commission_amount?: number
           created_at?: string
+          delivery_time?: string | null
           id?: string
           notes?: string | null
           reseller_id: string
@@ -1109,6 +1150,7 @@ export type Database = {
         Update: {
           commission_amount?: number
           created_at?: string
+          delivery_time?: string | null
           id?: string
           notes?: string | null
           reseller_id?: string

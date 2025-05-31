@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,13 +16,13 @@ import { toast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { resaleService } from "@/services/resaleService";
 import { getProductList } from "@/services/productService";
-import type { Reseller, CreateTransactionRequest } from "@/types/resale";
+import type { Reseller, CreateTransactionRequest, ResaleTransaction } from "@/types/resale";
 
 interface ResaleTransactionFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   resellers: Reseller[];
-  transaction?: any;
+  transaction?: ResaleTransaction | null;
   onSuccess?: () => void;
 }
 
@@ -34,12 +34,12 @@ export const ResaleTransactionForm: React.FC<ResaleTransactionFormProps> = ({
   onSuccess
 }) => {
   const [formData, setFormData] = useState({
-    reseller_id: transaction?.reseller_id || "",
-    transaction_date: transaction?.transaction_date ? new Date(transaction.transaction_date) : new Date(),
-    delivery_time: transaction?.delivery_time || "",
-    status: transaction?.status || "pending",
-    notes: transaction?.notes || "",
-    items: transaction?.resale_transaction_items || [{ product_id: "", quantity: 1, unit_price: 0 }]
+    reseller_id: "",
+    transaction_date: new Date(),
+    delivery_time: "",
+    status: "pending" as const,
+    notes: "",
+    items: [{ product_id: "", quantity: 1, unit_price: 0 }]
   });
 
   const queryClient = useQueryClient();
@@ -49,14 +49,42 @@ export const ResaleTransactionForm: React.FC<ResaleTransactionFormProps> = ({
     queryFn: getProductList
   });
 
+  // Populate form when editing
+  useEffect(() => {
+    if (transaction && open) {
+      setFormData({
+        reseller_id: transaction.reseller_id || "",
+        transaction_date: transaction.transaction_date ? new Date(transaction.transaction_date) : new Date(),
+        delivery_time: transaction.delivery_time || "",
+        status: transaction.status || "pending",
+        notes: transaction.notes || "",
+        items: transaction.resale_transaction_items?.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price
+        })) || [{ product_id: "", quantity: 1, unit_price: 0 }]
+      });
+    } else if (!transaction && open) {
+      // Reset form for new transaction
+      setFormData({
+        reseller_id: "",
+        transaction_date: new Date(),
+        delivery_time: "",
+        status: "pending",
+        notes: "",
+        items: [{ product_id: "", quantity: 1, unit_price: 0 }]
+      });
+    }
+  }, [transaction, open]);
+
   const createMutation = useMutation({
     mutationFn: resaleService.createTransaction,
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Transação criada com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['resale-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['resellers'] });
       onSuccess?.();
       onOpenChange(false);
-      resetForm();
     },
     onError: (error) => {
       toast({
@@ -68,13 +96,13 @@ export const ResaleTransactionForm: React.FC<ResaleTransactionFormProps> = ({
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => resaleService.updateTransaction(id, data),
+    mutationFn: ({ id, data }: { id: string; data: CreateTransactionRequest }) => resaleService.updateTransaction(id, data),
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Transação atualizada com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['resale-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['resellers'] });
       onSuccess?.();
       onOpenChange(false);
-      resetForm();
     },
     onError: (error) => {
       toast({
@@ -84,17 +112,6 @@ export const ResaleTransactionForm: React.FC<ResaleTransactionFormProps> = ({
       });
     }
   });
-
-  const resetForm = () => {
-    setFormData({
-      reseller_id: "",
-      transaction_date: new Date(),
-      delivery_time: "",
-      status: "pending",
-      notes: "",
-      items: [{ product_id: "", quantity: 1, unit_price: 0 }]
-    });
-  };
 
   const addItem = () => {
     setFormData(prev => ({
@@ -140,23 +157,15 @@ export const ResaleTransactionForm: React.FC<ResaleTransactionFormProps> = ({
       return;
     }
 
-    const totalAmount = formData.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-    const selectedReseller = resellers.find(r => r.id === formData.reseller_id);
-    const commissionAmount = selectedReseller ? totalAmount * (selectedReseller.commission_percentage / 100) : 0;
-
-    const transactionData = {
+    const transactionData: CreateTransactionRequest = {
       reseller_id: formData.reseller_id,
       transaction_date: format(formData.transaction_date, 'yyyy-MM-dd'),
       delivery_time: formData.delivery_time,
-      total_amount: totalAmount,
-      commission_amount: commissionAmount,
-      status: formData.status,
       notes: formData.notes,
       items: formData.items.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
-        unit_price: item.unit_price,
-        total_price: item.quantity * item.unit_price
+        unit_price: item.unit_price
       }))
     };
 
@@ -240,7 +249,7 @@ export const ResaleTransactionForm: React.FC<ResaleTransactionFormProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
+              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
