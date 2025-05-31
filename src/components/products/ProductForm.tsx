@@ -53,6 +53,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [packagingCost, setPackagingCost] = useState(0);
   const [isPrimaryPackaging, setIsPrimaryPackaging] = useState(false);
 
+  // Invalidar cache dos produtos quando há mudanças nas receitas
+  useEffect(() => {
+    console.log('🔄 Invalidando cache dos produtos devido a mudanças nas receitas...');
+    queryClient.invalidateQueries({ queryKey: ['products'] });
+  }, [recipes.map(r => `${r.id}-${r.unitCost}`).join(','), queryClient]);
+
   // Atualizar custos dos itens já selecionados quando as receitas mudam
   useEffect(() => {
     if (recipes.length > 0 && items.length > 0) {
