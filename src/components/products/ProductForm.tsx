@@ -13,6 +13,7 @@ import { Product, Recipe, Packaging, ProductCategory } from "@/types";
 import { formatCurrency } from "@/utils/calculations";
 import { ProductCategoryManager } from "@/components/products/ProductCategoryManager";
 import { toast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProductFormProps {
   product?: Product;
@@ -33,6 +34,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   onCancel,
   onCategoriesChange,
 }) => {
+  const queryClient = useQueryClient();
+  
   const [formData, setFormData] = useState({
     name: product?.name || "",
     categoryId: product?.categoryId || "",
@@ -89,9 +92,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       if (hasChanges) {
         console.log('✅ Itens atualizados com novos custos das receitas');
         setItems(updatedItems);
+        
+        // Invalidar cache dos produtos para recarregar a lista
+        console.log('🔄 Invalidando cache dos produtos...');
+        queryClient.invalidateQueries({ queryKey: ['products'] });
       }
     }
-  }, [recipes.map(r => `${r.id}-${r.unitCost}`).join(','), items.length]);
+  }, [recipes.map(r => `${r.id}-${r.unitCost}`).join(','), items.length, queryClient]);
 
   useEffect(() => {
     recalculateTotalCost();
