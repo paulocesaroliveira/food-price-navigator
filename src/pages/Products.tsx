@@ -33,6 +33,7 @@ import { fetchRecipes } from "@/services/recipeService";
 import { getPackagingList } from "@/services/packagingService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { supabase } from "@/integrations/supabase/client";
 
 const mapRecipesData = (recipesData: any[]): Recipe[] => {
   return recipesData.map(recipe => ({
