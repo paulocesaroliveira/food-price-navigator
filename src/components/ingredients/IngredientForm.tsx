@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
   useEffect(() => {
     loadCategories();
     if (ingredient) {
+      console.log('Loading ingredient data:', ingredient);
       setFormData({
         name: ingredient.name || "",
         category_id: ingredient.category_id || "",
@@ -57,12 +59,17 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
 
   const loadCategories = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('ingredient_categories')
         .select('*')
+        .eq('user_id', user.id)
         .order('name');
       
       if (error) throw error;
+      console.log('Loaded categories:', data);
       setCategories(data || []);
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
@@ -70,6 +77,7 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
   };
 
   const handleInputChange = (field: string, value: any) => {
+    console.log('Updating field:', field, 'with value:', value);
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
       
@@ -79,6 +87,7 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
         updated.unit_cost = quantity > 0 ? price / quantity : 0;
       }
       
+      console.log('Updated formData:', updated);
       return updated;
     });
   };
@@ -106,6 +115,8 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('Submitting form with data:', formData);
+    
     if (!formData.name.trim()) {
       toast({
         title: "Erro",
@@ -117,7 +128,7 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
 
     if (!formData.category_id) {
       toast({
-        title: "Erro",
+        title: "Erro", 
         description: "Categoria é obrigatória",
         variant: "destructive"
       });
@@ -127,6 +138,9 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
     setIsSaving(true);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
       const dataToSave = {
         name: formData.name,
         category_id: formData.category_id,
@@ -138,6 +152,8 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
         unit_cost: formData.unit_cost,
         image_url: formData.image_url
       };
+
+      console.log('Data to save:', dataToSave);
 
       if (ingredient) {
         const { error } = await supabase
@@ -173,144 +189,157 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>{ingredient ? 'Editar' : 'Novo'} Ingrediente</CardTitle>
-          <Button variant="ghost" size="sm" onClick={onCancel}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder="Nome do ingrediente"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="category">Categoria *</Label>
-              <Select 
-                value={formData.category_id} 
-                onValueChange={(value) => handleInputChange('category_id', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="brand">Marca</Label>
-              <Input
-                id="brand"
-                value={formData.brand}
-                onChange={(e) => handleInputChange('brand', e.target.value)}
-                placeholder="Marca do ingrediente"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="supplier">Fornecedor</Label>
-              <Input
-                id="supplier"
-                value={formData.supplier}
-                onChange={(e) => handleInputChange('supplier', e.target.value)}
-                placeholder="Fornecedor"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="unit">Unidade</Label>
-              <Select 
-                value={formData.unit} 
-                onValueChange={(value: "g" | "ml") => handleInputChange('unit', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="g">Gramas (g)</SelectItem>
-                  <SelectItem value="ml">Mililitros (ml)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="package_quantity">Quantidade da Embalagem</Label>
-              <Input
-                id="package_quantity"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.package_quantity}
-                onChange={(e) => handleInputChange('package_quantity', parseFloat(e.target.value) || 0)}
-                placeholder="0"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="package_price">Preço da Embalagem (R$)</Label>
-              <CurrencyInput
-                id="package_price"
-                value={formData.package_price}
-                onValueChange={handlePriceChange}
-                placeholder="R$ 0,00"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="unit_cost">Custo Unitário (R$)</Label>
-              <Input
-                id="unit_cost"
-                value={formatCurrency(formData.unit_cost)}
-                readOnly
-                className="bg-muted"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Imagem</Label>
-            <ImageUpload
-              currentImageUrl={formData.image_url}
-              onImageUpload={handleImageUpload}
-              isUploading={isUploading}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSaving || isUploading}>
-              {isSaving ? (
-                <>Salvando...</>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  {ingredient ? 'Atualizar' : 'Criar'} Ingrediente
-                </>
-              )}
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 p-6">
+      <Card className="max-w-4xl mx-auto border-0 shadow-2xl">
+        <CardHeader className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-t-lg">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-2xl font-bold">
+              {ingredient ? 'Editar' : 'Novo'} Ingrediente
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={onCancel} className="text-white hover:bg-white/20">
+              <X className="h-5 w-5" />
             </Button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="p-8">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="name" className="text-lg font-semibold">Nome *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  placeholder="Nome do ingrediente"
+                  required
+                  className="h-12 text-lg"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="category" className="text-lg font-semibold">Categoria *</Label>
+                <Select 
+                  value={formData.category_id} 
+                  onValueChange={(value) => handleInputChange('category_id', value)}
+                >
+                  <SelectTrigger className="h-12 text-lg">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="brand" className="text-lg font-semibold">Marca</Label>
+                <Input
+                  id="brand"
+                  value={formData.brand}
+                  onChange={(e) => handleInputChange('brand', e.target.value)}
+                  placeholder="Marca do ingrediente"
+                  className="h-12 text-lg"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="supplier" className="text-lg font-semibold">Fornecedor</Label>
+                <Input
+                  id="supplier"
+                  value={formData.supplier}
+                  onChange={(e) => handleInputChange('supplier', e.target.value)}
+                  placeholder="Fornecedor"
+                  className="h-12 text-lg"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="unit" className="text-lg font-semibold">Unidade</Label>
+                <Select 
+                  value={formData.unit} 
+                  onValueChange={(value: "g" | "ml") => handleInputChange('unit', value)}
+                >
+                  <SelectTrigger className="h-12 text-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="g">Gramas (g)</SelectItem>
+                    <SelectItem value="ml">Mililitros (ml)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="package_quantity" className="text-lg font-semibold">Quantidade da Embalagem</Label>
+                <Input
+                  id="package_quantity"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.package_quantity}
+                  onChange={(e) => handleInputChange('package_quantity', parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  className="h-12 text-lg"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="package_price" className="text-lg font-semibold">Preço da Embalagem (R$)</Label>
+                <CurrencyInput
+                  id="package_price"
+                  value={formData.package_price}
+                  onValueChange={handlePriceChange}
+                  placeholder="R$ 0,00"
+                  className="h-12 text-lg"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="unit_cost" className="text-lg font-semibold">Custo Unitário (R$)</Label>
+                <Input
+                  id="unit_cost"
+                  value={formatCurrency(formData.unit_cost)}
+                  readOnly
+                  className="bg-muted h-12 text-lg font-semibold"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-lg font-semibold">Imagem</Label>
+              <ImageUpload
+                currentImageUrl={formData.image_url}
+                onImageUpload={handleImageUpload}
+                isUploading={isUploading}
+              />
+            </div>
+
+            <div className="flex justify-end gap-4 pt-6">
+              <Button type="button" variant="outline" onClick={onCancel} className="h-12 px-8">
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSaving || isUploading}
+                className="h-12 px-8 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+              >
+                {isSaving ? (
+                  <>Salvando...</>
+                ) : (
+                  <>
+                    <Save className="h-5 w-5 mr-2" />
+                    {ingredient ? 'Atualizar' : 'Criar'} Ingrediente
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
