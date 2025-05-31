@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,58 +54,33 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [packagingCost, setPackagingCost] = useState(0);
   const [isPrimaryPackaging, setIsPrimaryPackaging] = useState(false);
 
-  // Invalidar cache dos produtos quando há mudanças nas receitas
+  // Forçar atualização dos dados quando as receitas mudarem
   useEffect(() => {
-    console.log('🔄 Invalidando cache dos produtos devido a mudanças nas receitas...');
-    queryClient.invalidateQueries({ queryKey: ['products'] });
-  }, [recipes.map(r => `${r.id}-${r.unitCost}`).join(','), queryClient]);
-
-  // Atualizar custos dos itens já selecionados quando as receitas mudam
-  useEffect(() => {
+    console.log('🔄 Dados das receitas atualizados, recalculando custos...');
+    
     if (recipes.length > 0 && items.length > 0) {
-      console.log('🔍 Verificando atualizações de custo das receitas...');
-      
       const updatedItems = items.map(item => {
         const currentRecipe = recipes.find(r => r.id === item.recipeId);
         if (currentRecipe) {
-          const currentUnitCost = currentRecipe.unitCost;
-          const itemRecipeUnitCost = item.recipe?.unitCost || 0;
+          const newCost = currentRecipe.unitCost * item.quantity;
+          console.log(`📊 Item ${item.recipe?.name}: ${item.quantity} × R$ ${currentRecipe.unitCost.toFixed(2)} = R$ ${newCost.toFixed(2)}`);
           
-          // Verifica se o custo mudou
-          if (Math.abs(currentUnitCost - itemRecipeUnitCost) > 0.001) {
-            const newCost = currentUnitCost * item.quantity;
-            console.log(`🔄 Atualizando custo do item ${item.recipe?.name}:`);
-            console.log(`   Custo anterior: R$ ${itemRecipeUnitCost.toFixed(2)} × ${item.quantity} = R$ ${item.cost.toFixed(2)}`);
-            console.log(`   Custo atual: R$ ${currentUnitCost.toFixed(2)} × ${item.quantity} = R$ ${newCost.toFixed(2)}`);
-            
-            return {
-              ...item,
-              cost: newCost,
-              recipe: {
-                ...item.recipe!,
-                unitCost: currentUnitCost,
-              },
-            };
-          }
+          return {
+            ...item,
+            cost: newCost,
+            recipe: {
+              ...item.recipe!,
+              unitCost: currentRecipe.unitCost,
+            },
+          };
         }
         return item;
       });
       
-      // Só atualiza se houve mudança real
-      const hasChanges = updatedItems.some((item, index) => 
-        Math.abs(item.cost - items[index].cost) > 0.001
-      );
-      
-      if (hasChanges) {
-        console.log('✅ Itens atualizados com novos custos das receitas');
-        setItems(updatedItems);
-        
-        // Invalidar cache dos produtos para recarregar a lista
-        console.log('🔄 Invalidando cache dos produtos...');
-        queryClient.invalidateQueries({ queryKey: ['products'] });
-      }
+      setItems(updatedItems);
+      console.log('✅ Itens atualizados com novos custos');
     }
-  }, [recipes.map(r => `${r.id}-${r.unitCost}`).join(','), items.length, queryClient]);
+  }, [recipes]);
 
   useEffect(() => {
     recalculateTotalCost();
@@ -262,7 +238,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
@@ -295,7 +271,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       sellingPrice: formData.sellingPrice,
     };
 
+    console.log('💾 Enviando dados do produto:', productData);
     onSubmit(productData);
+    
+    // Forçar atualização dos dados após submissão
+    setTimeout(() => {
+      console.log('🔄 Invalidando caches após submissão...');
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    }, 500);
   };
 
   return (

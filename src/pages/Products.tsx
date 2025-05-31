@@ -7,7 +7,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search, Edit, Trash, Package } from "lucide-react";
+import { PlusCircle, Search, Edit, Trash, Package, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -65,24 +65,32 @@ const Products = () => {
   } = useQuery({
     queryKey: ['products'],
     queryFn: getProductList,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Sempre buscar dados atualizados
   });
 
   const { 
     data: recipesData = [],
-    isLoading: isLoadingRecipes
+    isLoading: isLoadingRecipes,
+    refetch: refetchRecipes
   } = useQuery({
     queryKey: ['recipes'],
     queryFn: fetchRecipes,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Sempre buscar dados atualizados
   });
 
   const recipes: Recipe[] = mapRecipesData(recipesData);
 
   const { 
     data: packaging = [],
-    isLoading: isLoadingPackaging
+    isLoading: isLoadingPackaging,
+    refetch: refetchPackaging
   } = useQuery({
     queryKey: ['packaging'],
     queryFn: getPackagingList,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Sempre buscar dados atualizados
   });
 
   const {
@@ -92,6 +100,8 @@ const Products = () => {
   } = useQuery({
     queryKey: ['productCategories'],
     queryFn: getProductCategories,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Sempre buscar dados atualizados
   });
 
   const createProductMutation = useMutation({
@@ -208,6 +218,18 @@ const Products = () => {
     refetchCategories();
   };
 
+  const handleRefreshData = () => {
+    console.log('🔄 Atualizando todos os dados...');
+    refetchProducts();
+    refetchRecipes();
+    refetchPackaging();
+    refetchCategories();
+    toast({
+      title: "Dados Atualizados",
+      description: "Todos os dados foram recarregados com sucesso!",
+    });
+  };
+
   const openCreateDialog = () => {
     setCurrentProduct(undefined);
     setIsEditing(false);
@@ -243,10 +265,16 @@ const Products = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Produtos</h1>
-        <Button className="gap-2" onClick={() => window.innerWidth >= 768 ? openCreateDialog() : openCreateSheet()}>
-          <PlusCircle className="h-4 w-4" />
-          Novo Produto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleRefreshData} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Atualizar
+          </Button>
+          <Button className="gap-2" onClick={() => window.innerWidth >= 768 ? openCreateDialog() : openCreateSheet()}>
+            <PlusCircle className="h-4 w-4" />
+            Novo Produto
+          </Button>
+        </div>
       </div>
       
       <Card>
@@ -270,7 +298,10 @@ const Products = () => {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-6">
-              <p>Carregando produtos...</p>
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <p>Carregando produtos...</p>
+              </div>
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-6">
@@ -333,7 +364,7 @@ const Products = () => {
                           <div className="space-y-1">
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium">Custo Total:</span>
-                              <span className="text-sm">{formatCurrency(product.totalCost)}</span>
+                              <span className="text-sm font-bold text-blue-600">{formatCurrency(product.totalCost)}</span>
                             </div>
                             
                             {product.sellingPrice > 0 && (
