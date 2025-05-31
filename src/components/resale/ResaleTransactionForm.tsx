@@ -16,7 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { resaleService } from "@/services/resaleService";
 import { getProductList } from "@/services/productService";
-import type { Reseller, CreateResaleTransactionRequest } from "@/types/resale";
+import type { Reseller, CreateTransactionRequest } from "@/types/resale";
 
 interface ResaleTransactionFormProps {
   open: boolean;

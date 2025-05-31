@@ -19,6 +19,7 @@ export interface ResaleTransaction {
   user_id: string;
   reseller_id: string;
   transaction_date: string;
+  delivery_time?: string;
   total_amount: number;
   commission_amount: number;
   status: 'pending' | 'delivered' | 'paid' | 'cancelled';
@@ -54,6 +55,7 @@ export interface CreateResellerRequest {
 export interface CreateTransactionRequest {
   reseller_id: string;
   transaction_date: string;
+  delivery_time?: string;
   notes?: string;
   items: CreateTransactionItemRequest[];
 }
