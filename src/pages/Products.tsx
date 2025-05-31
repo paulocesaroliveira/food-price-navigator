@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -7,7 +6,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search, Edit, Trash, Package, RefreshCw } from "lucide-react";
+import { PlusCircle, Search, Edit, Trash, Package, RefreshCw, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -21,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { ProductForm } from "@/components/products/ProductForm";
 import { DeleteProductDialog } from "@/components/products/DeleteProductDialog";
+import { ProductCategoryManager } from "@/components/products/ProductCategoryManager";
 import { 
   getProductList, 
   createProduct, 
@@ -99,9 +99,21 @@ const Products = () => {
     refetch: refetchCategories
   } = useQuery({
     queryKey: ['productCategories'],
-    queryFn: getProductCategories,
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { data, error } = await supabase
+        .from('product_categories')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+
+      if (error) throw error;
+      return data;
+    },
     refetchOnWindowFocus: true,
-    staleTime: 0, // Sempre buscar dados atualizados
+    staleTime: 0,
   });
 
   const createProductMutation = useMutation({
@@ -266,6 +278,10 @@ const Products = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Produtos</h1>
         <div className="flex gap-2">
+          <ProductCategoryManager 
+            categories={categories}
+            onCategoriesChange={handleCategoriesChange}
+          />
           <Button variant="outline" onClick={handleRefreshData} className="gap-2">
             <RefreshCw className="h-4 w-4" />
             Atualizar

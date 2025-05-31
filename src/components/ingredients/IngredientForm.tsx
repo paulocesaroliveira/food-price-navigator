@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,7 +73,6 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
       
-      // Recalcular custo unitário quando preço ou quantidade mudar
       if (field === 'package_price' || field === 'package_quantity') {
         const price = field === 'package_price' ? value : updated.package_price;
         const quantity = field === 'package_quantity' ? value : updated.package_quantity;
@@ -129,39 +127,29 @@ export const IngredientForm = ({ ingredient, onSave, onCancel }: IngredientFormP
     setIsSaving(true);
 
     try {
+      const dataToSave = {
+        name: formData.name,
+        category_id: formData.category_id,
+        unit: formData.unit,
+        brand: formData.brand,
+        supplier: formData.supplier,
+        package_quantity: formData.package_quantity,
+        package_price: formData.package_price,
+        unit_cost: formData.unit_cost,
+        image_url: formData.image_url
+      };
+
       if (ingredient) {
-        // Atualizar ingrediente existente
         const { error } = await supabase
           .from('ingredients')
-          .update({
-            name: formData.name,
-            category_id: formData.category_id,
-            unit: formData.unit,
-            brand: formData.brand,
-            supplier: formData.supplier,
-            package_quantity: formData.package_quantity,
-            package_price: formData.package_price,
-            unit_cost: formData.unit_cost,
-            image_url: formData.image_url
-          })
+          .update(dataToSave)
           .eq('id', ingredient.id);
 
         if (error) throw error;
       } else {
-        // Criar novo ingrediente
         const { error } = await supabase
           .from('ingredients')
-          .insert({
-            name: formData.name,
-            category_id: formData.category_id,
-            unit: formData.unit,
-            brand: formData.brand,
-            supplier: formData.supplier,
-            package_quantity: formData.package_quantity,
-            package_price: formData.package_price,
-            unit_cost: formData.unit_cost,
-            image_url: formData.image_url
-          });
+          .insert(dataToSave);
 
         if (error) throw error;
       }

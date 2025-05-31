@@ -4,12 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Trash2, ChefHat, DollarSign } from "lucide-react";
+import { Plus, Search, Edit, Trash2, ChefHat, DollarSign, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import RecipeForm from "@/components/recipes/RecipeForm";
 import { createRecipe, updateRecipe, deleteRecipe } from "@/services/recipeService";
+import { RecipeCategoryManager } from "@/components/recipes/RecipeCategoryManager";
 
 interface Recipe {
   id: string;
@@ -72,15 +73,19 @@ const Recipes = () => {
       return processedRecipes;
     },
     refetchOnWindowFocus: true,
-    refetchInterval: 5000 // Refetch a cada 5 segundos para garantir dados atualizados
+    refetchInterval: 5000
   });
 
   const { data: categories = [] } = useQuery({
     queryKey: ['recipe-categories'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('recipe_categories')
         .select('*')
+        .eq('user_id', user.id)
         .order('name');
 
       if (error) throw error;
@@ -142,7 +147,6 @@ const Recipes = () => {
         await createRecipe(data);
       }
 
-      // Invalidar queries para forçar refetch
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       
@@ -168,17 +172,27 @@ const Recipes = () => {
     setShowForm(true);
   };
 
+  const handleCategoriesChange = () => {
+    queryClient.invalidateQueries({ queryKey: ['recipe-categories'] });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Receitas</h1>
-        <Button
-          onClick={() => setShowForm(true)}
-          className="bg-food-coral hover:bg-food-coral/90 text-white dark:bg-food-coralDark dark:hover:bg-food-coralDark/90"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Receita
-        </Button>
+        <div className="flex gap-2">
+          <RecipeCategoryManager 
+            categories={categories}
+            onCategoriesChange={handleCategoriesChange}
+          />
+          <Button
+            onClick={() => setShowForm(true)}
+            className="bg-food-coral hover:bg-food-coral/90 text-white dark:bg-food-coralDark dark:hover:bg-food-coralDark/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Receita
+          </Button>
+        </div>
       </div>
 
       {/* Estatísticas */}
