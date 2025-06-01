@@ -29,22 +29,24 @@ interface PricingFormData {
   platformFeePercentage: number;
   taxPercentage: number;
   notes: string;
-  name: string;
 }
 
 interface EnhancedPricingFormProps {
   initialData?: any;
   onPricingChange: (data: any) => void;
   totalCost: number;
+  productName: string;
+  productId: string;
 }
 
 export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   initialData,
   onPricingChange,
-  totalCost
+  totalCost,
+  productName,
+  productId
 }) => {
   const [formData, setFormData] = useState<PricingFormData>({
-    name: initialData?.name || `Precificação - ${new Date().toLocaleDateString()}`,
     totalProductCost: totalCost || 0,
     laborCost: { value: 0, type: 'fixed' },
     overheadCost: { value: 0, type: 'fixed' },
@@ -63,7 +65,6 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
     if (initialData) {
       setFormData(prev => ({
         ...prev,
-        name: initialData.name || `Precificação - ${new Date().toLocaleDateString()}`,
         totalProductCost: totalCost || initialData.baseCost || 0,
         laborCost: { 
           value: initialData.laborCost || 0, 
@@ -95,8 +96,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
     } else {
       setFormData(prev => ({ 
         ...prev, 
-        totalProductCost: totalCost || 0,
-        name: `Precificação - ${new Date().toLocaleDateString()}`
+        totalProductCost: totalCost || 0
       }));
     }
   }, [totalCost, initialData]);
@@ -159,26 +159,53 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
 
   useEffect(() => {
     const dataToSend = {
-      ...formData,
+      name: productName,
+      product_id: productId,
       baseCost: formData.totalProductCost,
+      base_cost: formData.totalProductCost,
       packagingCost: 0,
+      packaging_cost: 0,
       laborCost: calculateCostValue(formData.laborCost, formData.totalProductCost),
+      labor_cost: calculateCostValue(formData.laborCost, formData.totalProductCost),
       overheadCost: calculateCostValue(formData.overheadCost, formData.totalProductCost),
+      overhead_cost: calculateCostValue(formData.overheadCost, formData.totalProductCost),
       marketingCost: calculateCostValue(formData.marketingCost, formData.totalProductCost),
+      marketing_cost: calculateCostValue(formData.marketingCost, formData.totalProductCost),
       deliveryCost: calculateCostValue(formData.deliveryCost, formData.totalProductCost),
+      delivery_cost: calculateCostValue(formData.deliveryCost, formData.totalProductCost),
       otherCosts: calculateCostValue(formData.otherCosts, formData.totalProductCost),
+      other_costs: calculateCostValue(formData.otherCosts, formData.totalProductCost),
       laborCostType: formData.laborCost.type,
       overheadCostType: formData.overheadCost.type,
       marketingCostType: formData.marketingCost.type,
       deliveryCostType: formData.deliveryCost.type,
       otherCostType: formData.otherCosts.type,
+      wastagePercentage: formData.wastagePercentage,
+      wastage_percentage: formData.wastagePercentage,
+      targetMarginPercentage: formData.targetMarginPercentage,
+      target_margin_percentage: formData.targetMarginPercentage,
+      margin_percentage: formData.targetMarginPercentage,
+      sellingPrice: formData.sellingPrice,
+      platformFeePercentage: formData.platformFeePercentage,
+      platform_fee_percentage: formData.platformFeePercentage,
+      taxPercentage: formData.taxPercentage,
+      tax_percentage: formData.taxPercentage,
+      notes: formData.notes,
       calculatedSellingPrice: results.sellingPrice,
       calculatedFinalPrice: results.finalPrice,
       calculatedProfit: results.profit,
       calculatedMargin: results.profitMargin,
+      total_unit_cost: results.totalCostWithWastage,
+      ideal_price: results.sellingPrice,
+      final_price: results.finalPrice,
+      unit_profit: results.profit,
+      actual_margin: results.profitMargin,
+      minimum_price: 0,
+      maximum_price: 0,
+      competitor_price: 0
     };
     onPricingChange(dataToSend);
-  }, [formData, onPricingChange]);
+  }, [formData, onPricingChange, productName, productId]);
 
   const handleInputChange = (field: keyof PricingFormData, value: number | string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -222,10 +249,10 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
             value={cost.type} 
             onValueChange={(value: 'fixed' | 'percentage') => handleCostFieldChange(field, 'type', value)}
           >
-            <SelectTrigger className="w-20">
+            <SelectTrigger className="w-20 bg-white">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white border shadow-lg z-50">
               <SelectItem value="fixed">R$</SelectItem>
               <SelectItem value="percentage">%</SelectItem>
             </SelectContent>
@@ -234,7 +261,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
             <CurrencyInput
               value={cost.value}
               onValueChange={(value) => handleCostFieldChange(field, 'value', value)}
-              className="flex-1"
+              className="flex-1 bg-white"
               placeholder="Valor em reais"
             />
           ) : (
@@ -243,7 +270,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               step="0.01"
               value={cost.value}
               onChange={(e) => handleCostFieldChange(field, 'value', parseFloat(e.target.value) || 0)}
-              className="flex-1"
+              className="flex-1 bg-white"
               placeholder="Porcentagem"
             />
           )}
@@ -264,20 +291,9 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-gray-800">
             <Calculator className="h-6 w-6" />
-            Nome da Precificação
+            Produto: {productName}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label>Nome</Label>
-            <Input
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="Ex: Precificação padrão"
-              className="bg-white"
-            />
-          </div>
-        </CardContent>
       </Card>
 
       {/* Custo do Produto */}
@@ -474,6 +490,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
             value={formData.notes}
             onChange={(e) => handleInputChange('notes', e.target.value)}
             rows={4}
+            className="bg-white"
           />
         </CardContent>
       </Card>

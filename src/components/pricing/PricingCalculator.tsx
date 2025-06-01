@@ -22,11 +22,17 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
   const [pricingData, setPricingData] = useState<any>(null);
 
   const handlePricingChange = (data: any) => {
+    console.log('Pricing data received:', data);
     setPricingData(data);
   };
 
   const handleSave = async () => {
-    if (!pricingData) return;
+    if (!pricingData) {
+      console.error('No pricing data to save');
+      return;
+    }
+    
+    console.log('Saving pricing data:', pricingData);
     
     try {
       await onSave(pricingData);
@@ -55,6 +61,8 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       {/* Enhanced Pricing Form */}
       <EnhancedPricingForm
         totalCost={product.totalCost}
+        productName={product.name}
+        productId={product.id}
         onPricingChange={handlePricingChange}
         initialData={existingConfig ? {
           baseCost: existingConfig.base_cost || 0,
@@ -64,10 +72,16 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
           marketingCost: existingConfig.marketing_cost || 0,
           deliveryCost: existingConfig.delivery_cost || 0,
           otherCosts: existingConfig.other_costs || 0,
+          laborCostType: 'fixed',
+          overheadCostType: 'fixed',
+          marketingCostType: 'fixed',
+          deliveryCostType: 'fixed',
+          otherCostType: 'fixed',
           wastagePercentage: existingConfig.wastage_percentage || 5,
           targetMarginPercentage: existingConfig.margin_percentage || 30,
           platformFeePercentage: existingConfig.platform_fee_percentage || 0,
           taxPercentage: existingConfig.tax_percentage || 0,
+          sellingPrice: existingConfig.ideal_price || 0,
           minimumPrice: existingConfig.minimum_price || 0,
           maximumPrice: existingConfig.maximum_price || 0,
           competitorPrice: existingConfig.competitor_price || 0,
