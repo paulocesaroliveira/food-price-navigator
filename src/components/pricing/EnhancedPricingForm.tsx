@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -25,26 +25,18 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   productName,
   productId
 }) => {
-  // Estados individuais para cada campo
-  const [baseCost, setBaseCost] = useState(totalCost || 0);
-  
-  // Custos indiretos com tipo
+  // Estados básicos
+  const [baseCost, setBaseCost] = useState(0);
   const [laborCost, setLaborCost] = useState(0);
   const [laborCostType, setLaborCostType] = useState<'fixed' | 'percentage'>('fixed');
-  
   const [overheadCost, setOverheadCost] = useState(0);
   const [overheadCostType, setOverheadCostType] = useState<'fixed' | 'percentage'>('fixed');
-  
   const [marketingCost, setMarketingCost] = useState(0);
   const [marketingCostType, setMarketingCostType] = useState<'fixed' | 'percentage'>('fixed');
-  
   const [deliveryCost, setDeliveryCost] = useState(0);
   const [deliveryCostType, setDeliveryCostType] = useState<'fixed' | 'percentage'>('fixed');
-  
   const [otherCosts, setOtherCosts] = useState(0);
   const [otherCostType, setOtherCostType] = useState<'fixed' | 'percentage'>('fixed');
-  
-  // Parâmetros
   const [wastagePercentage, setWastagePercentage] = useState(5);
   const [targetMarginPercentage, setTargetMarginPercentage] = useState(30);
   const [sellingPrice, setSellingPrice] = useState(0);
@@ -52,12 +44,12 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   const [cardFeePercentage, setCardFeePercentage] = useState(3);
   const [taxPercentage, setTaxPercentage] = useState(0);
   const [notes, setNotes] = useState("");
-  
-  // Controle de modo de edição
   const [editMode, setEditMode] = useState<'margin' | 'price'>('margin');
 
-  // Inicializar dados
+  // Inicialização única
   useEffect(() => {
+    setBaseCost(totalCost || 0);
+    
     if (initialData) {
       setLaborCost(initialData.laborCost || 0);
       setOverheadCost(initialData.overheadCost || 0);
@@ -72,19 +64,15 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       setTaxPercentage(initialData.taxPercentage || 0);
       setNotes(initialData.notes || "");
     }
-    setBaseCost(totalCost || 0);
   }, [totalCost, initialData]);
 
   // Função para calcular valor baseado no tipo
-  const calculateCostValue = (cost: number, type: 'fixed' | 'percentage', baseValue: number): number => {
-    if (type === 'percentage') {
-      return baseValue * (cost / 100);
-    }
-    return cost;
-  };
+  const calculateCostValue = useCallback((cost: number, type: 'fixed' | 'percentage', baseValue: number): number => {
+    return type === 'percentage' ? baseValue * (cost / 100) : cost;
+  }, []);
 
   // Calcular resultados
-  const calculateResults = () => {
+  const calculateResults = useCallback(() => {
     const laborCostValue = calculateCostValue(laborCost, laborCostType, baseCost);
     const overheadCostValue = calculateCostValue(overheadCost, overheadCostType, baseCost);
     const marketingCostValue = calculateCostValue(marketingCost, marketingCostType, baseCost);
@@ -123,11 +111,13 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       deliveryCostValue,
       otherCostsValue
     };
-  };
+  }, [baseCost, laborCost, laborCostType, overheadCost, overheadCostType, marketingCost, marketingCostType, 
+      deliveryCost, deliveryCostType, otherCosts, otherCostType, wastagePercentage, targetMarginPercentage, 
+      sellingPrice, platformFeePercentage, cardFeePercentage, taxPercentage, editMode, calculateCostValue]);
 
   const results = calculateResults();
 
-  // Notificar mudanças para o componente pai
+  // Notificar mudanças apenas quando necessário
   useEffect(() => {
     const dataToSend = {
       name: productName,
@@ -146,24 +136,24 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       delivery_cost: calculateCostValue(deliveryCost, deliveryCostType, baseCost),
       otherCosts: calculateCostValue(otherCosts, otherCostType, baseCost),
       other_costs: calculateCostValue(otherCosts, otherCostType, baseCost),
-      laborCostType: laborCostType,
-      overheadCostType: overheadCostType,
-      marketingCostType: marketingCostType,
-      deliveryCostType: deliveryCostType,
-      otherCostType: otherCostType,
-      wastagePercentage: wastagePercentage,
+      laborCostType,
+      overheadCostType,
+      marketingCostType,
+      deliveryCostType,
+      otherCostType,
+      wastagePercentage,
       wastage_percentage: wastagePercentage,
-      targetMarginPercentage: targetMarginPercentage,
+      targetMarginPercentage,
       target_margin_percentage: targetMarginPercentage,
       margin_percentage: targetMarginPercentage,
       sellingPrice: results.sellingPrice,
-      platformFeePercentage: platformFeePercentage,
+      platformFeePercentage,
       platform_fee_percentage: platformFeePercentage,
-      cardFeePercentage: cardFeePercentage,
+      cardFeePercentage,
       card_fee_percentage: cardFeePercentage,
-      taxPercentage: taxPercentage,
+      taxPercentage,
       tax_percentage: taxPercentage,
-      notes: notes,
+      notes,
       calculatedSellingPrice: results.sellingPrice,
       calculatedFinalPrice: results.finalPrice,
       calculatedProfit: results.profit,
@@ -172,18 +162,12 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       ideal_price: results.sellingPrice,
       final_price: results.finalPrice,
       unit_profit: results.profit,
-      actual_margin: results.profitMargin,
-      minimum_price: 0,
-      maximum_price: 0,
-      competitor_price: 0
+      actual_margin: results.profitMargin
     };
+    
     onPricingChange(dataToSend);
-  }, [
-    productName, productId, baseCost, laborCost, laborCostType, overheadCost, overheadCostType,
-    marketingCost, marketingCostType, deliveryCost, deliveryCostType, otherCosts, otherCostType,
-    wastagePercentage, targetMarginPercentage, sellingPrice, platformFeePercentage, cardFeePercentage,
-    taxPercentage, notes, editMode, results, onPricingChange
-  ]);
+  }, [productName, productId, results, laborCostType, overheadCostType, marketingCostType, 
+      deliveryCostType, otherCostType, platformFeePercentage, cardFeePercentage, taxPercentage, notes, onPricingChange, calculateCostValue]);
 
   // Handlers para mudanças de preço e margem
   const handleSellingPriceChange = (value: number) => {
@@ -194,62 +178,6 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   const handleMarginChange = (value: number) => {
     setEditMode('margin');
     setTargetMarginPercentage(value);
-  };
-
-  // Componente para campo de custo
-  const CostFieldInput = ({ 
-    label, 
-    cost, 
-    costType, 
-    onCostChange, 
-    onTypeChange 
-  }: { 
-    label: string; 
-    cost: number;
-    costType: 'fixed' | 'percentage';
-    onCostChange: (value: number) => void;
-    onTypeChange: (type: 'fixed' | 'percentage') => void;
-  }) => {
-    const calculatedValue = calculateCostValue(cost, costType, baseCost);
-    
-    return (
-      <div className="space-y-2">
-        <Label>{label}</Label>
-        <div className="flex gap-2">
-          <Select value={costType} onValueChange={onTypeChange}>
-            <SelectTrigger className="w-20 bg-white border border-gray-300 z-50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-300 shadow-lg z-50">
-              <SelectItem value="fixed">R$</SelectItem>
-              <SelectItem value="percentage">%</SelectItem>
-            </SelectContent>
-          </Select>
-          {costType === 'fixed' ? (
-            <CurrencyInput
-              value={cost}
-              onValueChange={onCostChange}
-              className="flex-1"
-              placeholder="Valor em reais"
-            />
-          ) : (
-            <Input
-              type="number"
-              step="0.01"
-              value={cost}
-              onChange={(e) => onCostChange(parseFloat(e.target.value) || 0)}
-              className="flex-1"
-              placeholder="Porcentagem"
-            />
-          )}
-        </div>
-        {costType === 'percentage' && cost > 0 && (
-          <div className="text-xs text-muted-foreground">
-            = {formatCurrency(calculatedValue)}
-          </div>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -295,41 +223,195 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <CostFieldInput 
-              label="Custo de Mão de Obra" 
-              cost={laborCost}
-              costType={laborCostType}
-              onCostChange={setLaborCost}
-              onTypeChange={setLaborCostType}
-            />
-            <CostFieldInput 
-              label="Custos Administrativos" 
-              cost={overheadCost}
-              costType={overheadCostType}
-              onCostChange={setOverheadCost}
-              onTypeChange={setOverheadCostType}
-            />
-            <CostFieldInput 
-              label="Custos de Marketing" 
-              cost={marketingCost}
-              costType={marketingCostType}
-              onCostChange={setMarketingCost}
-              onTypeChange={setMarketingCostType}
-            />
-            <CostFieldInput 
-              label="Custos de Entrega" 
-              cost={deliveryCost}
-              costType={deliveryCostType}
-              onCostChange={setDeliveryCost}
-              onTypeChange={setDeliveryCostType}
-            />
-            <CostFieldInput 
-              label="Outros Custos" 
-              cost={otherCosts}
-              costType={otherCostType}
-              onCostChange={setOtherCosts}
-              onTypeChange={setOtherCostType}
-            />
+            {/* Custo de Mão de Obra */}
+            <div className="space-y-2">
+              <Label>Custo de Mão de Obra</Label>
+              <div className="flex gap-2">
+                <Select value={laborCostType} onValueChange={(value: 'fixed' | 'percentage') => setLaborCostType(value)}>
+                  <SelectTrigger className="w-20 bg-white border border-gray-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-300 shadow-lg">
+                    <SelectItem value="fixed">R$</SelectItem>
+                    <SelectItem value="percentage">%</SelectItem>
+                  </SelectContent>
+                </Select>
+                {laborCostType === 'fixed' ? (
+                  <CurrencyInput
+                    value={laborCost}
+                    onValueChange={setLaborCost}
+                    className="flex-1"
+                    placeholder="Valor em reais"
+                  />
+                ) : (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={laborCost}
+                    onChange={(e) => setLaborCost(parseFloat(e.target.value) || 0)}
+                    className="flex-1"
+                    placeholder="Porcentagem"
+                  />
+                )}
+              </div>
+              {laborCostType === 'percentage' && laborCost > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  = {formatCurrency(calculateCostValue(laborCost, laborCostType, baseCost))}
+                </div>
+              )}
+            </div>
+
+            {/* Custos Administrativos */}
+            <div className="space-y-2">
+              <Label>Custos Administrativos</Label>
+              <div className="flex gap-2">
+                <Select value={overheadCostType} onValueChange={(value: 'fixed' | 'percentage') => setOverheadCostType(value)}>
+                  <SelectTrigger className="w-20 bg-white border border-gray-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-300 shadow-lg">
+                    <SelectItem value="fixed">R$</SelectItem>
+                    <SelectItem value="percentage">%</SelectItem>
+                  </SelectContent>
+                </Select>
+                {overheadCostType === 'fixed' ? (
+                  <CurrencyInput
+                    value={overheadCost}
+                    onValueChange={setOverheadCost}
+                    className="flex-1"
+                    placeholder="Valor em reais"
+                  />
+                ) : (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={overheadCost}
+                    onChange={(e) => setOverheadCost(parseFloat(e.target.value) || 0)}
+                    className="flex-1"
+                    placeholder="Porcentagem"
+                  />
+                )}
+              </div>
+              {overheadCostType === 'percentage' && overheadCost > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  = {formatCurrency(calculateCostValue(overheadCost, overheadCostType, baseCost))}
+                </div>
+              )}
+            </div>
+
+            {/* Custos de Marketing */}
+            <div className="space-y-2">
+              <Label>Custos de Marketing</Label>
+              <div className="flex gap-2">
+                <Select value={marketingCostType} onValueChange={(value: 'fixed' | 'percentage') => setMarketingCostType(value)}>
+                  <SelectTrigger className="w-20 bg-white border border-gray-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-300 shadow-lg">
+                    <SelectItem value="fixed">R$</SelectItem>
+                    <SelectItem value="percentage">%</SelectItem>
+                  </SelectContent>
+                </Select>
+                {marketingCostType === 'fixed' ? (
+                  <CurrencyInput
+                    value={marketingCost}
+                    onValueChange={setMarketingCost}
+                    className="flex-1"
+                    placeholder="Valor em reais"
+                  />
+                ) : (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={marketingCost}
+                    onChange={(e) => setMarketingCost(parseFloat(e.target.value) || 0)}
+                    className="flex-1"
+                    placeholder="Porcentagem"
+                  />
+                )}
+              </div>
+              {marketingCostType === 'percentage' && marketingCost > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  = {formatCurrency(calculateCostValue(marketingCost, marketingCostType, baseCost))}
+                </div>
+              )}
+            </div>
+
+            {/* Custos de Entrega */}
+            <div className="space-y-2">
+              <Label>Custos de Entrega</Label>
+              <div className="flex gap-2">
+                <Select value={deliveryCostType} onValueChange={(value: 'fixed' | 'percentage') => setDeliveryCostType(value)}>
+                  <SelectTrigger className="w-20 bg-white border border-gray-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-300 shadow-lg">
+                    <SelectItem value="fixed">R$</SelectItem>
+                    <SelectItem value="percentage">%</SelectItem>
+                  </SelectContent>
+                </Select>
+                {deliveryCostType === 'fixed' ? (
+                  <CurrencyInput
+                    value={deliveryCost}
+                    onValueChange={setDeliveryCost}
+                    className="flex-1"
+                    placeholder="Valor em reais"
+                  />
+                ) : (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={deliveryCost}
+                    onChange={(e) => setDeliveryCost(parseFloat(e.target.value) || 0)}
+                    className="flex-1"
+                    placeholder="Porcentagem"
+                  />
+                )}
+              </div>
+              {deliveryCostType === 'percentage' && deliveryCost > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  = {formatCurrency(calculateCostValue(deliveryCost, deliveryCostType, baseCost))}
+                </div>
+              )}
+            </div>
+
+            {/* Outros Custos */}
+            <div className="space-y-2">
+              <Label>Outros Custos</Label>
+              <div className="flex gap-2">
+                <Select value={otherCostType} onValueChange={(value: 'fixed' | 'percentage') => setOtherCostType(value)}>
+                  <SelectTrigger className="w-20 bg-white border border-gray-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-300 shadow-lg">
+                    <SelectItem value="fixed">R$</SelectItem>
+                    <SelectItem value="percentage">%</SelectItem>
+                  </SelectContent>
+                </Select>
+                {otherCostType === 'fixed' ? (
+                  <CurrencyInput
+                    value={otherCosts}
+                    onValueChange={setOtherCosts}
+                    className="flex-1"
+                    placeholder="Valor em reais"
+                  />
+                ) : (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={otherCosts}
+                    onChange={(e) => setOtherCosts(parseFloat(e.target.value) || 0)}
+                    className="flex-1"
+                    placeholder="Porcentagem"
+                  />
+                )}
+              </div>
+              {otherCostType === 'percentage' && otherCosts > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  = {formatCurrency(calculateCostValue(otherCosts, otherCostType, baseCost))}
+                </div>
+              )}
+            </div>
           </div>
           <div className="bg-purple-200 p-3 rounded-lg">
             <span className="font-semibold text-purple-800">Total Custos Indiretos: {formatCurrency(results.totalIndirectCosts)}</span>
