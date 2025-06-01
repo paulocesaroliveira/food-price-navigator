@@ -9,6 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Package } from "lucide-react";
 import { formatCurrency } from "@/utils/calculations";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { resaleService } from "@/services/resaleService";
+import { toast } from "@/hooks/use-toast";
+import type { 
+  Reseller, 
+  ResaleTransaction, 
+  CreateTransactionRequest,
+  CreateTransactionItemRequest 
+} from "@/types/resale";
 
 interface ResaleTransactionItem {
   product_id: string;
@@ -18,42 +27,27 @@ interface ResaleTransactionItem {
   total_price: number;
 }
 
-interface Reseller {
+interface Product {
   id: string;
   name: string;
-  commission_percentage: number;
-}
-
-interface ResaleTransaction {
-  id?: string;
-  reseller_id: string;
-  transaction_date: string;
-  delivery_time?: string;
-  total_amount: number;
-  commission_amount: number;
-  status: string;
-  notes: string;
-  items?: ResaleTransactionItem[];
+  sellingPrice?: number;
+  totalCost: number;
 }
 
 interface ResaleTransactionFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (transactionData: any) => void;
-  transaction?: ResaleTransaction | null;
-  products: any[];
   resellers: Reseller[];
-  isLoading?: boolean;
+  transaction?: ResaleTransaction | null;
+  onSuccess?: () => void;
 }
 
 const ResaleTransactionForm: React.FC<ResaleTransactionFormProps> = ({
   open,
   onOpenChange,
-  onSubmit,
-  transaction,
-  products,
   resellers,
-  isLoading = false
+  transaction,
+  onSuccess
 }) => {
   const [resellerId, setResellerId] = useState("");
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
@@ -62,13 +56,63 @@ const ResaleTransactionForm: React.FC<ResaleTransactionFormProps> = ({
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("pending");
 
+  const queryClient = useQueryClient();
+
+  // Mock products data - in a real app this would come from props or a query
+  const products: Product[] = [
+    { id: "1", name: "Produto A", sellingPrice: 50, totalCost: 30 },
+    { id: "2", name: "Produto B", sellingPrice: 100, totalCost: 60 },
+    { id: "3", name: "Produto C", sellingPrice: 75, totalCost: 45 }
+  ];
+
+  const createTransactionMutation = useMutation({
+    mutationFn: resaleService.createTransaction,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resale-transactions'] });
+      toast({ title: "✨ Sucesso", description: "Transação criada com sucesso!" });
+      onOpenChange(false);
+      if (onSuccess) onSuccess();
+    },
+    onError: (error) => {
+      toast({ 
+        title: "❌ Erro", 
+        description: `Erro ao criar transação: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const updateTransactionMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateTransactionRequest> }) => 
+      resaleService.updateTransaction(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resale-transactions'] });
+      toast({ title: "✨ Sucesso", description: "Transação atualizada com sucesso!" });
+      onOpenChange(false);
+      if (onSuccess) onSuccess();
+    },
+    onError: (error) => {
+      toast({ 
+        title: "❌ Erro", 
+        description: `Erro ao atualizar transação: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
   // Load transaction data when editing
   useEffect(() => {
     if (transaction && open) {
       setResellerId(transaction.reseller_id || "");
       setTransactionDate(transaction.transaction_date || new Date().toISOString().split('T')[0]);
       setDeliveryTime(transaction.delivery_time || "");
-      setItems(transaction.items || []);
+      setItems(transaction.resale_transaction_items?.map(item => ({
+        product_id: item.product_id,
+        product_name: item.product?.name || "",
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price
+      })) || []);
       setNotes(transaction.notes || "");
       setStatus(transaction.status || "pending");
     } else if (!transaction && open) {
@@ -129,27 +173,34 @@ const ResaleTransactionForm: React.FC<ResaleTransactionFormProps> = ({
     e.preventDefault();
     
     if (!resellerId || items.length === 0) {
+      toast({ 
+        title: "❌ Erro", 
+        description: "Selecione um revendedor e adicione pelo menos um item",
+        variant: "destructive"
+      });
       return;
     }
 
-    const transactionData = {
+    const transactionData: CreateTransactionRequest = {
       reseller_id: resellerId,
       transaction_date: transactionDate,
-      delivery_time: deliveryTime || null,
-      total_amount: totalAmount,
-      commission_amount: commissionAmount,
-      status,
+      delivery_time: deliveryTime || undefined,
       notes,
       items: items.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
-        unit_price: item.unit_price,
-        total_price: item.total_price
+        unit_price: item.unit_price
       }))
     };
 
-    onSubmit(transactionData);
+    if (transaction) {
+      updateTransactionMutation.mutate({ id: transaction.id, data: transactionData });
+    } else {
+      createTransactionMutation.mutate(transactionData);
+    }
   };
+
+  const isLoading = createTransactionMutation.isPending || updateTransactionMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,9 +259,9 @@ const ResaleTransactionForm: React.FC<ResaleTransactionFormProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="pending">Pendente</SelectItem>
-                <SelectItem value="processing">Em Processamento</SelectItem>
-                <SelectItem value="completed">Concluída</SelectItem>
-                <SelectItem value="cancelled">Cancelada</SelectItem>
+                <SelectItem value="delivered">Entregue</SelectItem>
+                <SelectItem value="paid">Pago</SelectItem>
+                <SelectItem value="cancelled">Cancelado</SelectItem>
               </SelectContent>
             </Select>
           </div>
