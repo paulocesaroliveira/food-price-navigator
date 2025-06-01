@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Plus, 
   Search, 
@@ -12,21 +11,15 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  DollarSign,
-  TrendingDown,
-  Calendar,
   Settings,
-  Star,
-  Activity
+  Calendar,
+  Activity,
+  Star
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { getAccountsPayable } from "@/services/accountsPayableService";
-import { AccountPayableForm } from "@/components/accounts-payable/AccountPayableForm";
-import { AccountPayablesList } from "@/components/accounts-payable/AccountPayablesList";
-import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
+import { supabase } from "@/integrations/supabase/client";
 
 const AccountsPayable = () => {
-  const [activeTab, setActiveTab] = useState("accounts");
   const [searchTerm, setSearchTerm] = useState("");
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
@@ -34,7 +27,15 @@ const AccountsPayable = () => {
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['accounts-payable'],
-    queryFn: getAccountsPayable
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('accounts_payable')
+        .select('*')
+        .order('due_date', { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
+    }
   });
 
   const formatCurrency = (value: number) => {
@@ -279,20 +280,6 @@ const AccountsPayable = () => {
             )}
           </CardContent>
         </Card>
-
-        <AccountPayableForm
-          open={showAccountForm}
-          onOpenChange={handleCloseAccountForm}
-          account={editingAccount}
-          onSuccess={() => {
-            handleCloseAccountForm();
-          }}
-        />
-
-        <ExpenseCategoryManager
-          open={showCategoryManager}
-          onOpenChange={setShowCategoryManager}
-        />
       </div>
     </div>
   );
