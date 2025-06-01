@@ -175,7 +175,7 @@ const Ingredients = () => {
     }
   };
 
-  const handleSave = () => {
+  const handleSuccess = () => {
     setShowForm(false);
     setEditingIngredient(null);
     refetch();
@@ -206,189 +206,185 @@ const Ingredients = () => {
         </div>
       </div>
       
-      {showForm ? (
-        <IngredientForm 
-          ingredient={editingIngredient} 
-          onSave={handleSave} 
-          onCancel={() => {
-            setShowForm(false);
-            setEditingIngredient(null);
-          }} 
-        />
-      ) : (
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <CardTitle>Lista de Ingredientes</CardTitle>
-              <div className="flex flex-col md:flex-row items-center gap-3">
-                <div className="relative w-full md:w-auto">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Buscar ingrediente..."
-                    className="pl-9 md:w-[250px]"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  {searchTerm && (
-                    <button 
-                      className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                      onClick={() => setSearchTerm("")}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="gap-2">
-                      <Filter className="h-4 w-4" />
-                      Filtrar
-                      {selectedCategory && (
-                        <span className="ml-1 h-2 w-2 rounded-full bg-primary"></span>
-                      )}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="p-2">
-                      <p className="mb-2 text-sm font-medium">Categoria</p>
-                      <Select 
-                        value={selectedCategory || ""} 
-                        onValueChange={(value) => setSelectedCategory(value || null)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Todas as categorias" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todas as categorias</SelectItem>
-                          {categories.map((category: any) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      
-                      {(searchTerm || selectedCategory) && (
-                        <Button 
-                          variant="ghost" 
-                          className="mt-2 w-full justify-start text-muted-foreground"
-                          onClick={clearFilters}
-                        >
-                          <X className="mr-2 h-4 w-4" />
-                          Limpar filtros
-                        </Button>
-                      )}
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : ingredients.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileEdit className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                <h3 className="text-lg font-medium">Nenhum ingrediente encontrado</h3>
-                <p className="mt-1">
-                  {searchTerm || selectedCategory
-                    ? "Tente mudar os filtros ou a busca"
-                    : "Comece cadastrando um novo ingrediente"}
-                </p>
-                {searchTerm || selectedCategory ? (
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={clearFilters}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardTitle>Lista de Ingredientes</CardTitle>
+            <div className="flex flex-col md:flex-row items-center gap-3">
+              <div className="relative w-full md:w-auto">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Buscar ingrediente..."
+                  className="pl-9 md:w-[250px]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <button 
+                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                    onClick={() => setSearchTerm("")}
                   >
-                    Limpar filtros
-                  </Button>
-                ) : (
-                  <Button
-                    className="mt-4"
-                    onClick={() => setShowForm(true)}
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Novo Ingrediente
-                  </Button>
+                    <X className="h-4 w-4" />
+                  </button>
                 )}
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Imagem</TableHead>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead>Marca</TableHead>
-                      <TableHead>Unidade</TableHead>
-                      <TableHead>Qtd. Embalagem</TableHead>
-                      <TableHead>Preço Embalagem</TableHead>
-                      <TableHead>Custo Unitário</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {ingredients.map((ingredient) => (
-                      <TableRow key={ingredient.id}>
-                        <TableCell>
-                          {ingredient.image_url ? (
-                            <div className="h-10 w-10 rounded-md overflow-hidden">
-                              <img 
-                                src={ingredient.image_url} 
-                                alt={ingredient.name} 
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
-                              <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-medium">{ingredient.name}</TableCell>
-                        <TableCell>{ingredient.ingredient_categories?.name}</TableCell>
-                        <TableCell>{ingredient.brand}</TableCell>
-                        <TableCell>{ingredient.unit}</TableCell>
-                        <TableCell>{ingredient.package_quantity} {ingredient.unit}</TableCell>
-                        <TableCell>{formatCurrency(ingredient.package_price)}</TableCell>
-                        <TableCell>{formatCurrency(ingredient.unit_cost)}/{ingredient.unit}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleEdit(ingredient)}
-                            >
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Editar</span>
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => confirmDelete(ingredient)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Excluir</span>
-                            </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filtrar
+                    {selectedCategory && (
+                      <span className="ml-1 h-2 w-2 rounded-full bg-primary"></span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="p-2">
+                    <p className="mb-2 text-sm font-medium">Categoria</p>
+                    <Select 
+                      value={selectedCategory || ""} 
+                      onValueChange={(value) => setSelectedCategory(value || null)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todas as categorias" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as categorias</SelectItem>
+                        {categories.map((category: any) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    {(searchTerm || selectedCategory) && (
+                      <Button 
+                        variant="ghost" 
+                        className="mt-2 w-full justify-start text-muted-foreground"
+                        onClick={clearFilters}
+                      >
+                        <X className="mr-2 h-4 w-4" />
+                        Limpar filtros
+                      </Button>
+                    )}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : ingredients.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileEdit className="h-12 w-12 mx-auto mb-4 opacity-20" />
+              <h3 className="text-lg font-medium">Nenhum ingrediente encontrado</h3>
+              <p className="mt-1">
+                {searchTerm || selectedCategory
+                  ? "Tente mudar os filtros ou a busca"
+                  : "Comece cadastrando um novo ingrediente"}
+              </p>
+              {searchTerm || selectedCategory ? (
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={clearFilters}
+                >
+                  Limpar filtros
+                </Button>
+              ) : (
+                <Button
+                  className="mt-4"
+                  onClick={() => setShowForm(true)}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Novo Ingrediente
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Imagem</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Marca</TableHead>
+                    <TableHead>Unidade</TableHead>
+                    <TableHead>Qtd. Embalagem</TableHead>
+                    <TableHead>Preço Embalagem</TableHead>
+                    <TableHead>Custo Unitário</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ingredients.map((ingredient) => (
+                    <TableRow key={ingredient.id}>
+                      <TableCell>
+                        {ingredient.image_url ? (
+                          <div className="h-10 w-10 rounded-md overflow-hidden">
+                            <img 
+                              src={ingredient.image_url} 
+                              alt={ingredient.name} 
+                              className="h-full w-full object-cover"
+                            />
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                        ) : (
+                          <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{ingredient.name}</TableCell>
+                      <TableCell>{ingredient.ingredient_categories?.name}</TableCell>
+                      <TableCell>{ingredient.brand}</TableCell>
+                      <TableCell>{ingredient.unit}</TableCell>
+                      <TableCell>{ingredient.package_quantity} {ingredient.unit}</TableCell>
+                      <TableCell>{formatCurrency(ingredient.package_price)}</TableCell>
+                      <TableCell>{formatCurrency(ingredient.unit_cost)}/{ingredient.unit}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEdit(ingredient)}
+                          >
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Editar</span>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => confirmDelete(ingredient)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Excluir</span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      <IngredientForm 
+        open={showForm}
+        onOpenChange={setShowForm}
+        ingredient={editingIngredient} 
+        onSuccess={handleSuccess}
+      />
       
       <CategoryDialog 
         open={showCategoryDialog} 

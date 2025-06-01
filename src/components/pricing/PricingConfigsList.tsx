@@ -114,20 +114,20 @@ const PricingConfigsList: React.FC<PricingConfigsListProps> = ({
                 <TableRow key={config.id} className="hover:bg-food-vanilla/10">
                   <TableCell className="font-medium">{config.name}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {formatDate(config.createdAt)}
+                    {formatDate(config.created_at)}
                   </TableCell>
                   <TableCell className="font-semibold text-food-dark">
-                    {formatCurrency(config.finalPrice)}
+                    {formatCurrency(config.final_price)}
                   </TableCell>
                   <TableCell>
                     <span className={`px-2 py-0.5 rounded-full text-sm font-medium ${
-                      config.actualMargin > 30 
+                      config.actual_margin > 30 
                         ? 'bg-food-green/20 text-green-800' 
-                        : config.actualMargin < 15
+                        : config.actual_margin < 15
                           ? 'bg-food-red/20 text-red-800'
                           : 'bg-food-vanilla text-amber-800'
                     }`}>
-                      {config.actualMargin.toFixed(1)}%
+                      {config.actual_margin.toFixed(1)}%
                     </span>
                   </TableCell>
                   <TableCell className="text-right">

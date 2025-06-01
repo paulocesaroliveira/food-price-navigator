@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getIngredientCategories } from "@/services/categoryService";
-import { ImageUpload } from "./ImageUpload";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -187,6 +187,10 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
     }
   };
 
+  const handleImageUpload = async (url: string) => {
+    setFormData(prev => ({ ...prev, image_url: url }));
+  };
+
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   return (
@@ -316,10 +320,12 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Imagem</Label>
-            <ImageUpload
+            <Label>Imagem URL</Label>
+            <Input
+              type="url"
               value={formData.image_url}
-              onImageUpload={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+              onChange={(e) => handleImageUpload(e.target.value)}
+              placeholder="URL da imagem do ingrediente"
             />
           </div>
 

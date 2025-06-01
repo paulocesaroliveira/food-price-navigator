@@ -31,12 +31,12 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
   // Função para obter a última configuração de preço de um produto
   const getLatestPricingConfig = (productId: string) => {
-    const productConfigs = allPricingConfigs.filter(config => config.productId === productId);
+    const productConfigs = allPricingConfigs.filter(config => config.product_id === productId);
     if (productConfigs.length === 0) return null;
     
     // Retorna a configuração mais recente
     return productConfigs.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )[0];
   };
 
@@ -133,11 +133,11 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                             <>
                               <div className="flex items-center gap-1 text-sm text-green-600">
                                 <TrendingUp className="h-3 w-3" />
-                                Margem: {formatPercentage(latestPricing.actualMargin)}
+                                Margem: {formatPercentage(latestPricing.actual_margin)}
                               </div>
                               <div className="flex items-center gap-1 text-sm text-food-dark font-medium">
                                 <Calculator className="h-3 w-3" />
-                                Venda: {formatCurrency(latestPricing.idealPrice)}
+                                Venda: {formatCurrency(latestPricing.ideal_price)}
                               </div>
                             </>
                           )}
