@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -225,7 +224,6 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem categoria</SelectItem>
                   {categories.map((category: any) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
