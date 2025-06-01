@@ -10,27 +10,6 @@ import { Calculator, DollarSign, Target, AlertCircle } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/utils/calculations";
 import { CurrencyInput } from "@/components/ui/currency-input";
 
-interface CostField {
-  value: number;
-  type: 'fixed' | 'percentage';
-}
-
-interface PricingFormData {
-  totalProductCost: number;
-  laborCost: CostField;
-  overheadCost: CostField;
-  marketingCost: CostField;
-  deliveryCost: CostField;
-  otherCosts: CostField;
-  wastagePercentage: number;
-  targetMarginPercentage: number;
-  sellingPrice: number;
-  platformFeePercentage: number;
-  cardFeePercentage: number;
-  taxPercentage: number;
-  notes: string;
-}
-
 interface EnhancedPricingFormProps {
   initialData?: any;
   onPricingChange: (data: any) => void;
@@ -46,106 +25,97 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   productName,
   productId
 }) => {
-  const [formData, setFormData] = useState<PricingFormData>({
-    totalProductCost: totalCost || 0,
-    laborCost: { value: 0, type: 'fixed' },
-    overheadCost: { value: 0, type: 'fixed' },
-    marketingCost: { value: 0, type: 'fixed' },
-    deliveryCost: { value: 0, type: 'fixed' },
-    otherCosts: { value: 0, type: 'fixed' },
-    wastagePercentage: 5,
-    targetMarginPercentage: 30,
-    sellingPrice: 0,
-    platformFeePercentage: 0,
-    cardFeePercentage: 3,
-    taxPercentage: 0,
-    notes: "",
-  });
-
+  // Estados individuais para cada campo
+  const [baseCost, setBaseCost] = useState(totalCost || 0);
+  
+  // Custos indiretos com tipo
+  const [laborCost, setLaborCost] = useState(0);
+  const [laborCostType, setLaborCostType] = useState<'fixed' | 'percentage'>('fixed');
+  
+  const [overheadCost, setOverheadCost] = useState(0);
+  const [overheadCostType, setOverheadCostType] = useState<'fixed' | 'percentage'>('fixed');
+  
+  const [marketingCost, setMarketingCost] = useState(0);
+  const [marketingCostType, setMarketingCostType] = useState<'fixed' | 'percentage'>('fixed');
+  
+  const [deliveryCost, setDeliveryCost] = useState(0);
+  const [deliveryCostType, setDeliveryCostType] = useState<'fixed' | 'percentage'>('fixed');
+  
+  const [otherCosts, setOtherCosts] = useState(0);
+  const [otherCostType, setOtherCostType] = useState<'fixed' | 'percentage'>('fixed');
+  
+  // Parâmetros
+  const [wastagePercentage, setWastagePercentage] = useState(5);
+  const [targetMarginPercentage, setTargetMarginPercentage] = useState(30);
+  const [sellingPrice, setSellingPrice] = useState(0);
+  const [platformFeePercentage, setPlatformFeePercentage] = useState(0);
+  const [cardFeePercentage, setCardFeePercentage] = useState(3);
+  const [taxPercentage, setTaxPercentage] = useState(0);
+  const [notes, setNotes] = useState("");
+  
+  // Controle de modo de edição
   const [editMode, setEditMode] = useState<'margin' | 'price'>('margin');
 
+  // Inicializar dados
   useEffect(() => {
     if (initialData) {
-      setFormData(prev => ({
-        ...prev,
-        totalProductCost: totalCost || initialData.baseCost || 0,
-        laborCost: { 
-          value: initialData.laborCost || 0, 
-          type: initialData.laborCostType || 'fixed' 
-        },
-        overheadCost: { 
-          value: initialData.overheadCost || 0, 
-          type: initialData.overheadCostType || 'fixed' 
-        },
-        marketingCost: { 
-          value: initialData.marketingCost || 0, 
-          type: initialData.marketingCostType || 'fixed' 
-        },
-        deliveryCost: { 
-          value: initialData.deliveryCost || 0, 
-          type: initialData.deliveryCostType || 'fixed' 
-        },
-        otherCosts: { 
-          value: initialData.otherCosts || 0, 
-          type: initialData.otherCostType || 'fixed' 
-        },
-        wastagePercentage: initialData.wastagePercentage || 5,
-        targetMarginPercentage: initialData.targetMarginPercentage || 30,
-        sellingPrice: initialData.sellingPrice || 0,
-        platformFeePercentage: initialData.platformFeePercentage || 0,
-        cardFeePercentage: initialData.cardFeePercentage || 3,
-        taxPercentage: initialData.taxPercentage || 0,
-        notes: initialData.notes || "",
-      }));
-    } else {
-      setFormData(prev => ({ 
-        ...prev, 
-        totalProductCost: totalCost || 0
-      }));
+      setLaborCost(initialData.laborCost || 0);
+      setOverheadCost(initialData.overheadCost || 0);
+      setMarketingCost(initialData.marketingCost || 0);
+      setDeliveryCost(initialData.deliveryCost || 0);
+      setOtherCosts(initialData.otherCosts || 0);
+      setWastagePercentage(initialData.wastagePercentage || 5);
+      setTargetMarginPercentage(initialData.targetMarginPercentage || 30);
+      setSellingPrice(initialData.sellingPrice || 0);
+      setPlatformFeePercentage(initialData.platformFeePercentage || 0);
+      setCardFeePercentage(initialData.cardFeePercentage || 3);
+      setTaxPercentage(initialData.taxPercentage || 0);
+      setNotes(initialData.notes || "");
     }
+    setBaseCost(totalCost || 0);
   }, [totalCost, initialData]);
 
-  const calculateCostValue = (cost: CostField, baseCost: number): number => {
-    if (cost.type === 'percentage') {
-      return baseCost * (cost.value / 100);
+  // Função para calcular valor baseado no tipo
+  const calculateCostValue = (cost: number, type: 'fixed' | 'percentage', baseValue: number): number => {
+    if (type === 'percentage') {
+      return baseValue * (cost / 100);
     }
-    return cost.value;
+    return cost;
   };
 
+  // Calcular resultados
   const calculateResults = () => {
-    const baseCost = formData.totalProductCost;
-    
-    const laborCostValue = calculateCostValue(formData.laborCost, baseCost);
-    const overheadCostValue = calculateCostValue(formData.overheadCost, baseCost);
-    const marketingCostValue = calculateCostValue(formData.marketingCost, baseCost);
-    const deliveryCostValue = calculateCostValue(formData.deliveryCost, baseCost);
-    const otherCostsValue = calculateCostValue(formData.otherCosts, baseCost);
+    const laborCostValue = calculateCostValue(laborCost, laborCostType, baseCost);
+    const overheadCostValue = calculateCostValue(overheadCost, overheadCostType, baseCost);
+    const marketingCostValue = calculateCostValue(marketingCost, marketingCostType, baseCost);
+    const deliveryCostValue = calculateCostValue(deliveryCost, deliveryCostType, baseCost);
+    const otherCostsValue = calculateCostValue(otherCosts, otherCostType, baseCost);
     
     const totalIndirectCosts = laborCostValue + overheadCostValue + marketingCostValue + deliveryCostValue + otherCostsValue;
     const totalCostBeforeWastage = baseCost + totalIndirectCosts;
-    const totalCostWithWastage = totalCostBeforeWastage * (1 + formData.wastagePercentage / 100);
+    const totalCostWithWastage = totalCostBeforeWastage * (1 + wastagePercentage / 100);
     
-    let sellingPrice = formData.sellingPrice;
-    let marginPercentage = formData.targetMarginPercentage;
+    let calculatedSellingPrice = sellingPrice;
+    let calculatedMargin = targetMarginPercentage;
     
     if (editMode === 'price' && sellingPrice > 0) {
-      marginPercentage = ((sellingPrice - totalCostWithWastage) / sellingPrice) * 100;
-    } else if (editMode === 'margin' && marginPercentage > 0) {
-      sellingPrice = totalCostWithWastage / (1 - marginPercentage / 100);
+      calculatedMargin = ((sellingPrice - totalCostWithWastage) / sellingPrice) * 100;
+    } else if (editMode === 'margin' && targetMarginPercentage > 0) {
+      calculatedSellingPrice = totalCostWithWastage / (1 - targetMarginPercentage / 100);
     }
     
-    const finalPrice = sellingPrice * (1 + formData.platformFeePercentage / 100) * (1 + formData.cardFeePercentage / 100) * (1 + formData.taxPercentage / 100);
-    const profit = sellingPrice - totalCostWithWastage;
-    const profitMargin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
+    const finalPrice = calculatedSellingPrice * (1 + platformFeePercentage / 100) * (1 + cardFeePercentage / 100) * (1 + taxPercentage / 100);
+    const profit = calculatedSellingPrice - totalCostWithWastage;
+    const profitMargin = calculatedSellingPrice > 0 ? (profit / calculatedSellingPrice) * 100 : 0;
     
     return {
       baseCost,
       totalIndirectCosts,
       totalCostWithWastage,
-      sellingPrice,
+      sellingPrice: calculatedSellingPrice,
       finalPrice,
       profit,
-      marginPercentage,
+      marginPercentage: calculatedMargin,
       profitMargin,
       laborCostValue,
       overheadCostValue,
@@ -157,42 +127,43 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
 
   const results = calculateResults();
 
+  // Notificar mudanças para o componente pai
   useEffect(() => {
     const dataToSend = {
       name: productName,
       product_id: productId,
-      baseCost: formData.totalProductCost,
-      base_cost: formData.totalProductCost,
+      baseCost: baseCost,
+      base_cost: baseCost,
       packagingCost: 0,
       packaging_cost: 0,
-      laborCost: calculateCostValue(formData.laborCost, formData.totalProductCost),
-      labor_cost: calculateCostValue(formData.laborCost, formData.totalProductCost),
-      overheadCost: calculateCostValue(formData.overheadCost, formData.totalProductCost),
-      overhead_cost: calculateCostValue(formData.overheadCost, formData.totalProductCost),
-      marketingCost: calculateCostValue(formData.marketingCost, formData.totalProductCost),
-      marketing_cost: calculateCostValue(formData.marketingCost, formData.totalProductCost),
-      deliveryCost: calculateCostValue(formData.deliveryCost, formData.totalProductCost),
-      delivery_cost: calculateCostValue(formData.deliveryCost, formData.totalProductCost),
-      otherCosts: calculateCostValue(formData.otherCosts, formData.totalProductCost),
-      other_costs: calculateCostValue(formData.otherCosts, formData.totalProductCost),
-      laborCostType: formData.laborCost.type,
-      overheadCostType: formData.overheadCost.type,
-      marketingCostType: formData.marketingCost.type,
-      deliveryCostType: formData.deliveryCost.type,
-      otherCostType: formData.otherCosts.type,
-      wastagePercentage: formData.wastagePercentage,
-      wastage_percentage: formData.wastagePercentage,
-      targetMarginPercentage: formData.targetMarginPercentage,
-      target_margin_percentage: formData.targetMarginPercentage,
-      margin_percentage: formData.targetMarginPercentage,
-      sellingPrice: formData.sellingPrice,
-      platformFeePercentage: formData.platformFeePercentage,
-      platform_fee_percentage: formData.platformFeePercentage,
-      cardFeePercentage: formData.cardFeePercentage,
-      card_fee_percentage: formData.cardFeePercentage,
-      taxPercentage: formData.taxPercentage,
-      tax_percentage: formData.taxPercentage,
-      notes: formData.notes,
+      laborCost: calculateCostValue(laborCost, laborCostType, baseCost),
+      labor_cost: calculateCostValue(laborCost, laborCostType, baseCost),
+      overheadCost: calculateCostValue(overheadCost, overheadCostType, baseCost),
+      overhead_cost: calculateCostValue(overheadCost, overheadCostType, baseCost),
+      marketingCost: calculateCostValue(marketingCost, marketingCostType, baseCost),
+      marketing_cost: calculateCostValue(marketingCost, marketingCostType, baseCost),
+      deliveryCost: calculateCostValue(deliveryCost, deliveryCostType, baseCost),
+      delivery_cost: calculateCostValue(deliveryCost, deliveryCostType, baseCost),
+      otherCosts: calculateCostValue(otherCosts, otherCostType, baseCost),
+      other_costs: calculateCostValue(otherCosts, otherCostType, baseCost),
+      laborCostType: laborCostType,
+      overheadCostType: overheadCostType,
+      marketingCostType: marketingCostType,
+      deliveryCostType: deliveryCostType,
+      otherCostType: otherCostType,
+      wastagePercentage: wastagePercentage,
+      wastage_percentage: wastagePercentage,
+      targetMarginPercentage: targetMarginPercentage,
+      target_margin_percentage: targetMarginPercentage,
+      margin_percentage: targetMarginPercentage,
+      sellingPrice: results.sellingPrice,
+      platformFeePercentage: platformFeePercentage,
+      platform_fee_percentage: platformFeePercentage,
+      cardFeePercentage: cardFeePercentage,
+      card_fee_percentage: cardFeePercentage,
+      taxPercentage: taxPercentage,
+      tax_percentage: taxPercentage,
+      notes: notes,
       calculatedSellingPrice: results.sellingPrice,
       calculatedFinalPrice: results.finalPrice,
       calculatedProfit: results.profit,
@@ -207,68 +178,46 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       competitor_price: 0
     };
     onPricingChange(dataToSend);
-  }, [formData, onPricingChange, productName, productId, results]);
+  }, [
+    productName, productId, baseCost, laborCost, laborCostType, overheadCost, overheadCostType,
+    marketingCost, marketingCostType, deliveryCost, deliveryCostType, otherCosts, otherCostType,
+    wastagePercentage, targetMarginPercentage, sellingPrice, platformFeePercentage, cardFeePercentage,
+    taxPercentage, notes, editMode, results, onPricingChange
+  ]);
 
-  const handleInputChange = (field: keyof PricingFormData, value: any) => {
-    console.log(`Updating ${field} with value:`, value);
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleCostFieldValueChange = (field: keyof Pick<PricingFormData, 'laborCost' | 'overheadCost' | 'marketingCost' | 'deliveryCost' | 'otherCosts'>, value: number) => {
-    console.log(`Updating ${field} value with:`, value);
-    setFormData(prev => ({
-      ...prev,
-      [field]: {
-        ...prev[field],
-        value: value
-      }
-    }));
-  };
-
-  const handleCostFieldTypeChange = (field: keyof Pick<PricingFormData, 'laborCost' | 'overheadCost' | 'marketingCost' | 'deliveryCost' | 'otherCosts'>, type: 'fixed' | 'percentage') => {
-    console.log(`Updating ${field} type with:`, type);
-    setFormData(prev => ({
-      ...prev,
-      [field]: {
-        ...prev[field],
-        type: type
-      }
-    }));
-  };
-
+  // Handlers para mudanças de preço e margem
   const handleSellingPriceChange = (value: number) => {
-    console.log('Updating selling price:', value);
     setEditMode('price');
-    setFormData(prev => ({ ...prev, sellingPrice: value }));
+    setSellingPrice(value);
   };
 
   const handleMarginChange = (value: number) => {
-    console.log('Updating margin:', value);
     setEditMode('margin');
-    setFormData(prev => ({ ...prev, targetMarginPercentage: value }));
+    setTargetMarginPercentage(value);
   };
 
+  // Componente para campo de custo
   const CostFieldInput = ({ 
     label, 
-    field, 
-    baseCost 
+    cost, 
+    costType, 
+    onCostChange, 
+    onTypeChange 
   }: { 
     label: string; 
-    field: keyof Pick<PricingFormData, 'laborCost' | 'overheadCost' | 'marketingCost' | 'deliveryCost' | 'otherCosts'>;
-    baseCost: number;
+    cost: number;
+    costType: 'fixed' | 'percentage';
+    onCostChange: (value: number) => void;
+    onTypeChange: (type: 'fixed' | 'percentage') => void;
   }) => {
-    const cost = formData[field];
-    const calculatedValue = calculateCostValue(cost, baseCost);
+    const calculatedValue = calculateCostValue(cost, costType, baseCost);
     
     return (
       <div className="space-y-2">
         <Label>{label}</Label>
         <div className="flex gap-2">
-          <Select 
-            value={cost.type} 
-            onValueChange={(value: 'fixed' | 'percentage') => handleCostFieldTypeChange(field, value)}
-          >
-            <SelectTrigger className="w-20 bg-white border border-gray-300">
+          <Select value={costType} onValueChange={onTypeChange}>
+            <SelectTrigger className="w-20 bg-white border border-gray-300 z-50">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white border border-gray-300 shadow-lg z-50">
@@ -276,10 +225,10 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <SelectItem value="percentage">%</SelectItem>
             </SelectContent>
           </Select>
-          {cost.type === 'fixed' ? (
+          {costType === 'fixed' ? (
             <CurrencyInput
-              value={cost.value}
-              onValueChange={(value) => handleCostFieldValueChange(field, value)}
+              value={cost}
+              onValueChange={onCostChange}
               className="flex-1"
               placeholder="Valor em reais"
             />
@@ -287,14 +236,14 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
             <Input
               type="number"
               step="0.01"
-              value={cost.value}
-              onChange={(e) => handleCostFieldValueChange(field, parseFloat(e.target.value) || 0)}
+              value={cost}
+              onChange={(e) => onCostChange(parseFloat(e.target.value) || 0)}
               className="flex-1"
               placeholder="Porcentagem"
             />
           )}
         </div>
-        {cost.type === 'percentage' && cost.value > 0 && (
+        {costType === 'percentage' && cost > 0 && (
           <div className="text-xs text-muted-foreground">
             = {formatCurrency(calculatedValue)}
           </div>
@@ -327,7 +276,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
           <div className="space-y-2">
             <Label>Custo Total do Produto</Label>
             <div className="text-2xl font-bold text-blue-800">
-              {formatCurrency(formData.totalProductCost)}
+              {formatCurrency(baseCost)}
             </div>
             <p className="text-xs text-muted-foreground">
               Este valor é calculado automaticamente com base no produto selecionado
@@ -346,11 +295,41 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <CostFieldInput label="Custo de Mão de Obra" field="laborCost" baseCost={formData.totalProductCost} />
-            <CostFieldInput label="Custos Administrativos" field="overheadCost" baseCost={formData.totalProductCost} />
-            <CostFieldInput label="Custos de Marketing" field="marketingCost" baseCost={formData.totalProductCost} />
-            <CostFieldInput label="Custos de Entrega" field="deliveryCost" baseCost={formData.totalProductCost} />
-            <CostFieldInput label="Outros Custos" field="otherCosts" baseCost={formData.totalProductCost} />
+            <CostFieldInput 
+              label="Custo de Mão de Obra" 
+              cost={laborCost}
+              costType={laborCostType}
+              onCostChange={setLaborCost}
+              onTypeChange={setLaborCostType}
+            />
+            <CostFieldInput 
+              label="Custos Administrativos" 
+              cost={overheadCost}
+              costType={overheadCostType}
+              onCostChange={setOverheadCost}
+              onTypeChange={setOverheadCostType}
+            />
+            <CostFieldInput 
+              label="Custos de Marketing" 
+              cost={marketingCost}
+              costType={marketingCostType}
+              onCostChange={setMarketingCost}
+              onTypeChange={setMarketingCostType}
+            />
+            <CostFieldInput 
+              label="Custos de Entrega" 
+              cost={deliveryCost}
+              costType={deliveryCostType}
+              onCostChange={setDeliveryCost}
+              onTypeChange={setDeliveryCostType}
+            />
+            <CostFieldInput 
+              label="Outros Custos" 
+              cost={otherCosts}
+              costType={otherCostType}
+              onCostChange={setOtherCosts}
+              onTypeChange={setOtherCostType}
+            />
           </div>
           <div className="bg-purple-200 p-3 rounded-lg">
             <span className="font-semibold text-purple-800">Total Custos Indiretos: {formatCurrency(results.totalIndirectCosts)}</span>
@@ -373,8 +352,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <Input
                 type="number"
                 step="0.1"
-                value={formData.wastagePercentage}
-                onChange={(e) => handleInputChange('wastagePercentage', parseFloat(e.target.value) || 0)}
+                value={wastagePercentage}
+                onChange={(e) => setWastagePercentage(parseFloat(e.target.value) || 0)}
               />
             </div>
             <div className="space-y-2">
@@ -382,8 +361,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <Input
                 type="number"
                 step="0.1"
-                value={formData.platformFeePercentage}
-                onChange={(e) => handleInputChange('platformFeePercentage', parseFloat(e.target.value) || 0)}
+                value={platformFeePercentage}
+                onChange={(e) => setPlatformFeePercentage(parseFloat(e.target.value) || 0)}
               />
             </div>
             <div className="space-y-2">
@@ -391,8 +370,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <Input
                 type="number"
                 step="0.1"
-                value={formData.cardFeePercentage}
-                onChange={(e) => handleInputChange('cardFeePercentage', parseFloat(e.target.value) || 0)}
+                value={cardFeePercentage}
+                onChange={(e) => setCardFeePercentage(parseFloat(e.target.value) || 0)}
               />
             </div>
             <div className="space-y-2">
@@ -400,8 +379,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <Input
                 type="number"
                 step="0.1"
-                value={formData.taxPercentage}
-                onChange={(e) => handleInputChange('taxPercentage', parseFloat(e.target.value) || 0)}
+                value={taxPercentage}
+                onChange={(e) => setTaxPercentage(parseFloat(e.target.value) || 0)}
               />
             </div>
           </div>
@@ -414,14 +393,14 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <Input
                 type="number"
                 step="0.1"
-                value={editMode === 'margin' ? formData.targetMarginPercentage : results.marginPercentage.toFixed(2)}
+                value={editMode === 'margin' ? targetMarginPercentage : results.marginPercentage.toFixed(2)}
                 onChange={(e) => handleMarginChange(parseFloat(e.target.value) || 0)}
               />
             </div>
             <div className="space-y-2">
               <Label>Valor de Venda (R$)</Label>
               <CurrencyInput
-                value={editMode === 'price' ? formData.sellingPrice : results.sellingPrice}
+                value={editMode === 'price' ? sellingPrice : results.sellingPrice}
                 onValueChange={handleSellingPriceChange}
               />
             </div>
@@ -501,8 +480,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         <CardContent>
           <Textarea
             placeholder="Adicione observações sobre esta precificação..."
-            value={formData.notes}
-            onChange={(e) => handleInputChange('notes', e.target.value)}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
             rows={4}
           />
         </CardContent>
