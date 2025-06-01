@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, TrendingUp, DollarSign, Target, AlertCircle, Percent } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/utils/calculations";
+import { CurrencyInput } from "@/components/ui/currency-input";
 
 interface CostField {
   value: number;
@@ -27,9 +28,6 @@ interface PricingFormData {
   sellingPrice: number;
   platformFeePercentage: number;
   taxPercentage: number;
-  minimumPrice: number;
-  maximumPrice: number;
-  competitorPrice: number;
   notes: string;
 }
 
@@ -56,9 +54,6 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
     sellingPrice: 0,
     platformFeePercentage: 0,
     taxPercentage: 0,
-    minimumPrice: 0,
-    maximumPrice: 0,
-    competitorPrice: 0,
     notes: "",
   });
 
@@ -92,9 +87,6 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         sellingPrice: initialData.sellingPrice || 0,
         platformFeePercentage: initialData.platformFeePercentage || 0,
         taxPercentage: initialData.taxPercentage || 0,
-        minimumPrice: initialData.minimumPrice || 0,
-        maximumPrice: initialData.maximumPrice || 0,
-        competitorPrice: initialData.competitorPrice || 0,
         notes: initialData.notes || "",
       }));
     } else {
@@ -123,13 +115,15 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
     const totalCostBeforeWastage = baseCost + totalIndirectCosts;
     const totalCostWithWastage = totalCostBeforeWastage * (1 + formData.wastagePercentage / 100);
     
-    // Se o preço de venda foi definido, calcular margem baseada nele
+    // Calcular preço de venda e margem
     let sellingPrice = formData.sellingPrice;
     let marginPercentage = formData.targetMarginPercentage;
     
     if (sellingPrice > 0) {
+      // Se preço de venda foi definido, calcular margem
       marginPercentage = ((sellingPrice - totalCostWithWastage) / sellingPrice) * 100;
-    } else {
+    } else if (marginPercentage > 0) {
+      // Se margem foi definida, calcular preço de venda
       sellingPrice = totalCostWithWastage / (1 - marginPercentage / 100);
     }
     
@@ -229,14 +223,23 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <SelectItem value="percentage">%</SelectItem>
             </SelectContent>
           </Select>
-          <Input
-            type="number"
-            step="0.01"
-            value={cost.value}
-            onChange={(e) => handleCostFieldChange(field, 'value', parseFloat(e.target.value) || 0)}
-            className="flex-1"
-            placeholder={cost.type === 'percentage' ? "Porcentagem" : "Valor"}
-          />
+          {cost.type === 'fixed' ? (
+            <CurrencyInput
+              value={cost.value}
+              onValueChange={(value) => handleCostFieldChange(field, 'value', value)}
+              className="flex-1"
+              placeholder="Valor em reais"
+            />
+          ) : (
+            <Input
+              type="number"
+              step="0.01"
+              value={cost.value}
+              onChange={(e) => handleCostFieldChange(field, 'value', parseFloat(e.target.value) || 0)}
+              className="flex-1"
+              placeholder="Porcentagem"
+            />
+          )}
         </div>
         {cost.type === 'percentage' && cost.value > 0 && (
           <div className="text-xs text-muted-foreground">
@@ -259,10 +262,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Label>Custo Total do Produto (R$)</Label>
-            <Input
-              type="number"
-              step="0.01"
+            <Label>Custo Total do Produto</Label>
+            <CurrencyInput
               value={formData.totalProductCost}
               className="bg-gray-100 text-gray-600"
               readOnly
@@ -353,12 +354,10 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               />
             </div>
             <div className="space-y-2">
-              <Label>Valor de Venda (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.targetMarginPercentage > 0 ? results.sellingPrice.toFixed(2) : formData.sellingPrice}
-                onChange={(e) => handleSellingPriceChange(parseFloat(e.target.value) || 0)}
+              <Label>Valor de Venda</Label>
+              <CurrencyInput
+                value={formData.targetMarginPercentage > 0 ? results.sellingPrice : formData.sellingPrice}
+                onValueChange={(value) => handleSellingPriceChange(value)}
                 className="bg-white"
                 disabled={formData.targetMarginPercentage > 0}
               />
@@ -370,58 +369,14 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         </CardContent>
       </Card>
 
-      {/* Análise de Mercado */}
-      <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-orange-800">
-            <Calculator className="h-6 w-6" />
-            Análise de Mercado
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Preço Mínimo (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.minimumPrice}
-                onChange={(e) => handleInputChange('minimumPrice', parseFloat(e.target.value) || 0)}
-                className="bg-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Preço Máximo (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.maximumPrice}
-                onChange={(e) => handleInputChange('maximumPrice', parseFloat(e.target.value) || 0)}
-                className="bg-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Preço do Concorrente (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.competitorPrice}
-                onChange={(e) => handleInputChange('competitorPrice', parseFloat(e.target.value) || 0)}
-                className="bg-white"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Resultado da Precificação - Melhorado */}
+      {/* Resultado da Precificação */}
       <Card className="border-0 shadow-xl bg-gradient-to-br from-gray-50 to-gray-100">
         <CardHeader>
           <CardTitle className="text-2xl text-gray-800">Resultado da Precificação</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Resumo Principal */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-blue-100 p-6 rounded-xl text-center border-l-4 border-blue-500">
               <p className="text-sm text-blue-600 font-medium mb-1">Custo Total</p>
               <p className="text-2xl font-bold text-blue-800">{formatCurrency(results.totalCostWithWastage)}</p>
@@ -437,16 +392,17 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <p className="text-2xl font-bold text-purple-800">{formatCurrency(results.finalPrice)}</p>
               <p className="text-xs text-purple-600 mt-1">Com todas as taxas</p>
             </div>
+            <div className="bg-orange-100 p-6 rounded-xl text-center border-l-4 border-orange-500">
+              <p className="text-sm text-orange-600 font-medium mb-1">Lucro</p>
+              <p className="text-2xl font-bold text-orange-800">{formatCurrency(results.profit)}</p>
+              <p className="text-xs text-orange-600 mt-1">Por unidade</p>
+            </div>
           </div>
           
           <Separator />
           
           {/* Métricas de Lucratividade */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-white rounded-lg border">
-              <p className="text-sm text-gray-600 mb-1">Lucro por Unidade</p>
-              <p className="text-lg font-bold text-gray-800">{formatCurrency(results.profit)}</p>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-white rounded-lg border">
               <p className="text-sm text-gray-600 mb-1">Margem de Lucro</p>
               <p className="text-lg font-bold text-gray-800">{formatPercentage(results.profitMargin)}</p>
@@ -461,45 +417,18 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
             </div>
           </div>
 
-          {/* Análise Competitiva */}
-          {formData.competitorPrice > 0 && (
-            <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-              <h4 className="font-semibold text-orange-800 mb-2">Análise Competitiva</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-orange-600">Diferença vs. Concorrente</p>
-                  <p className={`text-lg font-bold ${results.finalPrice > formData.competitorPrice ? 'text-red-600' : 'text-green-600'}`}>
-                    {results.finalPrice > formData.competitorPrice ? '+' : ''}{formatCurrency(results.finalPrice - formData.competitorPrice)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-orange-600">Percentual de Diferença</p>
-                  <p className={`text-lg font-bold ${results.finalPrice > formData.competitorPrice ? 'text-red-600' : 'text-green-600'}`}>
-                    {formatPercentage(((results.finalPrice - formData.competitorPrice) / formData.competitorPrice) * 100)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Alertas */}
           <div className="space-y-2">
-            {(formData.minimumPrice > 0 && results.finalPrice < formData.minimumPrice) && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg border border-red-200">
-                <AlertCircle className="h-4 w-4" />
-                <span className="text-sm">Preço final está abaixo do mínimo estabelecido ({formatCurrency(formData.minimumPrice)})</span>
-              </div>
-            )}
-            {(formData.maximumPrice > 0 && results.finalPrice > formData.maximumPrice) && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg border border-red-200">
-                <AlertCircle className="h-4 w-4" />
-                <span className="text-sm">Preço final está acima do máximo estabelecido ({formatCurrency(formData.maximumPrice)})</span>
-              </div>
-            )}
             {results.profitMargin < 15 && (
               <div className="flex items-center gap-2 p-3 bg-yellow-50 text-yellow-700 rounded-lg border border-yellow-200">
                 <AlertCircle className="h-4 w-4" />
                 <span className="text-sm">Margem de lucro baixa (menor que 15%)</span>
+              </div>
+            )}
+            {results.profit < 0 && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg border border-red-200">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm">Prejuízo! O preço de venda está abaixo do custo total</span>
               </div>
             )}
           </div>
