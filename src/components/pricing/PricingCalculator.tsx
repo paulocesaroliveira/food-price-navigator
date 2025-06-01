@@ -57,20 +57,20 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
         totalCost={product.totalCost}
         onPricingChange={handlePricingChange}
         initialData={existingConfig ? {
-          baseCost: existingConfig.baseCost || 0,
-          packagingCost: existingConfig.packagingCost || 0,
-          laborCost: existingConfig.laborCost || 0,
-          overheadCost: existingConfig.overheadCost || 0,
-          marketingCost: existingConfig.marketingCost || 0,
-          deliveryCost: existingConfig.deliveryCost || 0,
-          otherCosts: existingConfig.otherCosts || 0,
-          wastagePercentage: existingConfig.wastagePercentage || 5,
-          targetMarginPercentage: existingConfig.desiredMarginPercentage || 30,
-          platformFeePercentage: existingConfig.platformFeePercentage || 0,
-          taxPercentage: existingConfig.taxPercentage || 0,
-          minimumPrice: existingConfig.minimumPrice || 0,
-          maximumPrice: existingConfig.maximumPrice || 0,
-          competitorPrice: existingConfig.competitorPrice || 0,
+          baseCost: existingConfig.base_cost || 0,
+          packagingCost: existingConfig.packaging_cost || 0,
+          laborCost: existingConfig.labor_cost || 0,
+          overheadCost: existingConfig.overhead_cost || 0,
+          marketingCost: existingConfig.marketing_cost || 0,
+          deliveryCost: existingConfig.delivery_cost || 0,
+          otherCosts: existingConfig.other_costs || 0,
+          wastagePercentage: existingConfig.wastage_percentage || 5,
+          targetMarginPercentage: existingConfig.margin_percentage || 30,
+          platformFeePercentage: existingConfig.platform_fee_percentage || 0,
+          taxPercentage: existingConfig.tax_percentage || 0,
+          minimumPrice: existingConfig.minimum_price || 0,
+          maximumPrice: existingConfig.maximum_price || 0,
+          competitorPrice: existingConfig.competitor_price || 0,
           notes: existingConfig.notes || ""
         } : undefined}
       />

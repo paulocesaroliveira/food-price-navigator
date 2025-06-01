@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Product, PricingConfiguration, AdditionalCost, PricingResult } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -15,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 interface PricingFormProps {
   product: Product;
-  onSave: (config: Omit<PricingConfiguration, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  onSave: (config: Omit<PricingConfiguration, "id" | "created_at" | "updated_at">) => Promise<void>;
   config?: PricingConfiguration;
   isLoading?: boolean;
 }
@@ -27,15 +26,15 @@ const PricingForm: React.FC<PricingFormProps> = ({
   isLoading = false
 }) => {
   const [name, setName] = useState(config?.name || `Precificação - ${product.name}`);
-  const [baseCost, setBaseCost] = useState(config?.baseCost || product.totalCost);
-  const [packagingCost, setPackagingCost] = useState(config?.packagingCost || product.packagingCost);
-  const [wastagePercentage, setWastagePercentage] = useState(config?.wastagePercentage || 5);
+  const [baseCost, setBaseCost] = useState(config?.base_cost || product.totalCost);
+  const [packagingCost, setPackagingCost] = useState(config?.packaging_cost || product.packagingCost);
+  const [wastagePercentage, setWastagePercentage] = useState(config?.wastage_percentage || 5);
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>(
     config?.additionalCosts || []
   );
-  const [marginPercentage, setMarginPercentage] = useState(config?.desiredMarginPercentage || 30);
-  const [platformFeePercentage, setPlatformFeePercentage] = useState(config?.platformFeePercentage || 0);
-  const [taxPercentage, setTaxPercentage] = useState(config?.taxPercentage || 0);
+  const [marginPercentage, setMarginPercentage] = useState(config?.margin_percentage || 30);
+  const [platformFeePercentage, setPlatformFeePercentage] = useState(config?.platform_fee_percentage || 0);
+  const [taxPercentage, setTaxPercentage] = useState(config?.tax_percentage || 0);
   
   const [pricingResults, setPricingResults] = useState<PricingResult | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -69,21 +68,31 @@ const PricingForm: React.FC<PricingFormProps> = ({
     setIsSaving(true);
     
     try {
-      const configToSave: Omit<PricingConfiguration, "id" | "createdAt" | "updatedAt"> = {
+      const configToSave: Omit<PricingConfiguration, "id" | "created_at" | "updated_at"> = {
         name,
-        productId: product.id,
-        baseCost,
-        packagingCost,
-        wastagePercentage,
+        product_id: product.id,
+        base_cost: baseCost,
+        packaging_cost: packagingCost,
+        wastage_percentage: wastagePercentage,
         additionalCosts,
-        desiredMarginPercentage: marginPercentage,
-        platformFeePercentage,
-        taxPercentage,
-        totalUnitCost: pricingResults.unitCost,
-        idealPrice: pricingResults.sellingPrice,
-        finalPrice: pricingResults.priceWithTaxes,
-        unitProfit: pricingResults.unitProfit,
-        actualMargin: pricingResults.appliedMarkup
+        margin_percentage: marginPercentage,
+        platform_fee_percentage: platformFeePercentage,
+        tax_percentage: taxPercentage,
+        total_unit_cost: pricingResults.unitCost,
+        ideal_price: pricingResults.sellingPrice,
+        final_price: pricingResults.priceWithTaxes,
+        unit_profit: pricingResults.unitProfit,
+        actual_margin: pricingResults.appliedMarkup,
+        labor_cost: 0,
+        overhead_cost: 0,
+        marketing_cost: 0,
+        delivery_cost: 0,
+        other_costs: 0,
+        target_margin_percentage: marginPercentage,
+        minimum_price: 0,
+        maximum_price: 0,
+        competitor_price: 0,
+        notes: ""
       };
       
       await onSave(configToSave);
