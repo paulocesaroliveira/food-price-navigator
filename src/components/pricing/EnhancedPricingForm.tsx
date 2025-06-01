@@ -57,7 +57,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
     targetMarginPercentage: 30,
     sellingPrice: 0,
     platformFeePercentage: 0,
-    cardFeePercentage: 0,
+    cardFeePercentage: 3,
     taxPercentage: 0,
     notes: "",
   });
@@ -93,7 +93,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         targetMarginPercentage: initialData.targetMarginPercentage || 30,
         sellingPrice: initialData.sellingPrice || 0,
         platformFeePercentage: initialData.platformFeePercentage || 0,
-        cardFeePercentage: initialData.cardFeePercentage || 0,
+        cardFeePercentage: initialData.cardFeePercentage || 3,
         taxPercentage: initialData.taxPercentage || 0,
         notes: initialData.notes || "",
       }));
@@ -207,28 +207,43 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       competitor_price: 0
     };
     onPricingChange(dataToSend);
-  }, [formData, onPricingChange, productName, productId]);
+  }, [formData, onPricingChange, productName, productId, results]);
 
-  const updateFormData = (field: keyof PricingFormData, value: any) => {
+  const handleInputChange = (field: keyof PricingFormData, value: any) => {
+    console.log(`Updating ${field} with value:`, value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const updateCostField = (field: keyof Pick<PricingFormData, 'laborCost' | 'overheadCost' | 'marketingCost' | 'deliveryCost' | 'otherCosts'>, subField: 'value' | 'type', value: any) => {
+  const handleCostFieldValueChange = (field: keyof Pick<PricingFormData, 'laborCost' | 'overheadCost' | 'marketingCost' | 'deliveryCost' | 'otherCosts'>, value: number) => {
+    console.log(`Updating ${field} value with:`, value);
     setFormData(prev => ({
       ...prev,
       [field]: {
         ...prev[field],
-        [subField]: value
+        value: value
+      }
+    }));
+  };
+
+  const handleCostFieldTypeChange = (field: keyof Pick<PricingFormData, 'laborCost' | 'overheadCost' | 'marketingCost' | 'deliveryCost' | 'otherCosts'>, type: 'fixed' | 'percentage') => {
+    console.log(`Updating ${field} type with:`, type);
+    setFormData(prev => ({
+      ...prev,
+      [field]: {
+        ...prev[field],
+        type: type
       }
     }));
   };
 
   const handleSellingPriceChange = (value: number) => {
+    console.log('Updating selling price:', value);
     setEditMode('price');
     setFormData(prev => ({ ...prev, sellingPrice: value }));
   };
 
   const handleMarginChange = (value: number) => {
+    console.log('Updating margin:', value);
     setEditMode('margin');
     setFormData(prev => ({ ...prev, targetMarginPercentage: value }));
   };
@@ -251,12 +266,12 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         <div className="flex gap-2">
           <Select 
             value={cost.type} 
-            onValueChange={(value: 'fixed' | 'percentage') => updateCostField(field, 'type', value)}
+            onValueChange={(value: 'fixed' | 'percentage') => handleCostFieldTypeChange(field, value)}
           >
-            <SelectTrigger className="w-20">
+            <SelectTrigger className="w-20 bg-white border border-gray-300">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white border border-gray-300 shadow-lg z-50">
               <SelectItem value="fixed">R$</SelectItem>
               <SelectItem value="percentage">%</SelectItem>
             </SelectContent>
@@ -264,7 +279,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
           {cost.type === 'fixed' ? (
             <CurrencyInput
               value={cost.value}
-              onValueChange={(value) => updateCostField(field, 'value', value)}
+              onValueChange={(value) => handleCostFieldValueChange(field, value)}
               className="flex-1"
               placeholder="Valor em reais"
             />
@@ -273,7 +288,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               type="number"
               step="0.01"
               value={cost.value}
-              onChange={(e) => updateCostField(field, 'value', parseFloat(e.target.value) || 0)}
+              onChange={(e) => handleCostFieldValueChange(field, parseFloat(e.target.value) || 0)}
               className="flex-1"
               placeholder="Porcentagem"
             />
@@ -359,7 +374,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 type="number"
                 step="0.1"
                 value={formData.wastagePercentage}
-                onChange={(e) => updateFormData('wastagePercentage', parseFloat(e.target.value) || 0)}
+                onChange={(e) => handleInputChange('wastagePercentage', parseFloat(e.target.value) || 0)}
               />
             </div>
             <div className="space-y-2">
@@ -368,7 +383,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 type="number"
                 step="0.1"
                 value={formData.platformFeePercentage}
-                onChange={(e) => updateFormData('platformFeePercentage', parseFloat(e.target.value) || 0)}
+                onChange={(e) => handleInputChange('platformFeePercentage', parseFloat(e.target.value) || 0)}
               />
             </div>
             <div className="space-y-2">
@@ -377,7 +392,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 type="number"
                 step="0.1"
                 value={formData.cardFeePercentage}
-                onChange={(e) => updateFormData('cardFeePercentage', parseFloat(e.target.value) || 0)}
+                onChange={(e) => handleInputChange('cardFeePercentage', parseFloat(e.target.value) || 0)}
               />
             </div>
             <div className="space-y-2">
@@ -386,7 +401,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 type="number"
                 step="0.1"
                 value={formData.taxPercentage}
-                onChange={(e) => updateFormData('taxPercentage', parseFloat(e.target.value) || 0)}
+                onChange={(e) => handleInputChange('taxPercentage', parseFloat(e.target.value) || 0)}
               />
             </div>
           </div>
@@ -487,7 +502,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
           <Textarea
             placeholder="Adicione observações sobre esta precificação..."
             value={formData.notes}
-            onChange={(e) => updateFormData('notes', e.target.value)}
+            onChange={(e) => handleInputChange('notes', e.target.value)}
             rows={4}
           />
         </CardContent>
