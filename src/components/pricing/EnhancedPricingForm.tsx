@@ -29,6 +29,7 @@ interface PricingFormData {
   platformFeePercentage: number;
   taxPercentage: number;
   notes: string;
+  name: string;
 }
 
 interface EnhancedPricingFormProps {
@@ -43,6 +44,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   totalCost
 }) => {
   const [formData, setFormData] = useState<PricingFormData>({
+    name: initialData?.name || `Precificação - ${new Date().toLocaleDateString()}`,
     totalProductCost: totalCost || 0,
     laborCost: { value: 0, type: 'fixed' },
     overheadCost: { value: 0, type: 'fixed' },
@@ -61,6 +63,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
     if (initialData) {
       setFormData(prev => ({
         ...prev,
+        name: initialData.name || `Precificação - ${new Date().toLocaleDateString()}`,
         totalProductCost: totalCost || initialData.baseCost || 0,
         laborCost: { 
           value: initialData.laborCost || 0, 
@@ -90,7 +93,11 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         notes: initialData.notes || "",
       }));
     } else {
-      setFormData(prev => ({ ...prev, totalProductCost: totalCost || 0 }));
+      setFormData(prev => ({ 
+        ...prev, 
+        totalProductCost: totalCost || 0,
+        name: `Precificação - ${new Date().toLocaleDateString()}`
+      }));
     }
   }, [totalCost, initialData]);
 
@@ -252,6 +259,27 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
 
   return (
     <div className="space-y-8">
+      {/* Nome da Precificação */}
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-gray-50 to-gray-100">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-gray-800">
+            <Calculator className="h-6 w-6" />
+            Nome da Precificação
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label>Nome</Label>
+            <Input
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="Ex: Precificação padrão"
+              className="bg-white"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Custo do Produto */}
       <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
         <CardHeader>
