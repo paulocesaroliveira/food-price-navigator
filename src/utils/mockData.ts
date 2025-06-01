@@ -1,4 +1,3 @@
-
 import { 
   Ingredient, 
   Recipe, 
@@ -180,31 +179,24 @@ export const products: Product[] = [
 ];
 
 // Mock Pricing Configuration
-export const pricingConfigurations: PricingConfiguration[] = [
-  {
-    id: "pricing-1",
-    name: "Precificação Caixa Degustação",
-    productId: "prod-1",
-    baseCost: 4.01,
-    packagingCost: 1.99,
-    wastagePercentage: 5,
-    additionalCosts: [
-      { id: "add-1", name: "Gás", value: 0.50, type: 'fixed', isPerUnit: true },
-      { id: "add-2", name: "Energia", value: 0.25, type: 'fixed', isPerUnit: true },
-      { id: "add-3", name: "Transporte", value: 10, type: 'fixed', isPerUnit: false },
-    ],
-    desiredMarginPercentage: 40,
-    platformFeePercentage: 12,
-    taxPercentage: 6,
-    totalUnitCost: 6.0,
-    idealPrice: 10.0,
-    finalPrice: 11.95,
-    unitProfit: 5.95,
-    actualMargin: 49.8,
-    createdAt: "2023-01-15T10:30:00Z",
-    updatedAt: "2023-01-15T10:30:00Z"
-  }
-];
+const mockPricingConfig: PricingConfiguration = {
+  id: "mock-pricing-1",
+  name: "Configuração Padrão",
+  product_id: "mock-product-1",
+  base_cost: 15.50,
+  packaging_cost: 2.00,
+  wastage_percentage: 5,
+  margin_percentage: 30,
+  platform_fee_percentage: 0,
+  tax_percentage: 0,
+  total_unit_cost: 18.38,
+  ideal_price: 26.25,
+  final_price: 26.25,
+  unit_profit: 7.87,
+  actual_margin: 30,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString()
+};
 
 // Mock Pricing Results
 export const pricingResults: PricingResult[] = [

@@ -181,3 +181,15 @@ export const formatCurrency = (value: number): string => {
 export const formatPercentage = (value: number): string => {
   return `${value.toFixed(1)}%`;
 };
+
+/**
+ * Formats date
+ */
+export const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(date);
+};

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { resaleService } from "@/services/resaleService";
-import { ResaleTransactionForm } from "@/components/resale/ResaleTransactionForm";
+import ResaleTransactionForm from "@/components/resale/ResaleTransactionForm";
 import type { Reseller, ResaleTransaction, CreateResellerRequest } from "@/types/resale";
 
 const Resale = () => {

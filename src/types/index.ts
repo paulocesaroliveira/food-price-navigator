@@ -88,24 +88,32 @@ export interface ProductPackaging {
 
 export interface PricingConfiguration {
   id: string;
+  name: string;
   product_id: string;
-  baseCost: number;
-  packagingCost: number;
-  laborCost?: number;
-  overheadCost?: number;
-  marketingCost?: number;
-  deliveryCost?: number;
-  otherCosts?: number;
-  wastagePercentage: number;
-  desiredMarginPercentage: number;
-  platformFeePercentage: number;
-  taxPercentage: number;
-  minimumPrice?: number;
-  maximumPrice?: number;
-  competitorPrice?: number;
+  base_cost: number;
+  packaging_cost: number;
+  labor_cost?: number;
+  overhead_cost?: number;
+  marketing_cost?: number;
+  delivery_cost?: number;
+  other_costs?: number;
+  wastage_percentage: number;
+  margin_percentage: number;
+  target_margin_percentage?: number;
+  platform_fee_percentage: number;
+  tax_percentage: number;
+  total_unit_cost: number;
+  ideal_price: number;
+  final_price: number;
+  unit_profit: number;
+  actual_margin: number;
+  minimum_price?: number;
+  maximum_price?: number;
+  competitor_price?: number;
   notes?: string;
   created_at: string;
   updated_at: string;
+  additionalCosts?: AdditionalCost[];
 }
 
 export interface AdditionalCost {

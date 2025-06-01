@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { PricingConfiguration, PricingResult, AdditionalCost } from "@/types";
 import { 
@@ -51,21 +50,31 @@ export const getPricingConfigs = async (productId?: string): Promise<PricingConf
     return {
       id: config.id,
       name: config.name,
-      productId: config.product_id,
-      baseCost: config.base_cost,
-      packagingCost: config.packaging_cost,
-      wastagePercentage: config.wastage_percentage,
-      desiredMarginPercentage: config.margin_percentage,
-      platformFeePercentage: config.platform_fee_percentage,
-      taxPercentage: config.tax_percentage,
-      totalUnitCost: config.total_unit_cost,
-      idealPrice: config.ideal_price,
-      finalPrice: config.final_price,
-      unitProfit: config.unit_profit,
-      actualMargin: config.actual_margin,
+      product_id: config.product_id,
+      base_cost: config.base_cost,
+      packaging_cost: config.packaging_cost,
+      labor_cost: config.labor_cost,
+      overhead_cost: config.overhead_cost,
+      marketing_cost: config.marketing_cost,
+      delivery_cost: config.delivery_cost,
+      other_costs: config.other_costs,
+      wastage_percentage: config.wastage_percentage,
+      margin_percentage: config.margin_percentage,
+      target_margin_percentage: config.target_margin_percentage,
+      platform_fee_percentage: config.platform_fee_percentage,
+      tax_percentage: config.tax_percentage,
+      total_unit_cost: config.total_unit_cost,
+      ideal_price: config.ideal_price,
+      final_price: config.final_price,
+      unit_profit: config.unit_profit,
+      actual_margin: config.actual_margin,
+      minimum_price: config.minimum_price,
+      maximum_price: config.maximum_price,
+      competitor_price: config.competitor_price,
+      notes: config.notes,
       additionalCosts,
-      createdAt: config.created_at,
-      updatedAt: config.updated_at
+      created_at: config.created_at,
+      updated_at: config.updated_at
     };
   }));
   
@@ -107,39 +116,49 @@ export const getPricingConfig = async (id: string): Promise<PricingConfiguration
   return {
     id: data.id,
     name: data.name,
-    productId: data.product_id,
-    baseCost: data.base_cost,
-    packagingCost: data.packaging_cost,
-    wastagePercentage: data.wastage_percentage,
-    desiredMarginPercentage: data.margin_percentage,
-    platformFeePercentage: data.platform_fee_percentage,
-    taxPercentage: data.tax_percentage,
-    totalUnitCost: data.total_unit_cost,
-    idealPrice: data.ideal_price,
-    finalPrice: data.final_price,
-    unitProfit: data.unit_profit,
-    actualMargin: data.actual_margin,
+    product_id: data.product_id,
+    base_cost: data.base_cost,
+    packaging_cost: data.packaging_cost,
+    labor_cost: data.labor_cost,
+    overhead_cost: data.overhead_cost,
+    marketing_cost: data.marketing_cost,
+    delivery_cost: data.delivery_cost,
+    other_costs: data.other_costs,
+    wastage_percentage: data.wastage_percentage,
+    margin_percentage: data.margin_percentage,
+    target_margin_percentage: data.target_margin_percentage,
+    platform_fee_percentage: data.platform_fee_percentage,
+    tax_percentage: data.tax_percentage,
+    total_unit_cost: data.total_unit_cost,
+    ideal_price: data.ideal_price,
+    final_price: data.final_price,
+    unit_profit: data.unit_profit,
+    actual_margin: data.actual_margin,
+    minimum_price: data.minimum_price,
+    maximum_price: data.maximum_price,
+    competitor_price: data.competitor_price,
+    notes: data.notes,
     additionalCosts,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at
+    created_at: data.created_at,
+    updated_at: data.updated_at
   };
 };
 
 // Create a new pricing configuration
-export const createPricingConfig = async (config: Omit<PricingConfiguration, "id" | "createdAt" | "updatedAt">): Promise<PricingConfiguration> => {
+export const createPricingConfig = async (config: Omit<PricingConfiguration, "id" | "created_at" | "updated_at">): Promise<PricingConfiguration> => {
   // Calculate the pricing results
-  const totalAdditionalCost = config.additionalCosts.reduce((sum, cost) => sum + cost.value, 0);
-  const totalUnitCost = config.baseCost + config.packagingCost + totalAdditionalCost;
-  const wastageMultiplier = 1 + (config.wastagePercentage / 100);
+  const totalAdditionalCost = (config.additionalCosts || []).reduce((sum, cost) => sum + cost.value, 0);
+  const totalUnitCost = config.base_cost + config.packaging_cost + totalAdditionalCost;
+  const wastageMultiplier = 1 + (config.wastage_percentage / 100);
   const unitCostWithWastage = totalUnitCost * wastageMultiplier;
   
-  const marginMultiplier = 1 / (1 - (config.desiredMarginPercentage / 100));
+  const marginMultiplier = 1 / (1 - (config.margin_percentage / 100));
   const idealPrice = unitCostWithWastage * marginMultiplier;
   
-  const commissionMultiplier = 1 / (1 - (config.platformFeePercentage / 100));
+  const commissionMultiplier = 1 / (1 - (config.platform_fee_percentage / 100));
   const priceWithCommission = idealPrice * commissionMultiplier;
   
-  const taxMultiplier = 1 + (config.taxPercentage / 100);
+  const taxMultiplier = 1 + (config.tax_percentage / 100);
   const finalPrice = priceWithCommission * taxMultiplier;
   
   const unitProfit = idealPrice - unitCostWithWastage;
@@ -150,18 +169,28 @@ export const createPricingConfig = async (config: Omit<PricingConfiguration, "id
     .from("pricing_configs")
     .insert({
       name: config.name,
-      product_id: config.productId,
-      base_cost: config.baseCost,
-      packaging_cost: config.packagingCost,
-      wastage_percentage: config.wastagePercentage,
-      margin_percentage: config.desiredMarginPercentage,
-      platform_fee_percentage: config.platformFeePercentage,
-      tax_percentage: config.taxPercentage,
+      product_id: config.product_id,
+      base_cost: config.base_cost,
+      packaging_cost: config.packaging_cost,
+      labor_cost: config.labor_cost || 0,
+      overhead_cost: config.overhead_cost || 0,
+      marketing_cost: config.marketing_cost || 0,
+      delivery_cost: config.delivery_cost || 0,
+      other_costs: config.other_costs || 0,
+      wastage_percentage: config.wastage_percentage,
+      margin_percentage: config.margin_percentage,
+      target_margin_percentage: config.target_margin_percentage || config.margin_percentage,
+      platform_fee_percentage: config.platform_fee_percentage,
+      tax_percentage: config.tax_percentage,
       total_unit_cost: unitCostWithWastage,
       ideal_price: idealPrice,
       final_price: finalPrice,
       unit_profit: unitProfit,
-      actual_margin: actualMargin
+      actual_margin: actualMargin,
+      minimum_price: config.minimum_price || 0,
+      maximum_price: config.maximum_price || 0,
+      competitor_price: config.competitor_price || 0,
+      notes: config.notes
     })
     .select()
     .single();
@@ -172,7 +201,7 @@ export const createPricingConfig = async (config: Omit<PricingConfiguration, "id
   }
   
   // Insert the additional costs
-  if (config.additionalCosts.length > 0) {
+  if (config.additionalCosts && config.additionalCosts.length > 0) {
     const expenses = config.additionalCosts.map(cost => ({
       pricing_config_id: data.id,
       name: cost.name,
@@ -196,39 +225,49 @@ export const createPricingConfig = async (config: Omit<PricingConfiguration, "id
   return {
     id: data.id,
     name: data.name,
-    productId: data.product_id,
-    baseCost: data.base_cost,
-    packagingCost: data.packaging_cost,
-    wastagePercentage: data.wastage_percentage,
-    desiredMarginPercentage: data.margin_percentage,
-    platformFeePercentage: data.platform_fee_percentage,
-    taxPercentage: data.tax_percentage,
-    totalUnitCost: data.total_unit_cost,
-    idealPrice: data.ideal_price,
-    finalPrice: data.final_price,
-    unitProfit: data.unit_profit,
-    actualMargin: data.actual_margin,
-    additionalCosts: config.additionalCosts,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at
+    product_id: data.product_id,
+    base_cost: data.base_cost,
+    packaging_cost: data.packaging_cost,
+    labor_cost: data.labor_cost,
+    overhead_cost: data.overhead_cost,
+    marketing_cost: data.marketing_cost,
+    delivery_cost: data.delivery_cost,
+    other_costs: data.other_costs,
+    wastage_percentage: data.wastage_percentage,
+    margin_percentage: data.margin_percentage,
+    target_margin_percentage: data.target_margin_percentage,
+    platform_fee_percentage: data.platform_fee_percentage,
+    tax_percentage: data.tax_percentage,
+    total_unit_cost: data.total_unit_cost,
+    ideal_price: data.ideal_price,
+    final_price: data.final_price,
+    unit_profit: data.unit_profit,
+    actual_margin: data.actual_margin,
+    minimum_price: data.minimum_price,
+    maximum_price: data.maximum_price,
+    competitor_price: data.competitor_price,
+    notes: data.notes,
+    additionalCosts: config.additionalCosts || [],
+    created_at: data.created_at,
+    updated_at: data.updated_at
   };
 };
 
 // Update an existing pricing configuration
-export const updatePricingConfig = async (id: string, config: Omit<PricingConfiguration, "id" | "createdAt" | "updatedAt">): Promise<PricingConfiguration> => {
+export const updatePricingConfig = async (id: string, config: Omit<PricingConfiguration, "id" | "created_at" | "updated_at">): Promise<PricingConfiguration> => {
   // Calculate the pricing results
-  const totalAdditionalCost = config.additionalCosts.reduce((sum, cost) => sum + cost.value, 0);
-  const totalUnitCost = config.baseCost + config.packagingCost + totalAdditionalCost;
-  const wastageMultiplier = 1 + (config.wastagePercentage / 100);
+  const totalAdditionalCost = (config.additionalCosts || []).reduce((sum, cost) => sum + cost.value, 0);
+  const totalUnitCost = config.base_cost + config.packaging_cost + totalAdditionalCost;
+  const wastageMultiplier = 1 + (config.wastage_percentage / 100);
   const unitCostWithWastage = totalUnitCost * wastageMultiplier;
   
-  const marginMultiplier = 1 / (1 - (config.desiredMarginPercentage / 100));
+  const marginMultiplier = 1 / (1 - (config.margin_percentage / 100));
   const idealPrice = unitCostWithWastage * marginMultiplier;
   
-  const commissionMultiplier = 1 / (1 - (config.platformFeePercentage / 100));
+  const commissionMultiplier = 1 / (1 - (config.platform_fee_percentage / 100));
   const priceWithCommission = idealPrice * commissionMultiplier;
   
-  const taxMultiplier = 1 + (config.taxPercentage / 100);
+  const taxMultiplier = 1 + (config.tax_percentage / 100);
   const finalPrice = priceWithCommission * taxMultiplier;
   
   const unitProfit = idealPrice - unitCostWithWastage;
@@ -239,18 +278,28 @@ export const updatePricingConfig = async (id: string, config: Omit<PricingConfig
     .from("pricing_configs")
     .update({
       name: config.name,
-      product_id: config.productId,
-      base_cost: config.baseCost,
-      packaging_cost: config.packagingCost,
-      wastage_percentage: config.wastagePercentage,
-      margin_percentage: config.desiredMarginPercentage,
-      platform_fee_percentage: config.platformFeePercentage,
-      tax_percentage: config.taxPercentage,
+      product_id: config.product_id,
+      base_cost: config.base_cost,
+      packaging_cost: config.packaging_cost,
+      labor_cost: config.labor_cost || 0,
+      overhead_cost: config.overhead_cost || 0,
+      marketing_cost: config.marketing_cost || 0,
+      delivery_cost: config.delivery_cost || 0,
+      other_costs: config.other_costs || 0,
+      wastage_percentage: config.wastage_percentage,
+      margin_percentage: config.margin_percentage,
+      target_margin_percentage: config.target_margin_percentage || config.margin_percentage,
+      platform_fee_percentage: config.platform_fee_percentage,
+      tax_percentage: config.tax_percentage,
       total_unit_cost: unitCostWithWastage,
       ideal_price: idealPrice,
       final_price: finalPrice,
       unit_profit: unitProfit,
-      actual_margin: actualMargin
+      actual_margin: actualMargin,
+      minimum_price: config.minimum_price || 0,
+      maximum_price: config.maximum_price || 0,
+      competitor_price: config.competitor_price || 0,
+      notes: config.notes
     })
     .eq("id", id)
     .select()
@@ -273,7 +322,7 @@ export const updatePricingConfig = async (id: string, config: Omit<PricingConfig
   }
   
   // Insert the new additional costs
-  if (config.additionalCosts.length > 0) {
+  if (config.additionalCosts && config.additionalCosts.length > 0) {
     const expenses = config.additionalCosts.map(cost => ({
       pricing_config_id: id,
       name: cost.name,
@@ -293,21 +342,31 @@ export const updatePricingConfig = async (id: string, config: Omit<PricingConfig
   return {
     id: data.id,
     name: data.name,
-    productId: data.product_id,
-    baseCost: data.base_cost,
-    packagingCost: data.packaging_cost,
-    wastagePercentage: data.wastage_percentage,
-    desiredMarginPercentage: data.margin_percentage,
-    platformFeePercentage: data.platform_fee_percentage,
-    taxPercentage: data.tax_percentage,
-    totalUnitCost: data.total_unit_cost,
-    idealPrice: data.ideal_price,
-    finalPrice: data.final_price,
-    unitProfit: data.unit_profit,
-    actualMargin: data.actual_margin,
-    additionalCosts: config.additionalCosts,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at
+    product_id: data.product_id,
+    base_cost: data.base_cost,
+    packaging_cost: data.packaging_cost,
+    labor_cost: data.labor_cost,
+    overhead_cost: data.overhead_cost,
+    marketing_cost: data.marketing_cost,
+    delivery_cost: data.delivery_cost,
+    other_costs: data.other_costs,
+    wastage_percentage: data.wastage_percentage,
+    margin_percentage: data.margin_percentage,
+    target_margin_percentage: data.target_margin_percentage,
+    platform_fee_percentage: data.platform_fee_percentage,
+    tax_percentage: data.tax_percentage,
+    total_unit_cost: data.total_unit_cost,
+    ideal_price: data.ideal_price,
+    final_price: data.final_price,
+    unit_profit: data.unit_profit,
+    actual_margin: data.actual_margin,
+    minimum_price: data.minimum_price,
+    maximum_price: data.maximum_price,
+    competitor_price: data.competitor_price,
+    notes: data.notes,
+    additionalCosts: config.additionalCosts || [],
+    created_at: data.created_at,
+    updated_at: data.updated_at
   };
 };
 
@@ -403,8 +462,8 @@ export const duplicatePricingConfig = async (id: string, newName: string): Promi
   
   // Remove the properties we don't want to duplicate
   delete (newConfig as any).id;
-  delete (newConfig as any).createdAt;
-  delete (newConfig as any).updatedAt;
+  delete (newConfig as any).created_at;
+  delete (newConfig as any).updated_at;
   
   // Create the new config
   return createPricingConfig(newConfig);
