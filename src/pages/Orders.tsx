@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,13 +91,13 @@ const Orders = () => {
   // Calculate summary data
   const totalRevenue = Array.isArray(orders) ? orders.reduce((sum, order) => sum + (order.total_amount || 0), 0) : 0;
   const totalOrders = Array.isArray(orders) ? orders.length : 0;
-  const pendingOrders = Array.isArray(orders) ? orders.filter(order => order.status === 'pending').length : 0;
-  const completedOrders = Array.isArray(orders) ? orders.filter(order => order.status === 'completed').length : 0;
+  const pendingOrders = Array.isArray(orders) ? orders.filter(order => order.status === 'Novo').length : 0;
+  const completedOrders = Array.isArray(orders) ? orders.filter(order => order.status === 'Finalizado').length : 0;
 
   // Filter orders based on search term
   const filteredOrders = Array.isArray(orders) ? orders.filter(order =>
     order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customers?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    order.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) : [];
 
   const handleDeleteOrder = (id: string) => {
@@ -129,11 +130,11 @@ const Orders = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800">Concluído</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pendente</Badge>;
-      case 'cancelled':
+      case 'Finalizado':
+        return <Badge className="bg-green-100 text-green-800">Finalizado</Badge>;
+      case 'Novo':
+        return <Badge className="bg-yellow-100 text-yellow-800">Novo</Badge>;
+      case 'Cancelado':
         return <Badge className="bg-red-100 text-red-800">Cancelado</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
@@ -247,7 +248,7 @@ const Orders = () => {
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.order_number}</TableCell>
-                      <TableCell>{order.customers?.name || 'Cliente não informado'}</TableCell>
+                      <TableCell>{order.customer?.name || 'Cliente não informado'}</TableCell>
                       <TableCell>{formatDate(order.scheduled_date)}</TableCell>
                       <TableCell className="font-semibold text-blue-600">
                         {formatCurrency(order.total_amount)}
@@ -306,16 +307,16 @@ const Orders = () => {
       </Card>
 
       {/* New Order Form Dialog */}
-      <NewOrderForm
-        open={showForm}
-        onOpenChange={setShowForm}
-      />
+      {showForm && (
+        <NewOrderForm
+          onClose={() => setShowForm(false)}
+        />
+      )}
 
       {/* Order Details Dialog */}
-      {selectedOrder && (
+      {selectedOrder && showDetails && (
         <OrderDetails
-          open={showDetails}
-          onOpenChange={setShowDetails}
+          onClose={() => setShowDetails(false)}
           order={selectedOrder}
         />
       )}

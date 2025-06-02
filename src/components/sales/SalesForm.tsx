@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,7 @@ const SalesForm: React.FC<SalesFormProps> = ({
 }) => {
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
   const [items, setItems] = useState([{ product_id: '', quantity: 1, unit_price: 0 }]);
-  const [expenses, setExpenses] = useState([{ name: '', amount: 0, description: '' }]);
+  const [expenses, setExpenses] = useState([{ name: '', amount: 0, type: 'expense' as const, description: '' }]);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [notes, setNotes] = useState('');
   
@@ -67,7 +68,7 @@ const SalesForm: React.FC<SalesFormProps> = ({
   };
 
   const addExpense = () => {
-    setExpenses([...expenses, { name: '', amount: 0, description: '' }]);
+    setExpenses([...expenses, { name: '', amount: 0, type: 'expense' as const, description: '' }]);
   };
 
   const removeExpense = (index: number) => {
@@ -105,7 +106,7 @@ const SalesForm: React.FC<SalesFormProps> = ({
       return;
     }
 
-    // Filtrar despesas válidas
+    // Filtrar despesas válidas (agora já incluem o campo 'type')
     const validExpenses = expenses.filter(expense => expense.name.trim() && expense.amount > 0);
 
     const saleData: CreateSaleRequest = {
@@ -113,10 +114,7 @@ const SalesForm: React.FC<SalesFormProps> = ({
       items: validItems,
       expenses: validExpenses,
       discount_amount: discountAmount,
-      notes,
-      card_fee_type: cardFeeType,
-      card_fee_value: cardFeeValue,
-      card_fee_amount: cardFeeAmount
+      notes
     };
 
     onSubmit(saleData);
@@ -125,7 +123,7 @@ const SalesForm: React.FC<SalesFormProps> = ({
   const resetForm = () => {
     setSaleDate(new Date().toISOString().split('T')[0]);
     setItems([{ product_id: '', quantity: 1, unit_price: 0 }]);
-    setExpenses([{ name: '', amount: 0, description: '' }]);
+    setExpenses([{ name: '', amount: 0, type: 'expense' as const, description: '' }]);
     setDiscountAmount(0);
     setNotes('');
     setCardFeeType('percentage');
@@ -327,6 +325,23 @@ const SalesForm: React.FC<SalesFormProps> = ({
                       onChange={(e) => updateExpense(index, 'name', e.target.value)}
                       placeholder="Ex: Frete, Embalagem..."
                     />
+                  </div>
+                  
+                  <div className="w-24">
+                    <Label>Tipo</Label>
+                    <Select
+                      value={expense.type}
+                      onValueChange={(value) => updateExpense(index, 'type', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="expense">Despesa</SelectItem>
+                        <SelectItem value="tax">Taxa</SelectItem>
+                        <SelectItem value="fee">Comissão</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="w-32">

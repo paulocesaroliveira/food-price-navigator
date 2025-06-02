@@ -40,6 +40,70 @@ export const getOrders = async (): Promise<Order[]> => {
   }
 };
 
+// Delete an order
+export const deleteOrder = async (orderId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("orders")
+      .delete()
+      .eq("id", orderId);
+
+    if (error) {
+      console.error("Erro ao excluir pedido:", error);
+      toast({
+        title: "Erro",
+        description: `Não foi possível excluir o pedido: ${error.message}`,
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    toast({
+      title: "Sucesso",
+      description: "Pedido excluído com sucesso!",
+    });
+    return true;
+  } catch (error: any) {
+    console.error("Erro ao excluir pedido:", error.message);
+    toast({
+      title: "Erro",
+      description: `Não foi possível excluir o pedido: ${error.message}`,
+      variant: "destructive",
+    });
+    return false;
+  }
+};
+
+// Update an order
+export const updateOrder = async (orderId: string, updates: Partial<Order>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("orders")
+      .update(updates)
+      .eq("id", orderId);
+
+    if (error) {
+      console.error("Erro ao atualizar pedido:", error);
+      toast({
+        title: "Erro",
+        description: `Não foi possível atualizar o pedido: ${error.message}`,
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  } catch (error: any) {
+    console.error("Erro ao atualizar pedido:", error.message);
+    toast({
+      title: "Erro",
+      description: `Não foi possível atualizar o pedido: ${error.message}`,
+      variant: "destructive",
+    });
+    return false;
+  }
+};
+
 // Filter orders by status and date
 export const filterOrders = async (
   filters: { status?: string; date?: string }

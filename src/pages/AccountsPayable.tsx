@@ -35,7 +35,7 @@ import {
 import { formatCurrency, formatDate } from "@/utils/calculations";
 import { getAccountsPayable, deleteAccountPayable } from "@/services/accountsPayableService";
 import AccountPayableForm from "@/components/accounts-payable/AccountPayableForm";
-import ExpenseCategoryManager from "@/components/accounts-payable/ExpenseCategoryManager";
+import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
 import { toast } from "@/hooks/use-toast";
 
 const AccountsPayable = () => {
@@ -47,7 +47,7 @@ const AccountsPayable = () => {
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['accounts-payable'],
-    queryFn: getAccountsPayable
+    queryFn: () => getAccountsPayable()
   });
 
   const deleteMutation = useMutation({
@@ -274,17 +274,19 @@ const AccountsPayable = () => {
       </Card>
 
       {/* Account Form Dialog */}
-      <AccountPayableForm
-        open={showForm}
-        onOpenChange={handleFormClose}
-        account={editingAccount}
-      />
+      {showForm && (
+        <AccountPayableForm
+          onClose={handleFormClose}
+          account={editingAccount}
+        />
+      )}
 
       {/* Category Manager Dialog */}
-      <ExpenseCategoryManager
-        open={showCategoryManager}
-        onOpenChange={setShowCategoryManager}
-      />
+      {showCategoryManager && (
+        <ExpenseCategoryManager
+          onClose={() => setShowCategoryManager(false)}
+        />
+      )}
     </div>
   );
 };
