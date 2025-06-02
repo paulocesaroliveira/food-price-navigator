@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calculator, DollarSign, Target, AlertCircle } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/utils/calculations";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { usePercentageMask } from "@/hooks/usePercentageMask";
 
 interface EnhancedPricingFormProps {
   initialData?: any;
@@ -25,7 +25,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   productName,
   productId
 }) => {
-  // Initialize states with initialData or defaults
+  // Estados básicos
   const [formData, setFormData] = useState(() => ({
     baseCost: totalCost || 0,
     laborCost: initialData?.laborCost || 0,
@@ -48,33 +48,41 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
     editMode: 'margin' as 'margin' | 'price'
   }));
 
-  // Update form data function
+  // Hooks para máscaras de porcentagem
+  const wastagePercentageMask = usePercentageMask(formData.wastagePercentage);
+  const targetMarginMask = usePercentageMask(formData.targetMarginPercentage);
+  const platformFeeMask = usePercentageMask(formData.platformFeePercentage);
+  const cardFeeMask = usePercentageMask(formData.cardFeePercentage);
+  const taxPercentageMask = usePercentageMask(formData.taxPercentage);
+
+  // Função para atualizar dados do formulário
   const updateFormData = useCallback((updates: Partial<typeof formData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
   }, []);
 
-  // Function to calculate cost value based on type
+  // Função para calcular valor do custo baseado no tipo
   const calculateCostValue = useCallback((cost: number, type: 'fixed' | 'percentage', baseValue: number): number => {
     return type === 'percentage' ? baseValue * (cost / 100) : cost;
   }, []);
 
-  // Handle percentage input changes
-  const handlePercentageChange = useCallback((value: string, field: string) => {
-    const numValue = parseFloat(value.replace(',', '.')) || 0;
-    updateFormData({ [field]: numValue });
+  // Handler para mudanças de porcentagem com máscara
+  const handlePercentageChange = useCallback((maskHook: any, field: string, value: string) => {
+    const numericValue = maskHook.handleChange(value);
+    updateFormData({ [field]: numericValue });
   }, [updateFormData]);
 
-  // Handle selling price changes
+  // Handler para mudanças no preço de venda
   const handleSellingPriceChange = useCallback((value: number) => {
     updateFormData({ sellingPrice: value, editMode: 'price' });
   }, [updateFormData]);
 
-  // Handle margin changes
-  const handleMarginChange = useCallback((value: number) => {
-    updateFormData({ targetMarginPercentage: value, editMode: 'margin' });
-  }, [updateFormData]);
+  // Handler para mudanças na margem
+  const handleMarginChange = useCallback((value: string) => {
+    const numericValue = targetMarginMask.handleChange(value);
+    updateFormData({ targetMarginPercentage: numericValue, editMode: 'margin' });
+  }, [updateFormData, targetMarginMask]);
 
-  // Calculate results
+  // Cálculos dos resultados
   const results = useMemo(() => {
     const { baseCost, laborCost, laborCostType, overheadCost, overheadCostType, 
             marketingCost, marketingCostType, deliveryCost, deliveryCostType, 
@@ -130,7 +138,16 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
     };
   }, [formData, calculateCostValue]);
 
-  // Notify parent component of changes (debounced)
+  // Sincronizar máscaras com valores do estado
+  React.useEffect(() => {
+    wastagePercentageMask.setValue(formData.wastagePercentage);
+    targetMarginMask.setValue(formData.targetMarginPercentage);
+    platformFeeMask.setValue(formData.platformFeePercentage);
+    cardFeeMask.setValue(formData.cardFeePercentage);
+    taxPercentageMask.setValue(formData.taxPercentage);
+  }, [formData.wastagePercentage, formData.targetMarginPercentage, formData.platformFeePercentage, formData.cardFeePercentage, formData.taxPercentage]);
+
+  // Notificar componente pai sobre mudanças
   React.useEffect(() => {
     const timeout = setTimeout(() => {
       const dataToSend = {
@@ -255,7 +272,10 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                   <Input
                     type="text"
                     value={formData.laborCost.toString()}
-                    onChange={(e) => handlePercentageChange(e.target.value, 'laborCost')}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value.replace(',', '.')) || 0;
+                      updateFormData({ laborCost: value });
+                    }}
                     className="flex-1"
                     placeholder="Ex: 3.9"
                   />
@@ -295,7 +315,10 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                   <Input
                     type="text"
                     value={formData.overheadCost.toString()}
-                    onChange={(e) => handlePercentageChange(e.target.value, 'overheadCost')}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value.replace(',', '.')) || 0;
+                      updateFormData({ overheadCost: value });
+                    }}
                     className="flex-1"
                     placeholder="Ex: 3.9"
                   />
@@ -335,7 +358,10 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                   <Input
                     type="text"
                     value={formData.marketingCost.toString()}
-                    onChange={(e) => handlePercentageChange(e.target.value, 'marketingCost')}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value.replace(',', '.')) || 0;
+                      updateFormData({ marketingCost: value });
+                    }}
                     className="flex-1"
                     placeholder="Ex: 3.9"
                   />
@@ -375,7 +401,10 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                   <Input
                     type="text"
                     value={formData.deliveryCost.toString()}
-                    onChange={(e) => handlePercentageChange(e.target.value, 'deliveryCost')}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value.replace(',', '.')) || 0;
+                      updateFormData({ deliveryCost: value });
+                    }}
                     className="flex-1"
                     placeholder="Ex: 3.9"
                   />
@@ -415,7 +444,10 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                   <Input
                     type="text"
                     value={formData.otherCosts.toString()}
-                    onChange={(e) => handlePercentageChange(e.target.value, 'otherCosts')}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value.replace(',', '.')) || 0;
+                      updateFormData({ otherCosts: value });
+                    }}
                     className="flex-1"
                     placeholder="Ex: 3.9"
                   />
@@ -448,17 +480,17 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <Label>Desperdício (%)</Label>
               <Input
                 type="text"
-                value={formData.wastagePercentage.toString()}
-                onChange={(e) => handlePercentageChange(e.target.value, 'wastagePercentage')}
-                placeholder="Ex: 3.9"
+                value={wastagePercentageMask.displayValue}
+                onChange={(e) => handlePercentageChange(wastagePercentageMask, 'wastagePercentage', e.target.value)}
+                placeholder="Ex: 5.0"
               />
             </div>
             <div className="space-y-2">
               <Label>Taxa da Plataforma (%)</Label>
               <Input
                 type="text"
-                value={formData.platformFeePercentage.toString()}
-                onChange={(e) => handlePercentageChange(e.target.value, 'platformFeePercentage')}
+                value={platformFeeMask.displayValue}
+                onChange={(e) => handlePercentageChange(platformFeeMask, 'platformFeePercentage', e.target.value)}
                 placeholder="Ex: 3.9"
               />
             </div>
@@ -466,8 +498,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <Label>Taxa de Cartão (%)</Label>
               <Input
                 type="text"
-                value={formData.cardFeePercentage.toString()}
-                onChange={(e) => handlePercentageChange(e.target.value, 'cardFeePercentage')}
+                value={cardFeeMask.displayValue}
+                onChange={(e) => handlePercentageChange(cardFeeMask, 'cardFeePercentage', e.target.value)}
                 placeholder="Ex: 3.9"
               />
             </div>
@@ -475,9 +507,9 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <Label>Impostos (%)</Label>
               <Input
                 type="text"
-                value={formData.taxPercentage.toString()}
-                onChange={(e) => handlePercentageChange(e.target.value, 'taxPercentage')}
-                placeholder="Ex: 3.9"
+                value={taxPercentageMask.displayValue}
+                onChange={(e) => handlePercentageChange(taxPercentageMask, 'taxPercentage', e.target.value)}
+                placeholder="Ex: 5.0"
               />
             </div>
           </div>
@@ -489,8 +521,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <Label>Margem Desejada (%)</Label>
               <Input
                 type="text"
-                value={formData.editMode === 'margin' ? formData.targetMarginPercentage.toString() : results.marginPercentage.toFixed(2)}
-                onChange={(e) => handleMarginChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
+                value={formData.editMode === 'margin' ? targetMarginMask.displayValue : results.marginPercentage.toFixed(2)}
+                onChange={(e) => handleMarginChange(e.target.value)}
                 placeholder="Ex: 30.5"
               />
             </div>
@@ -499,6 +531,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <CurrencyInput
                 value={formData.editMode === 'price' ? formData.sellingPrice : results.sellingPrice}
                 onValueChange={handleSellingPriceChange}
+                placeholder="R$ 0,00"
               />
             </div>
           </div>
@@ -517,9 +550,9 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
           {/* Cards em Destaque */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="bg-blue-100 p-6 rounded-xl text-center border-l-4 border-blue-500">
-              <p className="text-sm text-blue-600 font-medium mb-1">Custo do Produto</p>
+              <p className="text-sm text-blue-600 font-medium mb-1">Custo do Produto sem Taxas</p>
               <p className="text-2xl font-bold text-blue-800">{formatCurrency(results.baseCost)}</p>
-              <p className="text-xs text-blue-600 mt-1">Sem taxas</p>
+              <p className="text-xs text-blue-600 mt-1">Valor base</p>
             </div>
             <div className="bg-purple-100 p-6 rounded-xl text-center border-l-4 border-purple-500">
               <p className="text-sm text-purple-600 font-medium mb-1">Custo Total das Taxas</p>
@@ -527,7 +560,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <p className="text-xs text-purple-600 mt-1">Desperdício + custos indiretos</p>
             </div>
             <div className="bg-indigo-100 p-6 rounded-xl text-center border-l-4 border-indigo-500">
-              <p className="text-sm text-indigo-600 font-medium mb-1">Custo Total com Taxas</p>
+              <p className="text-sm text-indigo-600 font-medium mb-1">Custo Total do Produto com Taxas</p>
               <p className="text-2xl font-bold text-indigo-800">{formatCurrency(results.totalCostWithTaxes)}</p>
               <p className="text-xs text-indigo-600 mt-1">Produto + todas as taxas</p>
             </div>
@@ -537,7 +570,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <p className="text-xs text-green-600 mt-1">Com todas as taxas</p>
             </div>
             <div className="bg-orange-100 p-6 rounded-xl text-center border-l-4 border-orange-500">
-              <p className="text-sm text-orange-600 font-medium mb-1">Lucro</p>
+              <p className="text-sm text-orange-600 font-medium mb-1">Lucro em Real</p>
               <p className="text-2xl font-bold text-orange-800">{formatCurrency(results.profit)}</p>
               <p className="text-xs text-orange-600 mt-1">Em reais</p>
             </div>
