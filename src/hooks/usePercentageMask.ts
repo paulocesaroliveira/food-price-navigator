@@ -11,16 +11,18 @@ export const usePercentageMask = (initialValue: number = 0) => {
     // Substitui vírgula por ponto para conversão
     const normalizedValue = cleanValue.replace(',', '.');
     
-    // Atualiza o display
+    // Atualiza o display mantendo o valor original
     setDisplayValue(cleanValue);
     
-    // Retorna o valor numérico
+    // Retorna o valor numérico mantendo os decimais
     const numericValue = parseFloat(normalizedValue) || 0;
     return Math.min(numericValue, 100); // Limita a 100%
   }, []);
 
   const setValue = useCallback((value: number) => {
-    setDisplayValue(value.toString());
+    // Mantém os decimais no display
+    const displayVal = value.toString();
+    setDisplayValue(displayVal);
   }, []);
 
   return {

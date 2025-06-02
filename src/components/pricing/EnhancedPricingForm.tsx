@@ -55,6 +55,13 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   const cardFeeMask = usePercentageMask(formData.cardFeePercentage);
   const taxPercentageMask = usePercentageMask(formData.taxPercentage);
 
+  // Máscaras dinâmicas para custos indiretos
+  const laborPercentageMask = usePercentageMask(formData.laborCostType === 'percentage' ? formData.laborCost : 0);
+  const overheadPercentageMask = usePercentageMask(formData.overheadCostType === 'percentage' ? formData.overheadCost : 0);
+  const marketingPercentageMask = usePercentageMask(formData.marketingCostType === 'percentage' ? formData.marketingCost : 0);
+  const deliveryPercentageMask = usePercentageMask(formData.deliveryCostType === 'percentage' ? formData.deliveryCost : 0);
+  const otherPercentageMask = usePercentageMask(formData.otherCostType === 'percentage' ? formData.otherCosts : 0);
+
   // Função para atualizar dados do formulário
   const updateFormData = useCallback((updates: Partial<typeof formData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
@@ -81,6 +88,22 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
     const numericValue = targetMarginMask.handleChange(value);
     updateFormData({ targetMarginPercentage: numericValue, editMode: 'margin' });
   }, [updateFormData, targetMarginMask]);
+
+  // Handler para custos indiretos com máscara dinâmica
+  const handleIndirectCostChange = useCallback((field: string, value: string, type: 'fixed' | 'percentage') => {
+    if (type === 'percentage') {
+      const maskHook = field === 'laborCost' ? laborPercentageMask :
+                      field === 'overheadCost' ? overheadPercentageMask :
+                      field === 'marketingCost' ? marketingPercentageMask :
+                      field === 'deliveryCost' ? deliveryPercentageMask :
+                      otherPercentageMask;
+      const numericValue = maskHook.handleChange(value);
+      updateFormData({ [field]: numericValue });
+    } else {
+      const numericValue = parseFloat(value.replace(',', '.')) || 0;
+      updateFormData({ [field]: numericValue });
+    }
+  }, [updateFormData, laborPercentageMask, overheadPercentageMask, marketingPercentageMask, deliveryPercentageMask, otherPercentageMask]);
 
   // Cálculos dos resultados
   const results = useMemo(() => {
@@ -145,7 +168,24 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
     platformFeeMask.setValue(formData.platformFeePercentage);
     cardFeeMask.setValue(formData.cardFeePercentage);
     taxPercentageMask.setValue(formData.taxPercentage);
-  }, [formData.wastagePercentage, formData.targetMarginPercentage, formData.platformFeePercentage, formData.cardFeePercentage, formData.taxPercentage]);
+    
+    // Sincronizar máscaras dinâmicas
+    if (formData.laborCostType === 'percentage') {
+      laborPercentageMask.setValue(formData.laborCost);
+    }
+    if (formData.overheadCostType === 'percentage') {
+      overheadPercentageMask.setValue(formData.overheadCost);
+    }
+    if (formData.marketingCostType === 'percentage') {
+      marketingPercentageMask.setValue(formData.marketingCost);
+    }
+    if (formData.deliveryCostType === 'percentage') {
+      deliveryPercentageMask.setValue(formData.deliveryCost);
+    }
+    if (formData.otherCostType === 'percentage') {
+      otherPercentageMask.setValue(formData.otherCosts);
+    }
+  }, [formData]);
 
   // Notificar componente pai sobre mudanças
   React.useEffect(() => {
@@ -271,11 +311,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 ) : (
                   <Input
                     type="text"
-                    value={formData.laborCost.toString()}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value.replace(',', '.')) || 0;
-                      updateFormData({ laborCost: value });
-                    }}
+                    value={laborPercentageMask.displayValue}
+                    onChange={(e) => handleIndirectCostChange('laborCost', e.target.value, 'percentage')}
                     className="flex-1"
                     placeholder="Ex: 3.9"
                   />
@@ -314,11 +351,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 ) : (
                   <Input
                     type="text"
-                    value={formData.overheadCost.toString()}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value.replace(',', '.')) || 0;
-                      updateFormData({ overheadCost: value });
-                    }}
+                    value={overheadPercentageMask.displayValue}
+                    onChange={(e) => handleIndirectCostChange('overheadCost', e.target.value, 'percentage')}
                     className="flex-1"
                     placeholder="Ex: 3.9"
                   />
@@ -357,11 +391,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 ) : (
                   <Input
                     type="text"
-                    value={formData.marketingCost.toString()}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value.replace(',', '.')) || 0;
-                      updateFormData({ marketingCost: value });
-                    }}
+                    value={marketingPercentageMask.displayValue}
+                    onChange={(e) => handleIndirectCostChange('marketingCost', e.target.value, 'percentage')}
                     className="flex-1"
                     placeholder="Ex: 3.9"
                   />
@@ -400,11 +431,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 ) : (
                   <Input
                     type="text"
-                    value={formData.deliveryCost.toString()}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value.replace(',', '.')) || 0;
-                      updateFormData({ deliveryCost: value });
-                    }}
+                    value={deliveryPercentageMask.displayValue}
+                    onChange={(e) => handleIndirectCostChange('deliveryCost', e.target.value, 'percentage')}
                     className="flex-1"
                     placeholder="Ex: 3.9"
                   />
@@ -443,11 +471,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 ) : (
                   <Input
                     type="text"
-                    value={formData.otherCosts.toString()}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value.replace(',', '.')) || 0;
-                      updateFormData({ otherCosts: value });
-                    }}
+                    value={otherPercentageMask.displayValue}
+                    onChange={(e) => handleIndirectCostChange('otherCosts', e.target.value, 'percentage')}
                     className="flex-1"
                     placeholder="Ex: 3.9"
                   />

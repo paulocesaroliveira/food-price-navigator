@@ -1,286 +1,290 @@
 
 import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { 
-  Plus, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { 
+  PlusCircle, 
   Search, 
-  CreditCard, 
+  MoreVertical, 
+  Edit, 
+  Trash2,
+  DollarSign,
+  Calendar,
   AlertTriangle,
   CheckCircle,
   Clock,
-  Settings,
-  Calendar,
-  Activity,
-  Star
+  Settings
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency, formatDate } from "@/utils/calculations";
+import { getAccountsPayable, deleteAccountPayable } from "@/services/accountsPayableService";
+import AccountPayableForm from "@/components/accounts-payable/AccountPayableForm";
+import ExpenseCategoryManager from "@/components/accounts-payable/ExpenseCategoryManager";
+import { toast } from "@/hooks/use-toast";
 
 const AccountsPayable = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [showAccountForm, setShowAccountForm] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<any>(null);
+  const [editingAccount, setEditingAccount] = useState(null);
+  const queryClient = useQueryClient();
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['accounts-payable'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('accounts_payable')
-        .select('*')
-        .order('due_date', { ascending: true });
-      
-      if (error) throw error;
-      return data || [];
+    queryFn: getAccountsPayable
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteAccountPayable,
+    onSuccess: () => {
+      toast({ title: "Sucesso", description: "Conta excluída com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao excluir conta: ${error.message}`,
+        variant: "destructive"
+      });
     }
   });
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
+  // Calculate summary data
+  const totalPending = Array.isArray(accounts) ? accounts
+    .filter(account => account.status === 'pending')
+    .reduce((sum, account) => sum + (account.amount || 0), 0) : 0;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "paid": return "bg-green-100 text-green-800 border-green-200";
-      case "pending": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "overdue": return "bg-red-100 text-red-800 border-red-200";
-      default: return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
+  const totalPaid = Array.isArray(accounts) ? accounts
+    .filter(account => account.status === 'paid')
+    .reduce((sum, account) => sum + (account.amount || 0), 0) : 0;
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "paid": return "Pago";
-      case "pending": return "Pendente";
-      case "overdue": return "Vencido";
-      default: return status;
-    }
-  };
+  const overdueCount = Array.isArray(accounts) ? accounts
+    .filter(account => account.status === 'pending' && new Date(account.due_date) < new Date())
+    .length : 0;
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "paid": return CheckCircle;
-      case "pending": return Clock;
-      case "overdue": return AlertTriangle;
-      default: return Clock;
+  const totalAccounts = Array.isArray(accounts) ? accounts.length : 0;
+
+  // Filter accounts based on search term
+  const filteredAccounts = Array.isArray(accounts) ? accounts.filter(account =>
+    account.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    account.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
+
+  const handleDeleteAccount = (id: string) => {
+    if (confirm("Tem certeza que deseja excluir esta conta?")) {
+      deleteMutation.mutate(id);
     }
   };
 
   const handleEditAccount = (account: any) => {
     setEditingAccount(account);
-    setShowAccountForm(true);
+    setShowForm(true);
   };
 
-  const handleCloseAccountForm = () => {
-    setShowAccountForm(false);
+  const handleNewAccount = () => {
+    setEditingAccount(null);
+    setShowForm(true);
+  };
+
+  const handleFormClose = () => {
+    setShowForm(false);
     setEditingAccount(null);
   };
 
-  // Calculate stats
-  const totalPending = accounts.filter(acc => acc.status === 'pending').reduce((sum, acc) => sum + acc.amount, 0);
-  const totalOverdue = accounts.filter(acc => acc.status === 'overdue').reduce((sum, acc) => sum + acc.amount, 0);
-  const totalPaid = accounts.filter(acc => acc.status === 'paid').reduce((sum, acc) => sum + acc.amount, 0);
-  const totalAccounts = accounts.length;
-
-  const filteredAccounts = accounts.filter(account =>
-    account.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    account.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Pago</Badge>;
+      case 'overdue':
+        return <Badge className="bg-red-100 text-red-800"><AlertTriangle className="w-3 h-3 mr-1" />Vencido</Badge>;
+      default:
+        return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50">
-      <div className="container mx-auto px-6 py-8 space-y-8">
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-red-600 via-orange-600 to-red-800 p-8 text-white shadow-2xl">
-          <div className="absolute inset-0 bg-black/10"></div>
-          <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="rounded-2xl bg-white/20 p-4 backdrop-blur-sm">
-                    <CreditCard className="h-8 w-8" />
-                  </div>
-                  <div>
-                    <h1 className="text-4xl font-bold">Contas a Pagar</h1>
-                    <p className="text-red-100 text-lg">Gestão financeira completa dos seus compromissos</p>
-                  </div>
-                </div>
-                
-                <div className="flex gap-4 text-sm">
-                  <div className="flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 backdrop-blur-sm">
-                    <Activity className="h-4 w-4" />
-                    <span>Controle Total</span>
-                  </div>
-                  <div className="flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 backdrop-blur-sm">
-                    <Star className="h-4 w-4" />
-                    <span>Gestão Inteligente</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <Button 
-                  onClick={() => setShowCategoryManager(true)}
-                  className="gap-2 bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-white/30"
-                >
-                  <Settings className="h-4 w-4" />
-                  Categorias
-                </Button>
-                <Button 
-                  onClick={() => setShowAccountForm(true)}
-                  className="gap-2 bg-white text-red-600 hover:bg-red-50"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nova Conta
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          {/* Background decoration */}
-          <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10"></div>
-          <div className="absolute -left-4 -bottom-4 h-32 w-32 rounded-full bg-white/5"></div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+          Contas a Pagar
+        </h1>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            className="gap-2" 
+            onClick={() => setShowCategoryManager(true)}
+          >
+            <Settings className="h-4 w-4" />
+            Categorias
+          </Button>
+          <Button 
+            className="gap-2 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600" 
+            onClick={handleNewAccount}
+          >
+            <PlusCircle className="h-4 w-4" />
+            Nova Conta
+          </Button>
         </div>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[
-            {
-              title: "Total Pendente",
-              value: formatCurrency(totalPending),
-              subtitle: `${accounts.filter(acc => acc.status === 'pending').length} contas`,
-              icon: Clock,
-              color: "from-yellow-500 to-yellow-600",
-              bgColor: "bg-yellow-50"
-            },
-            {
-              title: "Total Vencido",
-              value: formatCurrency(totalOverdue),
-              subtitle: `${accounts.filter(acc => acc.status === 'overdue').length} vencidas`,
-              icon: AlertTriangle,
-              color: "from-red-500 to-red-600",
-              bgColor: "bg-red-50"
-            },
-            {
-              title: "Total Pago",
-              value: formatCurrency(totalPaid),
-              subtitle: `${accounts.filter(acc => acc.status === 'paid').length} quitadas`,
-              icon: CheckCircle,
-              color: "from-green-500 to-green-600",
-              bgColor: "bg-green-50"
-            },
-            {
-              title: "Total de Contas",
-              value: totalAccounts.toString(),
-              subtitle: "Todas as categorias",
-              icon: CreditCard,
-              color: "from-blue-500 to-blue-600",
-              bgColor: "bg-blue-50"
-            }
-          ].map((stat, index) => (
-            <Card key={index} className={`border-0 shadow-lg hover:shadow-xl transition-all ${stat.bgColor}`}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`rounded-xl p-3 bg-gradient-to-r ${stat.color}`}>
-                    <stat.icon className="h-6 w-6 text-white" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
-                  <p className="text-xs text-gray-500">{stat.subtitle}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-          <Input
-            placeholder="Buscar contas..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-12 text-lg border-0 shadow-lg"
-          />
-        </div>
-
-        {/* Accounts List */}
-        <Card className="border-0 shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50">
-            <CardTitle className="flex items-center gap-3 text-xl">
-              <CreditCard className="h-6 w-6 text-red-600" />
-              Contas Cadastradas
-            </CardTitle>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-red-100">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-red-700">Total Pendente</CardTitle>
+            <DollarSign className="h-4 w-4 text-red-600" />
           </CardHeader>
-          <CardContent className="p-8">
-            {isLoading ? (
-              <div className="flex justify-center p-12">
-                <div className="h-10 w-10 animate-spin rounded-full border-4 border-red-600 border-t-transparent"></div>
-              </div>
-            ) : filteredAccounts.length === 0 ? (
-              <div className="text-center p-12 text-gray-500">
-                <CreditCard className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-xl font-medium mb-2">Nenhuma conta encontrada</h3>
-                <p>Cadastre uma nova conta para começar.</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {filteredAccounts.map((account) => {
-                  const StatusIcon = getStatusIcon(account.status);
-                  return (
-                    <div key={account.id} className="border rounded-xl p-6 hover:shadow-lg transition-all bg-gradient-to-r from-white to-gray-50">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <StatusIcon className="h-5 w-5 text-gray-600" />
-                            <span className="font-bold text-lg">{account.description}</span>
-                            <Badge className={`${getStatusColor(account.status)} border`}>
-                              {getStatusLabel(account.status)}
-                            </Badge>
-                          </div>
-                          <p className="text-gray-600 flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            Vencimento: {new Date(account.due_date).toLocaleDateString('pt-BR')}
-                            {account.supplier && (
-                              <>
-                                <span className="mx-2">•</span>
-                                {account.supplier}
-                              </>
-                            )}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-red-600">{formatCurrency(account.amount)}</p>
-                          {account.payment_date && (
-                            <p className="text-sm text-green-600">
-                              Pago em {new Date(account.payment_date).toLocaleDateString('pt-BR')}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {account.notes && (
-                        <div className="mt-4 p-3 bg-gray-50 rounded-lg border">
-                          <span className="font-medium text-gray-700">Observações: </span>
-                          <span className="text-gray-600">{account.notes}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+          <CardContent>
+            <div className="text-2xl font-bold text-red-800">{formatCurrency(totalPending)}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-green-700">Total Pago</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-800">{formatCurrency(totalPaid)}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-orange-700">Contas Vencidas</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-800">{overdueCount}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-blue-700">Total de Contas</CardTitle>
+            <Calendar className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-800">{totalAccounts}</div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Accounts Table */}
+      <Card className="shadow-lg">
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardTitle className="text-xl">Lista de Contas</CardTitle>
+            <div className="relative w-full md:w-auto">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar contas..."
+                className="pl-9 md:w-[250px]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Carregando contas...</p>
+            </div>
+          ) : filteredAccounts.length === 0 ? (
+            <div className="text-center py-8">
+              <DollarSign className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h3 className="text-lg font-medium">Nenhuma conta encontrada</h3>
+              <p className="text-muted-foreground">
+                {searchTerm ? "Tente alterar os termos de busca" : "Comece criando sua primeira conta a pagar"}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAccounts.map((account) => (
+                    <TableRow key={account.id}>
+                      <TableCell className="font-medium">{account.description}</TableCell>
+                      <TableCell>{account.supplier || '-'}</TableCell>
+                      <TableCell className="font-semibold text-red-600">
+                        {formatCurrency(account.amount)}
+                      </TableCell>
+                      <TableCell>{formatDate(account.due_date)}</TableCell>
+                      <TableCell>
+                        {getStatusBadge(account.status)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditAccount(account)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-red-600 focus:text-red-600"
+                              onClick={() => handleDeleteAccount(account.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Account Form Dialog */}
+      <AccountPayableForm
+        open={showForm}
+        onOpenChange={handleFormClose}
+        account={editingAccount}
+      />
+
+      {/* Category Manager Dialog */}
+      <ExpenseCategoryManager
+        open={showCategoryManager}
+        onOpenChange={setShowCategoryManager}
+      />
     </div>
   );
 };
