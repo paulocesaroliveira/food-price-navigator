@@ -1,6 +1,7 @@
+
 // Import the required modules and types
 import { supabase } from "@/integrations/supabase/client";
-import { Order, OrderItem } from "@/types";
+import { Order, OrderItem } from "@/types/orders";
 import { toast } from "@/hooks/use-toast";
 
 // Get all orders with their customer data
