@@ -4,17 +4,18 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DollarSign, Settings } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { DollarSign } from "lucide-react";
 import type { AccountPayable, ExpenseCategory } from "@/types/accountsPayable";
 
 const formSchema = z.object({
   description: z.string().min(1, "Descrição é obrigatória"),
-  amount: z.string().min(1, "Valor é obrigatório"),
+  amount: z.number().min(0.01, "Valor deve ser maior que zero"),
   due_date: z.string().min(1, "Data de vencimento é obrigatória"),
   category_id: z.string().optional(),
   supplier: z.string().optional(),
@@ -28,7 +29,6 @@ interface AccountPayableFormProps {
   initialData?: AccountPayable;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onManageCategories: () => void;
 }
 
 const AccountPayableForm = ({ 
@@ -36,14 +36,13 @@ const AccountPayableForm = ({
   onSubmit, 
   initialData, 
   isOpen, 
-  onOpenChange,
-  onManageCategories
+  onOpenChange
 }: AccountPayableFormProps) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       description: initialData?.description || "",
-      amount: initialData?.amount?.toString() || "",
+      amount: initialData?.amount || 0,
       due_date: initialData?.due_date || "",
       category_id: initialData?.category_id || "",
       supplier: initialData?.supplier || "",
@@ -56,7 +55,7 @@ const AccountPayableForm = ({
     if (initialData) {
       form.reset({
         description: initialData.description || "",
-        amount: initialData.amount?.toString() || "",
+        amount: initialData.amount || 0,
         due_date: initialData.due_date || "",
         category_id: initialData.category_id || "",
         supplier: initialData.supplier || "",
@@ -66,7 +65,7 @@ const AccountPayableForm = ({
     } else {
       form.reset({
         description: "",
-        amount: "",
+        amount: 0,
         due_date: "",
         category_id: "",
         supplier: "",
@@ -79,7 +78,7 @@ const AccountPayableForm = ({
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     onSubmit({
       description: values.description,
-      amount: parseFloat(values.amount),
+      amount: values.amount,
       due_date: values.due_date,
       category_id: values.category_id || undefined,
       supplier: values.supplier || undefined,
@@ -126,11 +125,10 @@ const AccountPayableForm = ({
                   <FormItem>
                     <FormLabel>Valor *</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        placeholder="0,00" 
-                        {...field} 
+                      <CurrencyInput
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="R$ 0,00"
                       />
                     </FormControl>
                     <FormMessage />
@@ -158,19 +156,7 @@ const AccountPayableForm = ({
               name="category_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center justify-between">
-                    Categoria
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={onManageCategories}
-                      className="h-6 px-2"
-                    >
-                      <Settings className="h-3 w-3 mr-1" />
-                      Gerenciar
-                    </Button>
-                  </FormLabel>
+                  <FormLabel>Categoria</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>

@@ -73,8 +73,8 @@ const Orders = () => {
   });
 
   const updatePaymentStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => 
-      updateOrder(id, { payment_status: status } as any),
+    mutationFn: ({ id, payment_status }: { id: string; payment_status: string }) => 
+      updateOrder(id, { payment_status } as any),
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Status de pagamento atualizado com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
@@ -112,7 +112,7 @@ const Orders = () => {
   };
 
   const handlePaymentStatusChange = (orderId: string, newStatus: string) => {
-    updatePaymentStatusMutation.mutate({ id: orderId, status: newStatus });
+    updatePaymentStatusMutation.mutate({ id: orderId, payment_status: newStatus });
   };
 
   const getPaymentStatusBadge = (status: string) => {
@@ -258,7 +258,7 @@ const Orders = () => {
                       </TableCell>
                       <TableCell>
                         <Select
-                          value={(order as any).payment_status || 'pending'}
+                          value={order.payment_status || 'pending'}
                           onValueChange={(value) => handlePaymentStatusChange(order.id, value)}
                         >
                           <SelectTrigger className="w-[130px]">
@@ -308,9 +308,7 @@ const Orders = () => {
 
       {/* New Order Form Dialog */}
       {showForm && (
-        <NewOrderForm
-          onClose={() => setShowForm(false)}
-        />
+        <NewOrderForm />
       )}
 
       {/* Order Details Dialog */}

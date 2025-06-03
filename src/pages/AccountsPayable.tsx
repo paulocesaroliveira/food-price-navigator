@@ -36,6 +36,7 @@ import { getAccountsPayable, deleteAccountPayable, createAccountPayable, updateA
 import AccountPayableForm from "@/components/accounts-payable/AccountPayableForm";
 import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const AccountsPayable = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -334,7 +335,6 @@ const AccountsPayable = () => {
           initialData={editingAccount}
           isOpen={showForm}
           onOpenChange={setShowForm}
-          onManageCategories={() => setShowCategoryManager(true)}
         />
       )}
 
