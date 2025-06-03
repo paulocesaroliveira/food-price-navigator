@@ -1,5 +1,6 @@
 
 
+
 export interface OrderExpense {
   id: string;
   order_id: string;
@@ -46,7 +47,7 @@ export interface Order {
   payment_method?: string;
   payment_date?: string;
   notes: string;
-  origin: string;
+  origin: 'manual' | 'site';
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];
@@ -73,4 +74,5 @@ export interface OrderItem {
     name: string;
   };
 }
+
 
