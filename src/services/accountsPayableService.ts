@@ -145,25 +145,36 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
     console.log("Usuário ID:", user.id);
     console.log("Dados da conta:", account);
 
-    // Limpar category_id se for "none" ou vazio
-    const cleanCategoryId = account.category_id === "none" || account.category_id === "" ? null : account.category_id;
-    // Limpar payment_method se for "none" ou vazio - usar string para comparação
-    const paymentMethodString = account.payment_method as string;
-    const cleanPaymentMethod = paymentMethodString === "none" || paymentMethodString === "" ? null : account.payment_method;
-
-    const accountData = {
+    // Preparar os dados de forma mais simples
+    const accountData: any = {
       description: account.description,
       amount: account.amount,
       due_date: account.due_date,
-      category_id: cleanCategoryId,
       supplier: account.supplier || null,
       notes: account.notes || null,
       status: account.status || 'pending',
-      payment_method: cleanPaymentMethod,
-      payment_date: account.payment_date || null,
-      attachment_url: account.attachment_url || null,
       user_id: user.id
     };
+
+    // Só adicionar category_id se tiver valor válido
+    if (account.category_id && account.category_id !== "none" && account.category_id !== "") {
+      accountData.category_id = account.category_id;
+    }
+
+    // Só adicionar payment_method se tiver valor válido
+    if (account.payment_method && account.payment_method !== "none") {
+      accountData.payment_method = account.payment_method;
+    }
+
+    // Só adicionar payment_date se tiver valor
+    if (account.payment_date) {
+      accountData.payment_date = account.payment_date;
+    }
+
+    // Só adicionar attachment_url se tiver valor
+    if (account.attachment_url) {
+      accountData.attachment_url = account.attachment_url;
+    }
 
     console.log("Dados finais para inserção:", accountData);
 
@@ -215,26 +226,29 @@ export async function createRecurringAccountsPayable(
     const baseDate = new Date(baseMonth + '-01');
     const accounts = [];
 
-    // Limpar valores como no createAccountPayable
-    const cleanCategoryId = account.category_id === "none" || account.category_id === "" ? null : account.category_id;
-    const paymentMethodString = account.payment_method as string;
-    const cleanPaymentMethod = paymentMethodString === "none" || paymentMethodString === "" ? null : account.payment_method;
-
     for (let i = 0; i < installments; i++) {
       const dueDate = new Date(baseDate);
       dueDate.setMonth(dueDate.getMonth() + i);
       
-      const accountData = {
+      const accountData: any = {
         description: `${account.description} (${i + 1}/${installments})`,
         amount: account.amount,
         due_date: dueDate.toISOString().split('T')[0],
-        category_id: cleanCategoryId,
         supplier: account.supplier || null,
         notes: account.notes || null,
         status: account.status || 'pending',
-        payment_method: cleanPaymentMethod,
         user_id: user.id
       };
+
+      // Só adicionar category_id se tiver valor válido
+      if (account.category_id && account.category_id !== "none" && account.category_id !== "") {
+        accountData.category_id = account.category_id;
+      }
+
+      // Só adicionar payment_method se tiver valor válido
+      if (account.payment_method && account.payment_method !== "none") {
+        accountData.payment_method = account.payment_method;
+      }
 
       accounts.push(accountData);
     }
