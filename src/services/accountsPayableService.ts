@@ -147,8 +147,9 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
 
     // Limpar category_id se for "none" ou vazio
     const cleanCategoryId = account.category_id === "none" || account.category_id === "" ? null : account.category_id;
-    // Limpar payment_method se for "none" ou vazio
-    const cleanPaymentMethod = account.payment_method === "none" || account.payment_method === "" ? null : account.payment_method;
+    // Limpar payment_method se for "none" ou vazio - usar string para comparação
+    const paymentMethodString = account.payment_method as string;
+    const cleanPaymentMethod = paymentMethodString === "none" || paymentMethodString === "" ? null : account.payment_method;
 
     const accountData = {
       description: account.description,
@@ -216,7 +217,8 @@ export async function createRecurringAccountsPayable(
 
     // Limpar valores como no createAccountPayable
     const cleanCategoryId = account.category_id === "none" || account.category_id === "" ? null : account.category_id;
-    const cleanPaymentMethod = account.payment_method === "none" || account.payment_method === "" ? null : account.payment_method;
+    const paymentMethodString = account.payment_method as string;
+    const cleanPaymentMethod = paymentMethodString === "none" || paymentMethodString === "" ? null : account.payment_method;
 
     for (let i = 0; i < installments; i++) {
       const dueDate = new Date(baseDate);
