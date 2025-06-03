@@ -41,7 +41,7 @@ export interface Order {
   scheduled_date?: string;
   scheduled_time?: string;
   total_amount: number;
-  payment_status: 'pending' | 'paid' | 'partial' | 'cancelled';
+  payment_status?: 'pending' | 'paid' | 'partial' | 'cancelled';
   payment_method?: string;
   payment_date?: string;
   notes?: string;

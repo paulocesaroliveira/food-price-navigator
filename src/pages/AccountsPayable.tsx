@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +32,7 @@ import {
   Settings
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/utils/calculations";
-import { getAccountsPayable, deleteAccountPayable } from "@/services/accountsPayableService";
+import { getAccountsPayable, deleteAccountPayable, createAccountPayable, updateAccountPayable } from "@/services/accountsPayableService";
 import AccountPayableForm from "@/components/accounts-payable/AccountPayableForm";
 import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
 import { toast } from "@/hooks/use-toast";
@@ -50,6 +49,19 @@ const AccountsPayable = () => {
     queryFn: () => getAccountsPayable()
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['expense-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('expense_categories')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: deleteAccountPayable,
     onSuccess: () => {
@@ -60,6 +72,40 @@ const AccountsPayable = () => {
       toast({
         title: "Erro",
         description: `Erro ao excluir conta: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const createMutation = useMutation({
+    mutationFn: createAccountPayable,
+    onSuccess: () => {
+      toast({ title: "Sucesso", description: "Conta criada com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
+      setShowForm(false);
+      setEditingAccount(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao criar conta: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => updateAccountPayable(id, data),
+    onSuccess: () => {
+      toast({ title: "Sucesso", description: "Conta atualizada com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
+      setShowForm(false);
+      setEditingAccount(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao atualizar conta: ${error.message}`,
         variant: "destructive"
       });
     }
@@ -102,9 +148,16 @@ const AccountsPayable = () => {
     setShowForm(true);
   };
 
-  const handleFormClose = () => {
-    setShowForm(false);
-    setEditingAccount(null);
+  const handleFormSubmit = (data: any) => {
+    if (editingAccount) {
+      updateMutation.mutate({ id: editingAccount.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const handleCategoriesChange = () => {
+    queryClient.invalidateQueries({ queryKey: ['expense-categories'] });
   };
 
   const getStatusBadge = (status: string) => {
@@ -276,15 +329,21 @@ const AccountsPayable = () => {
       {/* Account Form Dialog */}
       {showForm && (
         <AccountPayableForm
-          onClose={handleFormClose}
-          account={editingAccount}
+          categories={categories}
+          onSubmit={handleFormSubmit}
+          initialData={editingAccount}
+          isOpen={showForm}
+          onOpenChange={setShowForm}
+          onManageCategories={() => setShowCategoryManager(true)}
         />
       )}
 
       {/* Category Manager Dialog */}
       {showCategoryManager && (
         <ExpenseCategoryManager
-          onClose={() => setShowCategoryManager(false)}
+          open={showCategoryManager}
+          onOpenChange={setShowCategoryManager}
+          onCategoriesChange={handleCategoriesChange}
         />
       )}
     </div>
