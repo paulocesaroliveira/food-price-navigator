@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/utils/calculations";
 import { getOrders, deleteOrder, updateOrder } from "@/services/orderService";
+import { Order } from "@/types/orders";
 import NewOrderForm from "@/components/orders/NewOrderForm";
 import OrderDetails from "@/components/orders/OrderDetails";
 import { toast } from "@/hooks/use-toast";
@@ -49,7 +50,7 @@ const Orders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const queryClient = useQueryClient();
 
   const { data: orders = [], isLoading } = useQuery({
@@ -106,7 +107,7 @@ const Orders = () => {
     }
   };
 
-  const handleViewDetails = (order: any) => {
+  const handleViewDetails = (order: Order) => {
     setSelectedOrder(order);
     setShowDetails(true);
   };
