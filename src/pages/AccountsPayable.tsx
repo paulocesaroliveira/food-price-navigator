@@ -1,9 +1,7 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   PlusCircle, 
@@ -28,6 +26,7 @@ import {
 import AccountPayableForm from "@/components/accounts-payable/AccountPayableForm";
 import AccountsPayableListPaginated from "@/components/accounts-payable/AccountsPayableListPaginated";
 import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
+import DebugAccountsTest from "@/components/accounts-payable/DebugAccountsTest";
 import { toast } from "@/hooks/use-toast";
 import type { AccountPayable } from "@/types/accountsPayable";
 
@@ -49,23 +48,26 @@ const AccountsPayable = () => {
     endDate: lastDay.toISOString().split('T')[0]
   };
 
-  // Adicionando filtros por status para as abas
+  // Função para obter filtros baseados na aba ativa
   const getTabFilters = () => {
+    const baseFilters = { ...defaultFilters };
+    
     switch (activeTab) {
       case "pending":
-        return { ...defaultFilters, status: "pending" };
+        return { ...baseFilters, status: "pending" };
       case "paid":
-        return { ...defaultFilters, status: "paid" };
+        return { ...baseFilters, status: "paid" };
       case "overdue":
-        return { ...defaultFilters, status: "overdue" };
+        return { ...baseFilters, status: "overdue" };
       default:
-        return defaultFilters;
+        return baseFilters; // Sem filtro de status para "all"
     }
   };
 
-  const { data: accounts = [], isLoading } = useQuery({
+  const { data: accounts = [], isLoading, refetch } = useQuery({
     queryKey: ['accounts-payable', getTabFilters(), refreshTrigger],
-    queryFn: () => getAccountsPayable(getTabFilters())
+    queryFn: () => getAccountsPayable(getTabFilters()),
+    refetchOnWindowFocus: false
   });
 
   const { data: categories = [] } = useQuery({
@@ -119,17 +121,17 @@ const AccountsPayable = () => {
     }
   });
 
-  // Calculate summary data
+  // Calculate summary data with type safety
   const totalPending = accounts
-    .filter(account => account.status === 'pending')
-    .reduce((sum, account) => sum + (account.amount || 0), 0);
+    .filter((account: AccountPayable) => account.status === 'pending')
+    .reduce((sum: number, account: AccountPayable) => sum + (account.amount || 0), 0);
 
   const totalPaid = accounts
-    .filter(account => account.status === 'paid')
-    .reduce((sum, account) => sum + (account.amount || 0), 0);
+    .filter((account: AccountPayable) => account.status === 'paid')
+    .reduce((sum: number, account: AccountPayable) => sum + (account.amount || 0), 0);
 
   const overdueCount = accounts
-    .filter(account => account.status === 'pending' && new Date(account.due_date) < new Date())
+    .filter((account: AccountPayable) => account.status === 'pending' && new Date(account.due_date) < new Date())
     .length;
 
   const totalAccounts = accounts.length;
@@ -166,11 +168,11 @@ const AccountsPayable = () => {
     queryClient.invalidateQueries({ queryKey: ['expense-categories'] });
   };
 
-  // Função para agrupar contas por categorias
+  // Função para agrupar contas por categorias com tipagem adequada
   const getExpensesByCategory = () => {
     const categoryMap: Record<string, { name: string; color: string; amount: number; count: number }> = {};
     
-    accounts.forEach(account => {
+    accounts.forEach((account: AccountPayable) => {
       const categoryName = account.category?.name || "Sem categoria";
       if (!categoryMap[categoryName]) {
         categoryMap[categoryName] = {
@@ -187,6 +189,13 @@ const AccountsPayable = () => {
     
     return Object.values(categoryMap).sort((a, b) => b.amount - a.amount);
   };
+
+  // Debug: Log para verificar dados
+  console.log("=== DEBUG ACCOUNTS PAYABLE PAGE ===");
+  console.log("Active tab:", activeTab);
+  console.log("Filters being used:", getTabFilters());
+  console.log("Accounts loaded:", accounts.length);
+  console.log("First 3 accounts:", accounts.slice(0, 3));
 
   return (
     <div className="space-y-6">
@@ -218,6 +227,9 @@ const AccountsPayable = () => {
           </Button>
         </div>
       </div>
+
+      {/* Componente de Debug - TEMPORÁRIO */}
+      <DebugAccountsTest />
 
       {/* Tabs */}
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">

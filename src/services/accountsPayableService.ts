@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { AccountPayable, ExpenseCategory, AccountsPayableFilters } from "@/types/accountsPayable";
@@ -42,8 +41,9 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
       throw new Error('Usuário não autenticado');
     }
 
-    console.log("Buscando contas a pagar para o usuário:", user.id);
-    console.log("Filtros aplicados:", filters);
+    console.log("=== INÍCIO DA BUSCA DE CONTAS ===");
+    console.log("Usuário ID:", user.id);
+    console.log("Filtros recebidos:", filters);
 
     let query = supabase
       .from("accounts_payable")
@@ -51,28 +51,43 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
         *,
         category:expense_categories(*)
       `)
-      .eq("user_id", user.id)
-      .order("due_date", { ascending: true });
+      .eq("user_id", user.id);
 
-    if (filters.status) {
-      query = query.eq("status", filters.status);
+    // Aplicar filtros apenas se não forem vazios ou "all"
+    if (filters.status && filters.status !== "all" && filters.status !== "") {
+      console.log("Aplicando filtro de status:", filters.status);
+      if (filters.status === "overdue") {
+        // Para contas vencidas, buscar contas pendentes com data de vencimento passada
+        query = query
+          .eq("status", "pending")
+          .lt("due_date", new Date().toISOString().split('T')[0]);
+      } else {
+        query = query.eq("status", filters.status);
+      }
     }
 
-    if (filters.category) {
+    if (filters.category && filters.category !== "all" && filters.category !== "") {
+      console.log("Aplicando filtro de categoria:", filters.category);
       query = query.eq("category_id", filters.category);
     }
 
     if (filters.startDate) {
+      console.log("Aplicando filtro de data inicial:", filters.startDate);
       query = query.gte("due_date", filters.startDate);
     }
 
     if (filters.endDate) {
+      console.log("Aplicando filtro de data final:", filters.endDate);
       query = query.lte("due_date", filters.endDate);
     }
 
     if (filters.supplier) {
+      console.log("Aplicando filtro de fornecedor:", filters.supplier);
       query = query.ilike("supplier", `%${filters.supplier}%`);
     }
+
+    // Adicionar ordenação
+    query = query.order("due_date", { ascending: true });
 
     console.log("Executando consulta...");
     const { data, error } = await query;
@@ -85,6 +100,22 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
     console.log("Dados brutos retornados:", data);
     console.log("Número de registros encontrados:", data?.length || 0);
     
+    if (!data || data.length === 0) {
+      console.log("=== NENHUMA CONTA ENCONTRADA ===");
+      console.log("Vamos verificar se existem contas sem filtros...");
+      
+      // Fazer uma busca sem filtros para verificar se existem contas
+      const { data: allData, error: allError } = await supabase
+        .from("accounts_payable")
+        .select("*")
+        .eq("user_id", user.id);
+      
+      console.log("Total de contas no banco para este usuário:", allData?.length || 0);
+      if (allData && allData.length > 0) {
+        console.log("Primeiras 3 contas encontradas:", allData.slice(0, 3));
+      }
+    }
+    
     const mappedData = (data || []).map(account => ({
       ...account,
       status: account.status as 'pending' | 'paid' | 'overdue' | 'cancelled',
@@ -92,6 +123,7 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
     }));
     
     console.log("Dados mapeados:", mappedData);
+    console.log("=== FIM DA BUSCA DE CONTAS ===");
     return mappedData;
   } catch (error: any) {
     console.error("Erro ao buscar contas:", error.message);
@@ -109,32 +141,42 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuário não autenticado');
 
-    console.log("Creating account with user_id:", user.id);
-    console.log("Account data:", account);
+    console.log("=== CRIANDO NOVA CONTA ===");
+    console.log("Usuário ID:", user.id);
+    console.log("Dados da conta:", account);
+
+    // Limpar category_id se for "none" ou vazio
+    const cleanCategoryId = account.category_id === "none" || account.category_id === "" ? null : account.category_id;
+    // Limpar payment_method se for "none" ou vazio
+    const cleanPaymentMethod = account.payment_method === "none" || account.payment_method === "" ? null : account.payment_method;
 
     const accountData = {
       description: account.description,
       amount: account.amount,
       due_date: account.due_date,
-      category_id: account.category_id,
-      supplier: account.supplier,
-      notes: account.notes,
+      category_id: cleanCategoryId,
+      supplier: account.supplier || null,
+      notes: account.notes || null,
       status: account.status || 'pending',
-      payment_method: account.payment_method,
-      payment_date: account.payment_date,
-      attachment_url: account.attachment_url,
+      payment_method: cleanPaymentMethod,
+      payment_date: account.payment_date || null,
+      attachment_url: account.attachment_url || null,
       user_id: user.id
     };
 
-    const { error } = await supabase
+    console.log("Dados finais para inserção:", accountData);
+
+    const { data, error } = await supabase
       .from("accounts_payable")
-      .insert([accountData]);
+      .insert([accountData])
+      .select();
 
     if (error) {
-      console.error("Supabase error:", error);
+      console.error("Erro do Supabase:", error);
       throw error;
     }
 
+    console.log("Conta criada com sucesso:", data);
     toast({
       title: "Sucesso",
       description: "Conta cadastrada com sucesso",
@@ -160,13 +202,21 @@ export async function createRecurringAccountsPayable(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuário não autenticado');
 
+    console.log("=== CRIANDO CONTAS RECORRENTES ===");
+    console.log("Número de parcelas:", installments);
+    console.log("Mês base:", baseMonth);
+
     // Limitamos o número de parcelas para evitar o erro de stack depth
     if (installments > 48) {
       throw new Error('Número máximo de parcelas é 48');
     }
 
-    const baseDate = new Date(baseMonth);
+    const baseDate = new Date(baseMonth + '-01');
     const accounts = [];
+
+    // Limpar valores como no createAccountPayable
+    const cleanCategoryId = account.category_id === "none" || account.category_id === "" ? null : account.category_id;
+    const cleanPaymentMethod = account.payment_method === "none" || account.payment_method === "" ? null : account.payment_method;
 
     for (let i = 0; i < installments; i++) {
       const dueDate = new Date(baseDate);
@@ -176,26 +226,30 @@ export async function createRecurringAccountsPayable(
         description: `${account.description} (${i + 1}/${installments})`,
         amount: account.amount,
         due_date: dueDate.toISOString().split('T')[0],
-        category_id: account.category_id,
-        supplier: account.supplier,
-        notes: account.notes,
+        category_id: cleanCategoryId,
+        supplier: account.supplier || null,
+        notes: account.notes || null,
         status: account.status || 'pending',
-        payment_method: account.payment_method,
+        payment_method: cleanPaymentMethod,
         user_id: user.id
       };
 
       accounts.push(accountData);
     }
 
-    const { error } = await supabase
+    console.log("Contas a serem criadas:", accounts);
+
+    const { data, error } = await supabase
       .from("accounts_payable")
-      .insert(accounts);
+      .insert(accounts)
+      .select();
 
     if (error) {
-      console.error("Supabase error:", error);
+      console.error("Erro do Supabase:", error);
       throw error;
     }
 
+    console.log("Contas recorrentes criadas:", data);
     toast({
       title: "Sucesso",
       description: `${installments} contas recorrentes criadas com sucesso`,
