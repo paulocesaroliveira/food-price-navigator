@@ -224,13 +224,14 @@ const AccountPayableForm = ({
                           <Tag className="h-4 w-4 text-purple-500" />
                           Categoria
                         </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione uma categoria" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="none">Sem categoria</SelectItem>
                             {categories.map((category) => (
                               <SelectItem key={category.id} value={category.id}>
                                 <div className="flex items-center gap-2">
@@ -354,13 +355,14 @@ const AccountPayableForm = ({
                         <CreditCard className="h-4 w-4 text-purple-500" />
                         Forma de Pagamento
                       </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a forma de pagamento" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="none">Não definido</SelectItem>
                           <SelectItem value="cash">Dinheiro</SelectItem>
                           <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
                           <SelectItem value="debit_card">Cartão de Débito</SelectItem>

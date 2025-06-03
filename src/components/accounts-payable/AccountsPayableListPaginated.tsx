@@ -54,7 +54,6 @@ import {
 import { formatCurrency, formatDate } from "@/utils/calculations";
 import { getAccountsPayable, markAsPaid } from "@/services/accountsPayableService";
 import type { AccountPayable } from "@/types/accountsPayable";
-import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 
@@ -76,7 +75,7 @@ const AccountsPayableListPaginated = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [selectedAccount, setSelectedAccount] = useState<AccountPayable | null>(null);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState("pix");
   
@@ -153,7 +152,7 @@ const AccountsPayableListPaginated = ({
     setCurrentPage(1);
   };
 
-  const handleOpenPaymentDialog = (account) => {
+  const handleOpenPaymentDialog = (account: AccountPayable) => {
     setSelectedAccount(account);
     setShowPaymentDialog(true);
   };
@@ -168,13 +167,6 @@ const AccountsPayableListPaginated = ({
       setShowPaymentDialog(false);
     }
   };
-
-  const categoryColors = {};
-  accounts.forEach(account => {
-    if (account.category?.id && account.category?.color) {
-      categoryColors[account.category.id] = account.category.color;
-    }
-  });
 
   if (isLoading) {
     return (
@@ -260,7 +252,7 @@ const AccountsPayableListPaginated = ({
                     <SelectValue placeholder="Filtrar por status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os status</SelectItem>
+                    <SelectItem value="all">Todos os status</SelectItem>
                     <SelectItem value="pending">Pendentes</SelectItem>
                     <SelectItem value="paid">Pagos</SelectItem>
                     <SelectItem value="overdue">Vencidos</SelectItem>
