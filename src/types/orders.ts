@@ -45,7 +45,7 @@ export interface Order {
   payment_status?: 'pending' | 'paid' | 'overdue' | 'cancelled';
   payment_method?: string;
   payment_date?: string;
-  notes?: string;
+  notes: string;
   origin: string;
   created_at: string;
   updated_at: string;
