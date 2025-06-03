@@ -74,7 +74,7 @@ const Orders = () => {
 
   const updatePaymentStatusMutation = useMutation({
     mutationFn: ({ id, payment_status }: { id: string; payment_status: string }) => 
-      updateOrder(id, { payment_status } as any),
+      updateOrder(id, { payment_status }),
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Status de pagamento atualizado com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
@@ -113,6 +113,11 @@ const Orders = () => {
 
   const handlePaymentStatusChange = (orderId: string, newStatus: string) => {
     updatePaymentStatusMutation.mutate({ id: orderId, payment_status: newStatus });
+  };
+
+  const handleOrderCreated = () => {
+    setShowForm(false);
+    queryClient.invalidateQueries({ queryKey: ['orders'] });
   };
 
   const getPaymentStatusBadge = (status: string) => {
@@ -308,7 +313,10 @@ const Orders = () => {
 
       {/* New Order Form Dialog */}
       {showForm && (
-        <NewOrderForm />
+        <NewOrderForm 
+          onOrderCreated={handleOrderCreated}
+          onCancel={() => setShowForm(false)}
+        />
       )}
 
       {/* Order Details Dialog */}
