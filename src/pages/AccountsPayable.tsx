@@ -1,15 +1,20 @@
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   PlusCircle, 
   DollarSign,
   Calendar,
   AlertTriangle,
   CheckCircle,
-  Settings
+  Settings,
+  TrendingUp,
+  Clock,
+  BarChart3
 } from "lucide-react";
 import { formatCurrency } from "@/utils/calculations";
 import { 
@@ -23,13 +28,13 @@ import AccountPayableForm from "@/components/accounts-payable/AccountPayableForm
 import AccountsPayableListPaginated from "@/components/accounts-payable/AccountsPayableListPaginated";
 import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 const AccountsPayable = () => {
   const [showForm, setShowForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [activeTab, setActiveTab] = useState("all");
   const queryClient = useQueryClient();
 
   // Default filter for current month
@@ -42,20 +47,31 @@ const AccountsPayable = () => {
     endDate: lastDay.toISOString().split('T')[0]
   };
 
+  // Adicionando filtros por status para as abas
+  const getTabFilters = () => {
+    switch (activeTab) {
+      case "pending":
+        return { ...defaultFilters, status: "pending" };
+      case "paid":
+        return { ...defaultFilters, status: "paid" };
+      case "overdue":
+        return { ...defaultFilters, status: "overdue" };
+      default:
+        return defaultFilters;
+    }
+  };
+
   const { data: accounts = [], isLoading } = useQuery({
-    queryKey: ['accounts-payable', defaultFilters],
-    queryFn: () => getAccountsPayable(defaultFilters)
+    queryKey: ['accounts-payable', getTabFilters(), refreshTrigger],
+    queryFn: () => getAccountsPayable(getTabFilters())
   });
 
   const { data: categories = [] } = useQuery({
     queryKey: ['expense-categories'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       const { data, error } = await supabase
         .from('expense_categories')
         .select('*')
-        .eq('user_id', user?.id)
         .order('name');
       
       if (error) throw error;
@@ -69,13 +85,6 @@ const AccountsPayable = () => {
       toast({ title: "Sucesso", description: "Conta excluída com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
       setRefreshTrigger(prev => prev + 1);
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: `Erro ao excluir conta: ${error.message}`,
-        variant: "destructive"
-      });
     }
   });
 
@@ -87,18 +96,11 @@ const AccountsPayable = () => {
       setShowForm(false);
       setEditingAccount(null);
       setRefreshTrigger(prev => prev + 1);
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: `Erro ao criar conta: ${error.message}`,
-        variant: "destructive"
-      });
     }
   });
 
   const createRecurringMutation = useMutation({
-    mutationFn: ({ data, installments, baseMonth }: { data: any, installments: number, baseMonth: string }) => 
+    mutationFn: ({ data, installments, baseMonth }) => 
       createRecurringAccountsPayable(data, installments, baseMonth),
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Contas recorrentes criadas com sucesso!" });
@@ -106,56 +108,42 @@ const AccountsPayable = () => {
       setShowForm(false);
       setEditingAccount(null);
       setRefreshTrigger(prev => prev + 1);
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: `Erro ao criar contas recorrentes: ${error.message}`,
-        variant: "destructive"
-      });
     }
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateAccountPayable(id, data),
+    mutationFn: ({ id, data }) => updateAccountPayable(id, data),
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Conta atualizada com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
       setShowForm(false);
       setEditingAccount(null);
       setRefreshTrigger(prev => prev + 1);
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: `Erro ao atualizar conta: ${error.message}`,
-        variant: "destructive"
-      });
     }
   });
 
   // Calculate summary data
-  const totalPending = Array.isArray(accounts) ? accounts
+  const totalPending = accounts
     .filter(account => account.status === 'pending')
-    .reduce((sum, account) => sum + (account.amount || 0), 0) : 0;
+    .reduce((sum, account) => sum + (account.amount || 0), 0);
 
-  const totalPaid = Array.isArray(accounts) ? accounts
+  const totalPaid = accounts
     .filter(account => account.status === 'paid')
-    .reduce((sum, account) => sum + (account.amount || 0), 0) : 0;
+    .reduce((sum, account) => sum + (account.amount || 0), 0);
 
-  const overdueCount = Array.isArray(accounts) ? accounts
+  const overdueCount = accounts
     .filter(account => account.status === 'pending' && new Date(account.due_date) < new Date())
-    .length : 0;
+    .length;
 
-  const totalAccounts = Array.isArray(accounts) ? accounts.length : 0;
+  const totalAccounts = accounts.length;
 
-  const handleDeleteAccount = (id: string) => {
-    if (confirm("Tem certeza que deseja excluir esta conta?")) {
+  const handleDeleteAccount = (id) => {
+    if (window.confirm("Tem certeza que deseja excluir esta conta?")) {
       deleteMutation.mutate(id);
     }
   };
 
-  const handleEditAccount = (account: any) => {
+  const handleEditAccount = (account) => {
     setEditingAccount(account);
     setShowForm(true);
   };
@@ -165,7 +153,7 @@ const AccountsPayable = () => {
     setShowForm(true);
   };
 
-  const handleFormSubmit = (data: any) => {
+  const handleFormSubmit = (data) => {
     if (editingAccount) {
       updateMutation.mutate({ id: editingAccount.id, data });
     } else {
@@ -173,7 +161,7 @@ const AccountsPayable = () => {
     }
   };
 
-  const handleRecurringFormSubmit = (data: any, installments: number, baseMonth: string) => {
+  const handleRecurringFormSubmit = (data, installments, baseMonth) => {
     createRecurringMutation.mutate({ data, installments, baseMonth });
   };
 
@@ -181,16 +169,43 @@ const AccountsPayable = () => {
     queryClient.invalidateQueries({ queryKey: ['expense-categories'] });
   };
 
+  // Função para agrupar contas por categorias
+  const getExpensesByCategory = () => {
+    const categoryMap = {};
+    
+    accounts.forEach(account => {
+      const categoryName = account.category?.name || "Sem categoria";
+      if (!categoryMap[categoryName]) {
+        categoryMap[categoryName] = {
+          name: categoryName,
+          color: account.category?.color || "#718096",
+          amount: 0,
+          count: 0
+        };
+      }
+      
+      categoryMap[categoryName].amount += account.amount || 0;
+      categoryMap[categoryName].count += 1;
+    });
+    
+    return Object.values(categoryMap).sort((a, b) => b.amount - a.amount);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
-          Contas a Pagar
-        </h1>
-        <div className="flex gap-2">
+      {/* Header com gradiente melhorado */}
+      <div className="flex items-center justify-between bg-gradient-to-r from-purple-800 to-indigo-700 rounded-lg p-6 shadow-lg">
+        <div>
+          <h1 className="text-3xl font-bold text-white">
+            Contas a Pagar
+          </h1>
+          <p className="text-purple-200 mt-1">
+            Gerencie suas despesas e compromissos financeiros
+          </p>
+        </div>
+        <div className="flex gap-3">
           <Button 
-            variant="outline" 
+            variant="secondary"
             className="gap-2" 
             onClick={() => setShowCategoryManager(true)}
           >
@@ -198,7 +213,7 @@ const AccountsPayable = () => {
             Categorias
           </Button>
           <Button 
-            className="gap-2 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600" 
+            className="gap-2 bg-white text-purple-800 hover:bg-purple-100"
             onClick={handleNewAccount}
           >
             <PlusCircle className="h-4 w-4" />
@@ -207,55 +222,211 @@ const AccountsPayable = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-red-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-700">Total Pendente</CardTitle>
-            <DollarSign className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-800">{formatCurrency(totalPending)}</div>
-          </CardContent>
-        </Card>
+      {/* Tabs */}
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-4 mb-4">
+          <TabsTrigger value="all" className="text-sm">Todas as Contas</TabsTrigger>
+          <TabsTrigger value="pending" className="text-sm">Pendentes</TabsTrigger>
+          <TabsTrigger value="overdue" className="text-sm">Vencidas</TabsTrigger>
+          <TabsTrigger value="paid" className="text-sm">Pagas</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="all" className="space-y-6">
+          {/* Summary Cards Row 1 */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-pink-500 rounded-bl-full opacity-20"></div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-pink-700">Total Pendente</CardTitle>
+                <DollarSign className="h-4 w-4 text-pink-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-pink-800">{formatCurrency(totalPending)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {accounts.filter(a => a.status === 'pending').length} contas aguardando pagamento
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-700">Total Pago</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-800">{formatCurrency(totalPaid)}</div>
-          </CardContent>
-        </Card>
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-green-500 rounded-bl-full opacity-20"></div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-green-700">Total Pago</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-800">{formatCurrency(totalPaid)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {accounts.filter(a => a.status === 'paid').length} contas quitadas
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-700">Contas Vencidas</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-800">{overdueCount}</div>
-          </CardContent>
-        </Card>
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500 rounded-bl-full opacity-20"></div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-amber-700">Contas Vencidas</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-800">{overdueCount}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Necessitam atenção imediata
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-700">Total de Contas</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-800">{totalAccounts}</div>
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500 rounded-bl-full opacity-20"></div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-blue-700">Total de Contas</CardTitle>
+                <Calendar className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-800">{totalAccounts}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  No período selecionado
+                </p>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Accounts List with Pagination */}
-      <AccountsPayableListPaginated
-        onEdit={handleEditAccount}
-        onDelete={handleDeleteAccount}
-        refresh={refreshTrigger}
-      />
+          {/* Análise por categorias */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <Card className="lg:col-span-2 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" /> 
+                  Despesas por Categoria
+                </CardTitle>
+                <CardDescription>Distribuição de gastos por categoria</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {getExpensesByCategory().map((category, i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: category.color }}
+                          />
+                          <span className="text-sm font-medium">{category.name}</span>
+                        </div>
+                        <span className="text-sm font-semibold">{formatCurrency(category.amount)}</span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-100 rounded-full">
+                        <div 
+                          className="h-full rounded-full" 
+                          style={{ 
+                            width: `${Math.min(100, (category.amount / (totalPaid + totalPending) * 100) || 0)}%`,
+                            backgroundColor: category.color
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {getExpensesByCategory().length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      <BarChart3 className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+                      <p>Sem dados para exibir</p>
+                      <p className="text-sm text-gray-400">
+                        Adicione contas para ver estatísticas por categoria
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="lg:col-span-2 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" /> 
+                  Próximos Vencimentos
+                </CardTitle>
+                <CardDescription>Contas com vencimento nos próximos 7 dias</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {accounts
+                    .filter(account => {
+                      const dueDate = new Date(account.due_date);
+                      const today = new Date();
+                      const sevenDaysFromNow = new Date();
+                      sevenDaysFromNow.setDate(today.getDate() + 7);
+                      return account.status === 'pending' && dueDate <= sevenDaysFromNow && dueDate >= today;
+                    })
+                    .slice(0, 5)
+                    .map((account) => (
+                      <div key={account.id} className="flex items-center justify-between border-b pb-2">
+                        <div className="flex flex-col">
+                          <div className="font-medium">{account.description}</div>
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> 
+                            {new Date(account.due_date).toLocaleDateString('pt-BR')}
+                          </div>
+                        </div>
+                        <span className="font-bold text-red-600">{formatCurrency(account.amount)}</span>
+                      </div>
+                    ))}
+                  
+                  {accounts.filter(account => {
+                    const dueDate = new Date(account.due_date);
+                    const today = new Date();
+                    const sevenDaysFromNow = new Date();
+                    sevenDaysFromNow.setDate(today.getDate() + 7);
+                    return account.status === 'pending' && dueDate <= sevenDaysFromNow && dueDate >= today;
+                  }).length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+                      <p>Nenhum vencimento próximo</p>
+                      <p className="text-sm text-gray-400">
+                        Não há contas vencendo nos próximos 7 dias
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Accounts List with Pagination */}
+          <AccountsPayableListPaginated
+            onEdit={handleEditAccount}
+            onDelete={handleDeleteAccount}
+            refresh={refreshTrigger}
+          />
+        </TabsContent>
+
+        <TabsContent value="pending" className="space-y-6">
+          <AccountsPayableListPaginated
+            onEdit={handleEditAccount}
+            onDelete={handleDeleteAccount}
+            refresh={refreshTrigger}
+            defaultStatus="pending"
+          />
+        </TabsContent>
+
+        <TabsContent value="overdue" className="space-y-6">
+          <AccountsPayableListPaginated
+            onEdit={handleEditAccount}
+            onDelete={handleDeleteAccount}
+            refresh={refreshTrigger}
+            defaultStatus="overdue"
+          />
+        </TabsContent>
+
+        <TabsContent value="paid" className="space-y-6">
+          <AccountsPayableListPaginated
+            onEdit={handleEditAccount}
+            onDelete={handleDeleteAccount}
+            refresh={refreshTrigger}
+            defaultStatus="paid"
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Account Form Dialog */}
       {showForm && (

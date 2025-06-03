@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { AccountPayable, ExpenseCategory, AccountsPayableFilters } from "@/types/accountsPayable";
@@ -158,6 +159,11 @@ export async function createRecurringAccountsPayable(
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuário não autenticado');
+
+    // Limitamos o número de parcelas para evitar o erro de stack depth
+    if (installments > 48) {
+      throw new Error('Número máximo de parcelas é 48');
+    }
 
     const baseDate = new Date(baseMonth);
     const accounts = [];
