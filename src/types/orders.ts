@@ -1,6 +1,4 @@
 
-
-
 export interface OrderExpense {
   id: string;
   order_id: string;
@@ -33,33 +31,6 @@ export interface CreateCustomerAddressRequest {
   is_primary: boolean;
 }
 
-export interface Order {
-  id: string;
-  customer_id: string;
-  order_number: string;
-  status: 'Novo' | 'Em preparo' | 'Pronto' | 'Finalizado' | 'Cancelado';
-  delivery_type: 'Entrega' | 'Retirada';
-  delivery_address: string;
-  scheduled_date: string;
-  scheduled_time: string;
-  total_amount: number;
-  payment_status?: 'pending' | 'paid' | 'overdue' | 'cancelled';
-  payment_method?: string;
-  payment_date?: string;
-  notes: string;
-  origin: 'manual' | 'site';
-  created_at: string;
-  updated_at: string;
-  order_items?: OrderItem[];
-  order_expenses?: OrderExpense[];
-  customer?: {
-    id: string;
-    name: string;
-    email?: string;
-    phone?: string;
-  };
-}
-
 export interface OrderItem {
   id: string;
   order_id: string;
@@ -74,5 +45,3 @@ export interface OrderItem {
     name: string;
   };
 }
-
-

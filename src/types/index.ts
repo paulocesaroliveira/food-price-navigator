@@ -1,3 +1,4 @@
+
 // Basic types
 export interface Category {
   id: string;
@@ -64,7 +65,7 @@ export type Product = {
   packagingCost: number;
   packagingItems?: ProductPackaging[];
   totalCost: number;
-  sellingPrice?: number; // Novo campo
+  sellingPrice?: number;
   imageUrl?: string | null;
   calculatedPrice?: number;
 };
@@ -161,26 +162,29 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
-  order_number: string;
   customer_id: string;
-  status: "Novo" | "Em preparo" | "Pronto" | "Finalizado" | "Cancelado";
-  delivery_type: "Entrega" | "Retirada";
+  order_number: string;
+  status: 'Novo' | 'Em preparo' | 'Pronto' | 'Finalizado' | 'Cancelado';
+  delivery_type: 'Entrega' | 'Retirada';
   delivery_address: string | null;
   scheduled_date: string | null;
   scheduled_time: string | null;
   total_amount: number;
+  payment_status?: 'pending' | 'paid' | 'overdue' | 'cancelled';
+  payment_method?: string;
+  payment_date?: string;
   notes: string | null;
-  origin: "site" | "manual";
+  origin: 'manual' | 'site';
   created_at: string;
   updated_at: string;
+  order_items?: OrderItem[];
+  order_expenses?: OrderExpense[];
   customer?: {
     id: string;
     name: string;
-    email: string | null;
-    phone: string | null;
+    email?: string;
+    phone?: string;
   };
-  items?: OrderItem[];
-  expenses?: OrderExpense[];
 }
 
 export interface CustomerAddress {
@@ -192,7 +196,6 @@ export interface CustomerAddress {
   created_at: string;
 }
 
-// Customer type definition - removido o campo origin
 export interface Customer {
   id: string;
   name: string;

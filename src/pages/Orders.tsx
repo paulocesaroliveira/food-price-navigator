@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +41,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/utils/calculations";
 import { getOrders, deleteOrder, updateOrder } from "@/services/orderService";
-import { Order } from "@/types/orders";
+import { Order } from "@/types";
 import NewOrderForm from "@/components/orders/NewOrderForm";
 import OrderDetails from "@/components/orders/OrderDetails";
 import { toast } from "@/hooks/use-toast";
