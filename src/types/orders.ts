@@ -37,7 +37,7 @@ export interface Order {
   order_number: string;
   status: 'Novo' | 'Em preparo' | 'Pronto' | 'Finalizado' | 'Cancelado';
   delivery_type: 'Entrega' | 'Retirada';
-  delivery_address?: string;
+  delivery_address: string;
   scheduled_date?: string;
   scheduled_time?: string;
   total_amount: number;
