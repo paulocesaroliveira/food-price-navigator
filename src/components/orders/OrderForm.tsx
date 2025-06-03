@@ -63,7 +63,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
     status: "Novo" as "Novo" | "Em preparo" | "Pronto" | "Finalizado" | "Cancelado",
     origin: "manual" as "manual",
     payment_method: "dinheiro" as "dinheiro" | "pix" | "cartao_credito" | "cartao_debito" | "transferencia",
-    payment_status: "pendente" as "pendente" | "pago"
+    payment_status: "pending" as "pending" | "paid" | "overdue" | "cancelled"
   });
 
   const [orderItems, setOrderItems] = useState<OrderItemInput[]>([]);
@@ -462,13 +462,15 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
 
                 <div>
                   <Label htmlFor="payment_status">Status do Pagamento</Label>
-                  <Select value={formData.payment_status} onValueChange={(value) => setFormData({...formData, payment_status: value as "pendente" | "pago"})}>
+                  <Select value={formData.payment_status} onValueChange={(value) => setFormData({...formData, payment_status: value as "pending" | "paid" | "overdue" | "cancelled"})}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pendente">Pendente</SelectItem>
-                      <SelectItem value="pago">Pago</SelectItem>
+                      <SelectItem value="pending">Pendente</SelectItem>
+                      <SelectItem value="paid">Pago</SelectItem>
+                      <SelectItem value="overdue">Vencido</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -722,8 +724,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ order, onSuccess, onCancel }) => 
                   </div>
                   <div className="flex justify-between text-sm mt-1">
                     <span>Status:</span>
-                    <span className={`font-medium ${formData.payment_status === 'pago' ? 'text-green-600' : 'text-orange-600'}`}>
-                      {formData.payment_status === 'pago' ? 'Pago' : 'Pendente'}
+                    <span className={`font-medium ${formData.payment_status === 'paid' ? 'text-green-600' : 'text-orange-600'}`}>
+                      {formData.payment_status === 'paid' ? 'Pago' : formData.payment_status === 'pending' ? 'Pendente' : formData.payment_status === 'overdue' ? 'Vencido' : 'Cancelado'}
                     </span>
                   </div>
                 </div>

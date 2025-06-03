@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,7 +73,7 @@ const Orders = () => {
   });
 
   const updatePaymentStatusMutation = useMutation({
-    mutationFn: ({ id, payment_status }: { id: string; payment_status: string }) => 
+    mutationFn: ({ id, payment_status }: { id: string; payment_status: 'pending' | 'paid' | 'overdue' | 'cancelled' }) => 
       updateOrder(id, { payment_status }),
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Status de pagamento atualizado com sucesso!" });
@@ -112,7 +111,7 @@ const Orders = () => {
     setShowDetails(true);
   };
 
-  const handlePaymentStatusChange = (orderId: string, newStatus: string) => {
+  const handlePaymentStatusChange = (orderId: string, newStatus: 'pending' | 'paid' | 'overdue' | 'cancelled') => {
     updatePaymentStatusMutation.mutate({ id: orderId, payment_status: newStatus });
   };
 
@@ -129,6 +128,8 @@ const Orders = () => {
         return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>;
       case 'overdue':
         return <Badge className="bg-red-100 text-red-800"><CreditCard className="w-3 h-3 mr-1" />Vencido</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-gray-100 text-gray-800">Cancelado</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
     }
@@ -265,7 +266,7 @@ const Orders = () => {
                       <TableCell>
                         <Select
                           value={order.payment_status || 'pending'}
-                          onValueChange={(value) => handlePaymentStatusChange(order.id, value)}
+                          onValueChange={(value: 'pending' | 'paid' | 'overdue' | 'cancelled') => handlePaymentStatusChange(order.id, value)}
                         >
                           <SelectTrigger className="w-[130px]">
                             <SelectValue />
@@ -274,6 +275,7 @@ const Orders = () => {
                             <SelectItem value="pending">Pendente</SelectItem>
                             <SelectItem value="paid">Pago</SelectItem>
                             <SelectItem value="overdue">Vencido</SelectItem>
+                            <SelectItem value="cancelled">Cancelado</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>

@@ -35,7 +35,7 @@ export interface Order {
   id: string;
   customer_id: string;
   order_number: string;
-  status: string;
+  status: 'Novo' | 'Em preparo' | 'Pronto' | 'Finalizado' | 'Cancelado';
   delivery_type: string;
   delivery_address?: string;
   scheduled_date?: string;
