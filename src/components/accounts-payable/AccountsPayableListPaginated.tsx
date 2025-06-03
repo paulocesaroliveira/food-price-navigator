@@ -34,7 +34,8 @@ import {
   Trash2,
   CheckCircle,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Filter
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/utils/calculations";
 import { getAccountsPayable } from "@/services/accountsPayableService";
@@ -55,10 +56,19 @@ const AccountsPayableListPaginated = ({
 }: AccountsPayableListPaginatedProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [dateFilter, setDateFilter] = useState(() => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return {
+      startDate: firstDay.toISOString().split('T')[0],
+      endDate: lastDay.toISOString().split('T')[0]
+    };
+  });
 
   const { data: accounts = [], isLoading, error } = useQuery({
-    queryKey: ['accounts-payable', refresh],
-    queryFn: getAccountsPayable
+    queryKey: ['accounts-payable', refresh, dateFilter],
+    queryFn: () => getAccountsPayable(dateFilter)
   });
 
   // Filter accounts based on search term
@@ -88,6 +98,16 @@ const AccountsPayableListPaginated = ({
     setCurrentPage(page);
   };
 
+  const handleDateFilterChange = (field: 'startDate' | 'endDate', value: string) => {
+    setDateFilter(prev => ({ ...prev, [field]: value }));
+    setCurrentPage(1);
+  };
+
+  const clearDateFilter = () => {
+    setDateFilter({ startDate: '', endDate: '' });
+    setCurrentPage(1);
+  };
+
   if (isLoading) {
     return (
       <Card className="shadow-lg">
@@ -111,22 +131,51 @@ const AccountsPayableListPaginated = ({
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <CardTitle className="text-xl">Lista de Contas</CardTitle>
-          <div className="relative w-full md:w-auto">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar contas..."
-              className="pl-9 md:w-[250px]"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1); // Reset to first page when searching
-              }}
-            />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardTitle className="text-xl">Lista de Contas</CardTitle>
+            <div className="relative w-full md:w-auto">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar contas..."
+                className="pl-9 md:w-[250px]"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+          </div>
+          
+          {/* Filtros de Data */}
+          <div className="flex flex-col md:flex-row items-center gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium">Filtrar por período:</span>
+            </div>
+            <div className="flex flex-col md:flex-row items-center gap-2">
+              <Input
+                type="date"
+                value={dateFilter.startDate}
+                onChange={(e) => handleDateFilterChange('startDate', e.target.value)}
+                className="w-full md:w-auto"
+              />
+              <span className="text-sm text-gray-500">até</span>
+              <Input
+                type="date"
+                value={dateFilter.endDate}
+                onChange={(e) => handleDateFilterChange('endDate', e.target.value)}
+                className="w-full md:w-auto"
+              />
+              <Button variant="outline" size="sm" onClick={clearDateFilter}>
+                Limpar
+              </Button>
+            </div>
           </div>
         </div>
+        
         {filteredAccounts.length > 0 && (
           <p className="text-sm text-muted-foreground">
             Mostrando {Math.min(startIndex + 1, filteredAccounts.length)}-{Math.min(endIndex, filteredAccounts.length)} de {filteredAccounts.length} contas

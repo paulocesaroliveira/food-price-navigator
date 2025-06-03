@@ -10,7 +10,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { DollarSign } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DollarSign, Repeat } from "lucide-react";
 import type { AccountPayable, ExpenseCategory } from "@/types/accountsPayable";
 
 const formSchema = z.object({
@@ -21,11 +22,15 @@ const formSchema = z.object({
   supplier: z.string().optional(),
   payment_method: z.string().optional(),
   notes: z.string().optional(),
+  is_recurring: z.boolean().default(false),
+  installments: z.number().min(1).max(99).optional(),
+  base_month: z.string().optional(),
 });
 
 interface AccountPayableFormProps {
   categories: ExpenseCategory[];
   onSubmit: (data: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => void;
+  onSubmitRecurring?: (data: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at' | 'user_id'>, installments: number, baseMonth: string) => void;
   initialData?: AccountPayable;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -34,6 +39,7 @@ interface AccountPayableFormProps {
 const AccountPayableForm = ({ 
   categories, 
   onSubmit, 
+  onSubmitRecurring,
   initialData, 
   isOpen, 
   onOpenChange
@@ -48,8 +54,13 @@ const AccountPayableForm = ({
       supplier: initialData?.supplier || "",
       payment_method: initialData?.payment_method || "",
       notes: initialData?.notes || "",
+      is_recurring: false,
+      installments: 2,
+      base_month: new Date().toISOString().slice(0, 7),
     },
   });
+
+  const isRecurring = form.watch("is_recurring");
 
   React.useEffect(() => {
     if (initialData) {
@@ -61,6 +72,9 @@ const AccountPayableForm = ({
         supplier: initialData.supplier || "",
         payment_method: initialData.payment_method || "",
         notes: initialData.notes || "",
+        is_recurring: false,
+        installments: 2,
+        base_month: new Date().toISOString().slice(0, 7),
       });
     } else {
       form.reset({
@@ -71,12 +85,15 @@ const AccountPayableForm = ({
         supplier: "",
         payment_method: "",
         notes: "",
+        is_recurring: false,
+        installments: 2,
+        base_month: new Date().toISOString().slice(0, 7),
       });
     }
   }, [initialData, form]);
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    onSubmit({
+    const accountData = {
       description: values.description,
       amount: values.amount,
       due_date: values.due_date,
@@ -84,16 +101,23 @@ const AccountPayableForm = ({
       supplier: values.supplier || undefined,
       payment_method: values.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' | undefined,
       notes: values.notes || undefined,
-      status: initialData?.status || 'pending',
+      status: initialData?.status || 'pending' as const,
       payment_date: initialData?.payment_date,
-    });
+    };
+
+    if (values.is_recurring && values.installments && values.base_month && onSubmitRecurring) {
+      onSubmitRecurring(accountData, values.installments, values.base_month);
+    } else {
+      onSubmit(accountData);
+    }
+
     form.reset();
     onOpenChange(false);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
@@ -150,6 +174,70 @@ const AccountPayableForm = ({
                 )}
               />
             </div>
+
+            {!initialData && (
+              <FormField
+                control={form.control}
+                name="is_recurring"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="flex items-center gap-2">
+                        <Repeat className="h-4 w-4" />
+                        Conta Recorrente
+                      </FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Criar múltiplas parcelas desta conta
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {isRecurring && !initialData && (
+              <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
+                <FormField
+                  control={form.control}
+                  name="installments"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número de Parcelas</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="2"
+                          max="99"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 2)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="base_month"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mês Base</FormLabel>
+                      <FormControl>
+                        <Input type="month" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <FormField
               control={form.control}
@@ -242,7 +330,7 @@ const AccountPayableForm = ({
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" className="flex-1">
-                {initialData ? "Atualizar" : "Cadastrar"}
+                {isRecurring && !initialData ? "Criar Parcelas" : initialData ? "Atualizar" : "Cadastrar"}
               </Button>
               <Button 
                 type="button" 

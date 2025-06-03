@@ -150,6 +150,62 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
   }
 }
 
+export async function createRecurringAccountsPayable(
+  account: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at' | 'user_id'>,
+  installments: number,
+  baseMonth: string
+): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
+    const baseDate = new Date(baseMonth);
+    const accounts = [];
+
+    for (let i = 0; i < installments; i++) {
+      const dueDate = new Date(baseDate);
+      dueDate.setMonth(dueDate.getMonth() + i);
+      
+      const accountData = {
+        description: `${account.description} (${i + 1}/${installments})`,
+        amount: account.amount,
+        due_date: dueDate.toISOString().split('T')[0],
+        category_id: account.category_id,
+        supplier: account.supplier,
+        notes: account.notes,
+        status: account.status || 'pending',
+        payment_method: account.payment_method,
+        user_id: user.id
+      };
+
+      accounts.push(accountData);
+    }
+
+    const { error } = await supabase
+      .from("accounts_payable")
+      .insert(accounts);
+
+    if (error) {
+      console.error("Supabase error:", error);
+      throw error;
+    }
+
+    toast({
+      title: "Sucesso",
+      description: `${installments} contas recorrentes criadas com sucesso`,
+    });
+    return true;
+  } catch (error: any) {
+    console.error("Erro ao criar contas recorrentes:", error.message);
+    toast({
+      title: "Erro",
+      description: `Não foi possível criar as contas recorrentes: ${error.message}`,
+      variant: "destructive",
+    });
+    return false;
+  }
+}
+
 export async function updateAccountPayable(id: string, updates: Partial<AccountPayable>): Promise<boolean> {
   try {
     const { error } = await supabase

@@ -12,7 +12,13 @@ import {
   Settings
 } from "lucide-react";
 import { formatCurrency } from "@/utils/calculations";
-import { getAccountsPayable, deleteAccountPayable, createAccountPayable, updateAccountPayable } from "@/services/accountsPayableService";
+import { 
+  getAccountsPayable, 
+  deleteAccountPayable, 
+  createAccountPayable, 
+  updateAccountPayable,
+  createRecurringAccountsPayable
+} from "@/services/accountsPayableService";
 import AccountPayableForm from "@/components/accounts-payable/AccountPayableForm";
 import AccountsPayableListPaginated from "@/components/accounts-payable/AccountsPayableListPaginated";
 import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
@@ -26,9 +32,19 @@ const AccountsPayable = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const queryClient = useQueryClient();
 
+  // Default filter for current month
+  const currentMonth = new Date();
+  const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+  const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+  
+  const defaultFilters = {
+    startDate: firstDay.toISOString().split('T')[0],
+    endDate: lastDay.toISOString().split('T')[0]
+  };
+
   const { data: accounts = [], isLoading } = useQuery({
-    queryKey: ['accounts-payable'],
-    queryFn: getAccountsPayable
+    queryKey: ['accounts-payable', defaultFilters],
+    queryFn: () => getAccountsPayable(defaultFilters)
   });
 
   const { data: categories = [] } = useQuery({
@@ -76,6 +92,25 @@ const AccountsPayable = () => {
       toast({
         title: "Erro",
         description: `Erro ao criar conta: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const createRecurringMutation = useMutation({
+    mutationFn: ({ data, installments, baseMonth }: { data: any, installments: number, baseMonth: string }) => 
+      createRecurringAccountsPayable(data, installments, baseMonth),
+    onSuccess: () => {
+      toast({ title: "Sucesso", description: "Contas recorrentes criadas com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
+      setShowForm(false);
+      setEditingAccount(null);
+      setRefreshTrigger(prev => prev + 1);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao criar contas recorrentes: ${error.message}`,
         variant: "destructive"
       });
     }
@@ -136,6 +171,10 @@ const AccountsPayable = () => {
     } else {
       createMutation.mutate(data);
     }
+  };
+
+  const handleRecurringFormSubmit = (data: any, installments: number, baseMonth: string) => {
+    createRecurringMutation.mutate({ data, installments, baseMonth });
   };
 
   const handleCategoriesChange = () => {
@@ -223,6 +262,7 @@ const AccountsPayable = () => {
         <AccountPayableForm
           categories={categories}
           onSubmit={handleFormSubmit}
+          onSubmitRecurring={handleRecurringFormSubmit}
           initialData={editingAccount}
           isOpen={showForm}
           onOpenChange={setShowForm}
