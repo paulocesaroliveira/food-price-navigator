@@ -45,20 +45,35 @@ const AccountsPayable = () => {
   const [editingAccount, setEditingAccount] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data: accounts = [], isLoading } = useQuery({
+  const { data: accounts = [], isLoading, error } = useQuery({
     queryKey: ['accounts-payable'],
-    queryFn: () => getAccountsPayable()
+    queryFn: async () => {
+      console.log("Buscando contas a pagar...");
+      const result = await getAccountsPayable();
+      console.log("Resultado da busca:", result);
+      console.log("Número de contas encontradas:", result.length);
+      return result;
+    }
   });
 
   const { data: categories = [] } = useQuery({
     queryKey: ['expense-categories'],
     queryFn: async () => {
+      console.log("Buscando categorias de despesa...");
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log("Usuário atual:", user?.id);
+      
       const { data, error } = await supabase
         .from('expense_categories')
         .select('*')
+        .eq('user_id', user?.id)
         .order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao buscar categorias:", error);
+        throw error;
+      }
+      console.log("Categorias encontradas:", data);
       return data || [];
     }
   });
@@ -133,6 +148,15 @@ const AccountsPayable = () => {
     account.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
   ) : [];
 
+  // Debug logs
+  console.log("Estado atual:");
+  console.log("- isLoading:", isLoading);
+  console.log("- error:", error);
+  console.log("- accounts:", accounts);
+  console.log("- accounts length:", accounts?.length);
+  console.log("- filteredAccounts:", filteredAccounts);
+  console.log("- filteredAccounts length:", filteredAccounts?.length);
+
   const handleDeleteAccount = (id: string) => {
     if (confirm("Tem certeza que deseja excluir esta conta?")) {
       deleteMutation.mutate(id);
@@ -150,6 +174,7 @@ const AccountsPayable = () => {
   };
 
   const handleFormSubmit = (data: any) => {
+    console.log("Dados do formulário:", data);
     if (editingAccount) {
       updateMutation.mutate({ id: editingAccount.id, data });
     } else {
@@ -197,6 +222,21 @@ const AccountsPayable = () => {
           </Button>
         </div>
       </div>
+
+      {/* Debug Information */}
+      {process.env.NODE_ENV === 'development' && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardHeader>
+            <CardTitle className="text-yellow-800">Debug Info</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-yellow-700">
+            <p>Loading: {isLoading ? 'Sim' : 'Não'}</p>
+            <p>Error: {error ? error.message : 'Nenhum'}</p>
+            <p>Total de contas: {accounts?.length || 0}</p>
+            <p>Contas filtradas: {filteredAccounts?.length || 0}</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -263,6 +303,10 @@ const AccountsPayable = () => {
             <div className="text-center py-8">
               <p className="text-muted-foreground">Carregando contas...</p>
             </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="text-red-600">Erro ao carregar contas: {error.message}</p>
+            </div>
           ) : filteredAccounts.length === 0 ? (
             <div className="text-center py-8">
               <DollarSign className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -270,6 +314,11 @@ const AccountsPayable = () => {
               <p className="text-muted-foreground">
                 {searchTerm ? "Tente alterar os termos de busca" : "Comece criando sua primeira conta a pagar"}
               </p>
+              {accounts.length > 0 && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  {accounts.length} conta(s) total, mas nenhuma corresponde ao filtro aplicado
+                </p>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">

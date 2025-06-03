@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { AccountPayable, ExpenseCategory, AccountsPayableFilters } from "@/types/accountsPayable";
@@ -8,13 +7,20 @@ export async function getExpenseCategories(): Promise<ExpenseCategory[]> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuário não autenticado');
 
+    console.log("Buscando categorias para o usuário:", user.id);
+
     const { data, error } = await supabase
       .from("expense_categories")
       .select("*")
       .eq("user_id", user.id)
       .order("name");
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erro na consulta de categorias:", error);
+      throw error;
+    }
+    
+    console.log("Categorias encontradas:", data);
     return data || [];
   } catch (error: any) {
     console.error("Erro ao buscar categorias:", error.message);
@@ -30,7 +36,13 @@ export async function getExpenseCategories(): Promise<ExpenseCategory[]> {
 export async function getAccountsPayable(filters: AccountsPayableFilters = {}): Promise<AccountPayable[]> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Usuário não autenticado');
+    if (!user) {
+      console.error('Usuário não autenticado');
+      throw new Error('Usuário não autenticado');
+    }
+
+    console.log("Buscando contas a pagar para o usuário:", user.id);
+    console.log("Filtros aplicados:", filters);
 
     let query = supabase
       .from("accounts_payable")
@@ -61,15 +73,25 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
       query = query.ilike("supplier", `%${filters.supplier}%`);
     }
 
+    console.log("Executando consulta...");
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erro na consulta de contas a pagar:", error);
+      throw error;
+    }
     
-    return (data || []).map(account => ({
+    console.log("Dados brutos retornados:", data);
+    console.log("Número de registros encontrados:", data?.length || 0);
+    
+    const mappedData = (data || []).map(account => ({
       ...account,
       status: account.status as 'pending' | 'paid' | 'overdue' | 'cancelled',
       payment_method: account.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' | undefined
     }));
+    
+    console.log("Dados mapeados:", mappedData);
+    return mappedData;
   } catch (error: any) {
     console.error("Erro ao buscar contas:", error.message);
     toast({
