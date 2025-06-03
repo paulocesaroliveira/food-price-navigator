@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { AccountPayable, ExpenseCategory, AccountsPayableFilters } from "@/types/accountsPayable";
@@ -161,8 +162,8 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
       accountData.category_id = account.category_id;
     }
 
-    // Só adicionar payment_method se tiver valor válido
-    if (account.payment_method && account.payment_method !== "none") {
+    // Só adicionar payment_method se tiver valor válido (verificar se não é undefined)
+    if (account.payment_method) {
       accountData.payment_method = account.payment_method;
     }
 
@@ -245,8 +246,8 @@ export async function createRecurringAccountsPayable(
         accountData.category_id = account.category_id;
       }
 
-      // Só adicionar payment_method se tiver valor válido
-      if (account.payment_method && account.payment_method !== "none") {
+      // Só adicionar payment_method se tiver valor válido (verificar se não é undefined)
+      if (account.payment_method) {
         accountData.payment_method = account.payment_method;
       }
 
