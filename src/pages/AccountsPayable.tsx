@@ -1,67 +1,40 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
 import { 
   PlusCircle, 
-  Search, 
-  MoreVertical, 
-  Edit, 
-  Trash2,
   DollarSign,
   Calendar,
   AlertTriangle,
   CheckCircle,
-  Clock,
   Settings
 } from "lucide-react";
-import { formatCurrency, formatDate } from "@/utils/calculations";
+import { formatCurrency } from "@/utils/calculations";
 import { getAccountsPayable, deleteAccountPayable, createAccountPayable, updateAccountPayable } from "@/services/accountsPayableService";
 import AccountPayableForm from "@/components/accounts-payable/AccountPayableForm";
+import AccountsPayableListPaginated from "@/components/accounts-payable/AccountsPayableListPaginated";
 import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const AccountsPayable = () => {
-  const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const queryClient = useQueryClient();
 
-  const { data: accounts = [], isLoading, error } = useQuery({
+  const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['accounts-payable'],
-    queryFn: async () => {
-      console.log("Buscando contas a pagar...");
-      const result = await getAccountsPayable();
-      console.log("Resultado da busca:", result);
-      console.log("Número de contas encontradas:", result.length);
-      return result;
-    }
+    queryFn: getAccountsPayable
   });
 
   const { data: categories = [] } = useQuery({
     queryKey: ['expense-categories'],
     queryFn: async () => {
-      console.log("Buscando categorias de despesa...");
       const { data: { user } } = await supabase.auth.getUser();
-      console.log("Usuário atual:", user?.id);
       
       const { data, error } = await supabase
         .from('expense_categories')
@@ -69,11 +42,7 @@ const AccountsPayable = () => {
         .eq('user_id', user?.id)
         .order('name');
       
-      if (error) {
-        console.error("Erro ao buscar categorias:", error);
-        throw error;
-      }
-      console.log("Categorias encontradas:", data);
+      if (error) throw error;
       return data || [];
     }
   });
@@ -83,6 +52,7 @@ const AccountsPayable = () => {
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Conta excluída com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
+      setRefreshTrigger(prev => prev + 1);
     },
     onError: (error) => {
       toast({
@@ -100,6 +70,7 @@ const AccountsPayable = () => {
       queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
       setShowForm(false);
       setEditingAccount(null);
+      setRefreshTrigger(prev => prev + 1);
     },
     onError: (error) => {
       toast({
@@ -117,6 +88,7 @@ const AccountsPayable = () => {
       queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
       setShowForm(false);
       setEditingAccount(null);
+      setRefreshTrigger(prev => prev + 1);
     },
     onError: (error) => {
       toast({
@@ -142,21 +114,6 @@ const AccountsPayable = () => {
 
   const totalAccounts = Array.isArray(accounts) ? accounts.length : 0;
 
-  // Filter accounts based on search term
-  const filteredAccounts = Array.isArray(accounts) ? accounts.filter(account =>
-    account.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    account.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
-
-  // Debug logs
-  console.log("Estado atual:");
-  console.log("- isLoading:", isLoading);
-  console.log("- error:", error);
-  console.log("- accounts:", accounts);
-  console.log("- accounts length:", accounts?.length);
-  console.log("- filteredAccounts:", filteredAccounts);
-  console.log("- filteredAccounts length:", filteredAccounts?.length);
-
   const handleDeleteAccount = (id: string) => {
     if (confirm("Tem certeza que deseja excluir esta conta?")) {
       deleteMutation.mutate(id);
@@ -174,7 +131,6 @@ const AccountsPayable = () => {
   };
 
   const handleFormSubmit = (data: any) => {
-    console.log("Dados do formulário:", data);
     if (editingAccount) {
       updateMutation.mutate({ id: editingAccount.id, data });
     } else {
@@ -184,17 +140,6 @@ const AccountsPayable = () => {
 
   const handleCategoriesChange = () => {
     queryClient.invalidateQueries({ queryKey: ['expense-categories'] });
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Pago</Badge>;
-      case 'overdue':
-        return <Badge className="bg-red-100 text-red-800"><AlertTriangle className="w-3 h-3 mr-1" />Vencido</Badge>;
-      default:
-        return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>;
-    }
   };
 
   return (
@@ -222,21 +167,6 @@ const AccountsPayable = () => {
           </Button>
         </div>
       </div>
-
-      {/* Debug Information */}
-      {process.env.NODE_ENV === 'development' && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardHeader>
-            <CardTitle className="text-yellow-800">Debug Info</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-yellow-700">
-            <p>Loading: {isLoading ? 'Sim' : 'Não'}</p>
-            <p>Error: {error ? error.message : 'Nenhum'}</p>
-            <p>Total de contas: {accounts?.length || 0}</p>
-            <p>Contas filtradas: {filteredAccounts?.length || 0}</p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -281,100 +211,12 @@ const AccountsPayable = () => {
         </Card>
       </div>
 
-      {/* Accounts Table */}
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CardTitle className="text-xl">Lista de Contas</CardTitle>
-            <div className="relative w-full md:w-auto">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar contas..."
-                className="pl-9 md:w-[250px]"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Carregando contas...</p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-8">
-              <p className="text-red-600">Erro ao carregar contas: {error.message}</p>
-            </div>
-          ) : filteredAccounts.length === 0 ? (
-            <div className="text-center py-8">
-              <DollarSign className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-medium">Nenhuma conta encontrada</h3>
-              <p className="text-muted-foreground">
-                {searchTerm ? "Tente alterar os termos de busca" : "Comece criando sua primeira conta a pagar"}
-              </p>
-              {accounts.length > 0 && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  {accounts.length} conta(s) total, mas nenhuma corresponde ao filtro aplicado
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Fornecedor</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAccounts.map((account) => (
-                    <TableRow key={account.id}>
-                      <TableCell className="font-medium">{account.description}</TableCell>
-                      <TableCell>{account.supplier || '-'}</TableCell>
-                      <TableCell className="font-semibold text-red-600">
-                        {formatCurrency(account.amount)}
-                      </TableCell>
-                      <TableCell>{formatDate(account.due_date)}</TableCell>
-                      <TableCell>
-                        {getStatusBadge(account.status)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditAccount(account)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-red-600 focus:text-red-600"
-                              onClick={() => handleDeleteAccount(account.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Accounts List with Pagination */}
+      <AccountsPayableListPaginated
+        onEdit={handleEditAccount}
+        onDelete={handleDeleteAccount}
+        refresh={refreshTrigger}
+      />
 
       {/* Account Form Dialog */}
       {showForm && (
