@@ -183,9 +183,9 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {order.items && order.items.length > 0 ? (
+              {order.order_items && order.order_items.length > 0 ? (
                 <div className="space-y-4">
-                  {order.items.map((item) => (
+                  {order.order_items.map((item) => (
                     <div key={item.id} className="border rounded-lg p-4">
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="md:col-span-2">
@@ -218,7 +218,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
           </Card>
 
           {/* Despesas */}
-          {order.expenses && order.expenses.length > 0 && (
+          {order.order_expenses && order.order_expenses.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -228,7 +228,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {order.expenses.map((expense) => (
+                  {order.order_expenses.map((expense) => (
                     <div key={expense.id} className="flex justify-between items-center p-3 border rounded-lg">
                       <div>
                         <p className="font-medium">{expense.name}</p>
@@ -277,20 +277,20 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                {order.items && (
+                {order.order_items && (
                   <div className="flex justify-between text-sm">
                     <span>Subtotal dos Produtos:</span>
                     <span className="font-medium">
-                      {formatCurrency(order.items.reduce((sum, item) => sum + item.total_price, 0))}
+                      {formatCurrency(order.order_items.reduce((sum, item) => sum + item.total_price, 0))}
                     </span>
                   </div>
                 )}
                 
-                {order.expenses && order.expenses.length > 0 && (
+                {order.order_expenses && order.order_expenses.length > 0 && (
                   <div className="flex justify-between text-sm">
                     <span>Total de Despesas:</span>
                     <span className="font-medium text-red-600">
-                      {formatCurrency(order.expenses.reduce((sum, expense) => sum + expense.amount, 0))}
+                      {formatCurrency(order.order_expenses.reduce((sum, expense) => sum + expense.amount, 0))}
                     </span>
                   </div>
                 )}
