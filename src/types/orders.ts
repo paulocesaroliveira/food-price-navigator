@@ -1,4 +1,5 @@
 
+
 export interface OrderExpense {
   id: string;
   order_id: string;
@@ -39,7 +40,7 @@ export interface Order {
   delivery_type: 'Entrega' | 'Retirada';
   delivery_address: string;
   scheduled_date: string;
-  scheduled_time?: string;
+  scheduled_time: string;
   total_amount: number;
   payment_status?: 'pending' | 'paid' | 'overdue' | 'cancelled';
   payment_method?: string;
@@ -72,3 +73,4 @@ export interface OrderItem {
     name: string;
   };
 }
+
