@@ -22,17 +22,19 @@ import {
   deleteAccountPayable, 
   createAccountPayable, 
   updateAccountPayable,
-  createRecurringAccountsPayable
+  createRecurringAccountsPayable,
+  getExpenseCategories
 } from "@/services/accountsPayableService";
 import AccountPayableForm from "@/components/accounts-payable/AccountPayableForm";
 import AccountsPayableListPaginated from "@/components/accounts-payable/AccountsPayableListPaginated";
 import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
 import { toast } from "@/hooks/use-toast";
+import type { AccountPayable } from "@/types/accountsPayable";
 
 const AccountsPayable = () => {
   const [showForm, setShowForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
-  const [editingAccount, setEditingAccount] = useState(null);
+  const [editingAccount, setEditingAccount] = useState<AccountPayable | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
   const queryClient = useQueryClient();
@@ -68,15 +70,7 @@ const AccountsPayable = () => {
 
   const { data: categories = [] } = useQuery({
     queryKey: ['expense-categories'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('expense_categories')
-        .select('*')
-        .order('name');
-      
-      if (error) throw error;
-      return data || [];
-    }
+    queryFn: getExpenseCategories
   });
 
   const deleteMutation = useMutation({
@@ -100,8 +94,11 @@ const AccountsPayable = () => {
   });
 
   const createRecurringMutation = useMutation({
-    mutationFn: ({ data, installments, baseMonth }) => 
-      createRecurringAccountsPayable(data, installments, baseMonth),
+    mutationFn: ({ data, installments, baseMonth }: { 
+      data: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at' | 'user_id'>, 
+      installments: number, 
+      baseMonth: string 
+    }) => createRecurringAccountsPayable(data, installments, baseMonth),
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Contas recorrentes criadas com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
@@ -112,7 +109,7 @@ const AccountsPayable = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => updateAccountPayable(id, data),
+    mutationFn: ({ id, data }: { id: string, data: Partial<AccountPayable> }) => updateAccountPayable(id, data),
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Conta atualizada com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
@@ -137,13 +134,13 @@ const AccountsPayable = () => {
 
   const totalAccounts = accounts.length;
 
-  const handleDeleteAccount = (id) => {
+  const handleDeleteAccount = (id: string) => {
     if (window.confirm("Tem certeza que deseja excluir esta conta?")) {
       deleteMutation.mutate(id);
     }
   };
 
-  const handleEditAccount = (account) => {
+  const handleEditAccount = (account: AccountPayable) => {
     setEditingAccount(account);
     setShowForm(true);
   };
@@ -153,7 +150,7 @@ const AccountsPayable = () => {
     setShowForm(true);
   };
 
-  const handleFormSubmit = (data) => {
+  const handleFormSubmit = (data: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
     if (editingAccount) {
       updateMutation.mutate({ id: editingAccount.id, data });
     } else {
@@ -161,7 +158,7 @@ const AccountsPayable = () => {
     }
   };
 
-  const handleRecurringFormSubmit = (data, installments, baseMonth) => {
+  const handleRecurringFormSubmit = (data: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at' | 'user_id'>, installments: number, baseMonth: string) => {
     createRecurringMutation.mutate({ data, installments, baseMonth });
   };
 
@@ -171,7 +168,7 @@ const AccountsPayable = () => {
 
   // Função para agrupar contas por categorias
   const getExpensesByCategory = () => {
-    const categoryMap = {};
+    const categoryMap: Record<string, { name: string; color: string; amount: number; count: number }> = {};
     
     accounts.forEach(account => {
       const categoryName = account.category?.name || "Sem categoria";
