@@ -38,7 +38,7 @@ export interface Order {
   status: 'Novo' | 'Em preparo' | 'Pronto' | 'Finalizado' | 'Cancelado';
   delivery_type: 'Entrega' | 'Retirada';
   delivery_address: string;
-  scheduled_date?: string;
+  scheduled_date: string;
   scheduled_time?: string;
   total_amount: number;
   payment_status?: 'pending' | 'paid' | 'overdue' | 'cancelled';
