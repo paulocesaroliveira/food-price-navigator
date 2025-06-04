@@ -157,13 +157,13 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
       user_id: user.id
     };
 
-    // Só adicionar category_id se tiver valor válido (não vazio, não "none", não undefined)
-    if (account.category_id && account.category_id !== "none" && account.category_id !== "") {
+    // Só adicionar category_id se tiver valor válido (não vazio, não undefined)
+    if (account.category_id && account.category_id.trim() !== "") {
       accountData.category_id = account.category_id;
     }
 
-    // Só adicionar payment_method se tiver valor válido (não vazio, não "none", não undefined)
-    if (account.payment_method && account.payment_method !== "none" && account.payment_method !== "") {
+    // Só adicionar payment_method se tiver valor válido (não vazio, não undefined)
+    if (account.payment_method && typeof account.payment_method === 'string' && account.payment_method.trim() !== "") {
       accountData.payment_method = account.payment_method;
     }
 
@@ -241,13 +241,13 @@ export async function createRecurringAccountsPayable(
         user_id: user.id
       };
 
-      // Só adicionar category_id se tiver valor válido (não vazio, não "none", não undefined)
-      if (account.category_id && account.category_id !== "none" && account.category_id !== "") {
+      // Só adicionar category_id se tiver valor válido (não vazio, não undefined)
+      if (account.category_id && account.category_id.trim() !== "") {
         accountData.category_id = account.category_id;
       }
 
-      // Só adicionar payment_method se tiver valor válido (não vazio, não "none", não undefined)
-      if (account.payment_method && account.payment_method !== "none" && account.payment_method !== "") {
+      // Só adicionar payment_method se tiver valor válido (não vazio, não undefined)
+      if (account.payment_method && typeof account.payment_method === 'string' && account.payment_method.trim() !== "") {
         accountData.payment_method = account.payment_method;
       }
 
