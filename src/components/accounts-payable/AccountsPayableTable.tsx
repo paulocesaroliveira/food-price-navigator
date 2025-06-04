@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit, Trash2, CheckCircle, Clock, AlertTriangle, Calendar } from "lucide-react";
+import { Edit, Trash2, CheckCircle, Clock, AlertTriangle, Calendar, Undo2 } from "lucide-react";
 import type { AccountPayable } from "@/types/accountsPayable";
 
 interface AccountsPayableTableProps {
