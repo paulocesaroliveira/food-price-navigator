@@ -8,7 +8,7 @@ import { AccountsPayableFilters } from "@/components/accounts-payable/AccountsPa
 import { AccountsPayableTable } from "@/components/accounts-payable/AccountsPayableTable";
 import { AccountPayableFormModal } from "@/components/accounts-payable/AccountPayableFormModal";
 import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
-import type { AccountPayable, AccountsPayableFilters as FiltersType } from "@/types/accountsPayable";
+import type { AccountPayable, AccountsPayableFilterData } from "@/types/accountsPayable";
 
 const AccountsPayable = () => {
   const [showForm, setShowForm] = useState(false);
@@ -20,7 +20,7 @@ const AccountsPayable = () => {
   const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
   
-  const defaultFilters: FiltersType = {
+  const defaultFilters: AccountsPayableFilterData = {
     startDate: firstDay.toISOString().split('T')[0],
     endDate: lastDay.toISOString().split('T')[0]
   };
@@ -70,6 +70,10 @@ const AccountsPayable = () => {
 
   const handleCategoriesChange = () => {
     refetchCategories();
+  };
+
+  const handleCreateRecurring = (account: any, installments: number, startDate: string) => {
+    createRecurringAccounts({ account, installments, startDate });
   };
 
   return (
@@ -128,7 +132,7 @@ const AccountsPayable = () => {
         isOpen={showForm}
         onClose={() => setShowForm(false)}
         onSubmit={createAccount}
-        onSubmitRecurring={createRecurringAccounts}
+        onSubmitRecurring={handleCreateRecurring}
         categories={categories}
         editingAccount={editingAccount}
         isLoading={isCreating || isUpdating}

@@ -4,13 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Calendar, Filter, X } from "lucide-react";
-import type { AccountsPayableFilters, ExpenseCategory } from "@/types/accountsPayable";
+import { Search, Calendar, X } from "lucide-react";
+import type { AccountsPayableFilterData, ExpenseCategory } from "@/types/accountsPayable";
 
 interface AccountsPayableFiltersProps {
-  filters: AccountsPayableFilters;
+  filters: AccountsPayableFilterData;
   categories: ExpenseCategory[];
-  onFiltersChange: (filters: AccountsPayableFilters) => void;
+  onFiltersChange: (filters: AccountsPayableFilterData) => void;
   onClearFilters: () => void;
 }
 
@@ -20,7 +20,7 @@ export const AccountsPayableFilters = ({
   onFiltersChange,
   onClearFilters
 }: AccountsPayableFiltersProps) => {
-  const updateFilter = (key: keyof AccountsPayableFilters, value: string) => {
+  const updateFilter = (key: keyof AccountsPayableFilterData, value: string) => {
     onFiltersChange({ ...filters, [key]: value || undefined });
   };
 

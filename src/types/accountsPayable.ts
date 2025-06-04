@@ -27,7 +27,7 @@ export interface AccountPayable {
   category?: ExpenseCategory;
 }
 
-export interface AccountsPayableFilters {
+export interface AccountsPayableFilterData {
   status?: string;
   category?: string;
   startDate?: string;

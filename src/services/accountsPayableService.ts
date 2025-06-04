@@ -4,7 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import type { 
   AccountPayable, 
   ExpenseCategory, 
-  AccountsPayableFilters,
+  AccountsPayableFilterData,
   CreateAccountPayable 
 } from "@/types/accountsPayable";
 
@@ -66,7 +66,7 @@ export const createExpenseCategory = async (name: string, description?: string, 
 };
 
 // Contas a Pagar
-export const getAccountsPayable = async (filters: AccountsPayableFilters = {}): Promise<AccountPayable[]> => {
+export const getAccountsPayable = async (filters: AccountsPayableFilterData = {}): Promise<AccountPayable[]> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuário não autenticado');
@@ -90,7 +90,7 @@ export const getAccountsPayable = async (filters: AccountsPayableFilters = {}): 
       }
     }
 
-    if (filters.category) {
+    if (filters.category && filters.category !== "all") {
       query = query.eq("category_id", filters.category);
     }
 
@@ -115,7 +115,11 @@ export const getAccountsPayable = async (filters: AccountsPayableFilters = {}): 
     const { data, error } = await query;
     if (error) throw error;
     
-    return data || [];
+    // Garantir que o status está tipado corretamente
+    return (data || []).map(item => ({
+      ...item,
+      status: item.status as 'pending' | 'paid' | 'overdue' | 'cancelled'
+    }));
   } catch (error: any) {
     console.error("Erro ao buscar contas:", error);
     toast({

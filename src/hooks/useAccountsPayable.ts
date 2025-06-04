@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getAccountsPayable,
@@ -10,10 +10,10 @@ import {
   markAsPaid,
   createRecurringAccounts
 } from "@/services/accountsPayableService";
-import type { AccountsPayableFilters, CreateAccountPayable } from "@/types/accountsPayable";
+import type { AccountsPayableFilterData, CreateAccountPayable } from "@/types/accountsPayable";
 
-export const useAccountsPayable = (initialFilters: AccountsPayableFilters = {}) => {
-  const [filters, setFilters] = useState<AccountsPayableFilters>(initialFilters);
+export const useAccountsPayable = (initialFilters: AccountsPayableFilterData = {}) => {
+  const [filters, setFilters] = useState<AccountsPayableFilterData>(initialFilters);
   const queryClient = useQueryClient();
 
   const {
