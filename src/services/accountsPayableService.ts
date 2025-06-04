@@ -162,9 +162,10 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
       accountData.category_id = account.category_id;
     }
 
-    // Só adicionar payment_method se tiver valor válido (não vazio, não "no_method", não undefined)
-    if (account.payment_method && account.payment_method !== "no_method" && typeof account.payment_method === 'string' && account.payment_method.trim() !== "") {
-      accountData.payment_method = account.payment_method;
+    // Verificar payment_method antes da tipagem para evitar erro TypeScript
+    const paymentMethodValue = (account as any).payment_method;
+    if (paymentMethodValue && paymentMethodValue !== "no_method" && typeof paymentMethodValue === 'string' && paymentMethodValue.trim() !== "") {
+      accountData.payment_method = paymentMethodValue;
     }
 
     // Só adicionar payment_date se tiver valor
@@ -246,9 +247,10 @@ export async function createRecurringAccountsPayable(
         accountData.category_id = account.category_id;
       }
 
-      // Só adicionar payment_method se tiver valor válido (não vazio, não "no_method", não undefined)
-      if (account.payment_method && account.payment_method !== "no_method" && typeof account.payment_method === 'string' && account.payment_method.trim() !== "") {
-        accountData.payment_method = account.payment_method;
+      // Verificar payment_method antes da tipagem para evitar erro TypeScript
+      const paymentMethodValue = (account as any).payment_method;
+      if (paymentMethodValue && paymentMethodValue !== "no_method" && typeof paymentMethodValue === 'string' && paymentMethodValue.trim() !== "") {
+        accountData.payment_method = paymentMethodValue;
       }
 
       accounts.push(accountData);
