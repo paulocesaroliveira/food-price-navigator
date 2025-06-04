@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -60,9 +61,9 @@ const AccountPayableForm = ({
       description: initialData?.description || "",
       amount: initialData?.amount || 0,
       due_date: initialData?.due_date || "",
-      category_id: initialData?.category_id || "",
+      category_id: initialData?.category_id || "no_category",
       supplier: initialData?.supplier || "",
-      payment_method: initialData?.payment_method || "",
+      payment_method: initialData?.payment_method || "no_method",
       notes: initialData?.notes || "",
       is_recurring: false,
       installments: 2,
@@ -80,9 +81,9 @@ const AccountPayableForm = ({
           description: initialData.description || "",
           amount: initialData.amount || 0,
           due_date: initialData.due_date || "",
-          category_id: initialData.category_id || "",
+          category_id: initialData.category_id || "no_category",
           supplier: initialData.supplier || "",
-          payment_method: initialData.payment_method || "",
+          payment_method: initialData.payment_method || "no_method",
           notes: initialData.notes || "",
           is_recurring: false,
           installments: 2,
@@ -93,9 +94,9 @@ const AccountPayableForm = ({
           description: "",
           amount: 0,
           due_date: new Date().toISOString().split('T')[0],
-          category_id: "",
+          category_id: "no_category",
           supplier: "",
-          payment_method: "",
+          payment_method: "no_method",
           notes: "",
           is_recurring: false,
           installments: 2,
@@ -110,9 +111,9 @@ const AccountPayableForm = ({
       description: values.description,
       amount: values.amount,
       due_date: values.due_date,
-      category_id: values.category_id && values.category_id !== "none" ? values.category_id : undefined,
+      category_id: values.category_id && values.category_id !== "no_category" ? values.category_id : undefined,
       supplier: values.supplier || undefined,
-      payment_method: values.payment_method && values.payment_method !== "none" ? values.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' : undefined,
+      payment_method: values.payment_method && values.payment_method !== "no_method" ? values.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' : undefined,
       notes: values.notes || undefined,
       status: initialData?.status || 'pending' as const,
       payment_date: initialData?.payment_date,
@@ -232,7 +233,7 @@ const AccountPayableForm = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">Sem categoria</SelectItem>
+                            <SelectItem value="no_category">Sem categoria</SelectItem>
                             {categories.map((category) => (
                               <SelectItem key={category.id} value={category.id}>
                                 <div className="flex items-center gap-2">
@@ -363,7 +364,7 @@ const AccountPayableForm = ({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Não definido</SelectItem>
+                          <SelectItem value="no_method">Não definido</SelectItem>
                           <SelectItem value="cash">Dinheiro</SelectItem>
                           <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
                           <SelectItem value="debit_card">Cartão de Débito</SelectItem>
