@@ -115,10 +115,11 @@ export const getAccountsPayable = async (filters: AccountsPayableFilterData = {}
     const { data, error } = await query;
     if (error) throw error;
     
-    // Garantir que o status está tipado corretamente
+    // Garantir que os tipos estão corretos
     return (data || []).map(item => ({
       ...item,
-      status: item.status as 'pending' | 'paid' | 'overdue' | 'cancelled'
+      status: item.status as 'pending' | 'paid' | 'overdue' | 'cancelled',
+      payment_method: item.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' | undefined
     }));
   } catch (error: any) {
     console.error("Erro ao buscar contas:", error);
