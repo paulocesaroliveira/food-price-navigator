@@ -1,14 +1,18 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import type { AccountPayable, ExpenseCategory, AccountsPayableFilters } from "@/types/accountsPayable";
+import type { 
+  AccountPayable, 
+  ExpenseCategory, 
+  AccountsPayableFilters,
+  CreateAccountPayable 
+} from "@/types/accountsPayable";
 
-export async function getExpenseCategories(): Promise<ExpenseCategory[]> {
+// Categorias de Despesas
+export const getExpenseCategories = async (): Promise<ExpenseCategory[]> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuário não autenticado');
-
-    console.log("Buscando categorias para o usuário:", user.id);
 
     const { data, error } = await supabase
       .from("expense_categories")
@@ -16,15 +20,10 @@ export async function getExpenseCategories(): Promise<ExpenseCategory[]> {
       .eq("user_id", user.id)
       .order("name");
 
-    if (error) {
-      console.error("Erro na consulta de categorias:", error);
-      throw error;
-    }
-    
-    console.log("Categorias encontradas:", data);
+    if (error) throw error;
     return data || [];
   } catch (error: any) {
-    console.error("Erro ao buscar categorias:", error.message);
+    console.error("Erro ao buscar categorias:", error);
     toast({
       title: "Erro",
       description: "Não foi possível carregar as categorias",
@@ -32,19 +31,45 @@ export async function getExpenseCategories(): Promise<ExpenseCategory[]> {
     });
     return [];
   }
-}
+};
 
-export async function getAccountsPayable(filters: AccountsPayableFilters = {}): Promise<AccountPayable[]> {
+export const createExpenseCategory = async (name: string, description?: string, color?: string): Promise<boolean> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.error('Usuário não autenticado');
-      throw new Error('Usuário não autenticado');
-    }
+    if (!user) throw new Error('Usuário não autenticado');
 
-    console.log("=== INÍCIO DA BUSCA DE CONTAS ===");
-    console.log("Usuário ID:", user.id);
-    console.log("Filtros recebidos:", filters);
+    const { error } = await supabase
+      .from("expense_categories")
+      .insert({
+        user_id: user.id,
+        name,
+        description,
+        color: color || '#E76F51'
+      });
+
+    if (error) throw error;
+    
+    toast({
+      title: "Sucesso",
+      description: "Categoria criada com sucesso",
+    });
+    return true;
+  } catch (error: any) {
+    console.error("Erro ao criar categoria:", error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível criar a categoria",
+      variant: "destructive",
+    });
+    return false;
+  }
+};
+
+// Contas a Pagar
+export const getAccountsPayable = async (filters: AccountsPayableFilters = {}): Promise<AccountPayable[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
 
     let query = supabase
       .from("accounts_payable")
@@ -54,11 +79,9 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
       `)
       .eq("user_id", user.id);
 
-    // Aplicar filtros apenas se não forem vazios ou "all"
-    if (filters.status && filters.status !== "all" && filters.status !== "") {
-      console.log("Aplicando filtro de status:", filters.status);
+    // Aplicar filtros
+    if (filters.status && filters.status !== "all") {
       if (filters.status === "overdue") {
-        // Para contas vencidas, buscar contas pendentes com data de vencimento passada
         query = query
           .eq("status", "pending")
           .lt("due_date", new Date().toISOString().split('T')[0]);
@@ -67,67 +90,34 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
       }
     }
 
-    if (filters.category && filters.category !== "all" && filters.category !== "") {
-      console.log("Aplicando filtro de categoria:", filters.category);
+    if (filters.category) {
       query = query.eq("category_id", filters.category);
     }
 
     if (filters.startDate) {
-      console.log("Aplicando filtro de data inicial:", filters.startDate);
       query = query.gte("due_date", filters.startDate);
     }
 
     if (filters.endDate) {
-      console.log("Aplicando filtro de data final:", filters.endDate);
       query = query.lte("due_date", filters.endDate);
     }
 
     if (filters.supplier) {
-      console.log("Aplicando filtro de fornecedor:", filters.supplier);
       query = query.ilike("supplier", `%${filters.supplier}%`);
     }
 
-    // Adicionar ordenação
+    if (filters.search) {
+      query = query.or(`description.ilike.%${filters.search}%,supplier.ilike.%${filters.search}%`);
+    }
+
     query = query.order("due_date", { ascending: true });
 
-    console.log("Executando consulta...");
     const { data, error } = await query;
-
-    if (error) {
-      console.error("Erro na consulta de contas a pagar:", error);
-      throw error;
-    }
+    if (error) throw error;
     
-    console.log("Dados brutos retornados:", data);
-    console.log("Número de registros encontrados:", data?.length || 0);
-    
-    if (!data || data.length === 0) {
-      console.log("=== NENHUMA CONTA ENCONTRADA ===");
-      console.log("Vamos verificar se existem contas sem filtros...");
-      
-      // Fazer uma busca sem filtros para verificar se existem contas
-      const { data: allData, error: allError } = await supabase
-        .from("accounts_payable")
-        .select("*")
-        .eq("user_id", user.id);
-      
-      console.log("Total de contas no banco para este usuário:", allData?.length || 0);
-      if (allData && allData.length > 0) {
-        console.log("Primeiras 3 contas encontradas:", allData.slice(0, 3));
-      }
-    }
-    
-    const mappedData = (data || []).map(account => ({
-      ...account,
-      status: account.status as 'pending' | 'paid' | 'overdue' | 'cancelled',
-      payment_method: account.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' | undefined
-    }));
-    
-    console.log("Dados mapeados:", mappedData);
-    console.log("=== FIM DA BUSCA DE CONTAS ===");
-    return mappedData;
+    return data || [];
   } catch (error: any) {
-    console.error("Erro ao buscar contas:", error.message);
+    console.error("Erro ao buscar contas:", error);
     toast({
       title: "Erro",
       description: "Não foi possível carregar as contas",
@@ -135,157 +125,39 @@ export async function getAccountsPayable(filters: AccountsPayableFilters = {}): 
     });
     return [];
   }
-}
+};
 
-export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at' | 'user_id'>): Promise<boolean> {
+export const createAccountPayable = async (account: CreateAccountPayable): Promise<boolean> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuário não autenticado');
 
-    console.log("=== CRIANDO NOVA CONTA ===");
-    console.log("Usuário ID:", user.id);
-    console.log("Dados da conta:", account);
-
-    // Preparar os dados de forma mais limpa
-    const accountData: any = {
-      description: account.description,
-      amount: account.amount,
-      due_date: account.due_date,
-      supplier: account.supplier || null,
-      notes: account.notes || null,
-      status: account.status || 'pending',
-      user_id: user.id
-    };
-
-    // Só adicionar category_id se tiver valor válido (não vazio, não "no_category", não undefined)
-    if (account.category_id && account.category_id !== "no_category" && account.category_id.trim() !== "") {
-      accountData.category_id = account.category_id;
-    }
-
-    // Verificar payment_method antes da tipagem para evitar erro TypeScript
-    const paymentMethodValue = (account as any).payment_method;
-    if (paymentMethodValue && paymentMethodValue !== "no_method" && typeof paymentMethodValue === 'string' && paymentMethodValue.trim() !== "") {
-      accountData.payment_method = paymentMethodValue;
-    }
-
-    // Só adicionar payment_date se tiver valor
-    if (account.payment_date) {
-      accountData.payment_date = account.payment_date;
-    }
-
-    // Só adicionar attachment_url se tiver valor
-    if (account.attachment_url) {
-      accountData.attachment_url = account.attachment_url;
-    }
-
-    console.log("Dados finais para inserção:", accountData);
-
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("accounts_payable")
-      .insert([accountData])
-      .select();
+      .insert({
+        user_id: user.id,
+        ...account
+      });
 
-    if (error) {
-      console.error("Erro do Supabase:", error);
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log("Conta criada com sucesso:", data);
     toast({
       title: "Sucesso",
-      description: "Conta cadastrada com sucesso",
+      description: "Conta criada com sucesso",
     });
     return true;
   } catch (error: any) {
-    console.error("Erro ao criar conta:", error.message);
+    console.error("Erro ao criar conta:", error);
     toast({
       title: "Erro",
-      description: `Não foi possível cadastrar a conta: ${error.message}`,
+      description: "Não foi possível criar a conta",
       variant: "destructive",
     });
     return false;
   }
-}
+};
 
-export async function createRecurringAccountsPayable(
-  account: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at' | 'user_id'>,
-  installments: number,
-  baseMonth: string
-): Promise<boolean> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Usuário não autenticado');
-
-    console.log("=== CRIANDO CONTAS RECORRENTES ===");
-    console.log("Número de parcelas:", installments);
-    console.log("Mês base:", baseMonth);
-
-    // Limitamos o número de parcelas para evitar o erro de stack depth
-    if (installments > 48) {
-      throw new Error('Número máximo de parcelas é 48');
-    }
-
-    const baseDate = new Date(baseMonth + '-01');
-    const accounts = [];
-
-    for (let i = 0; i < installments; i++) {
-      const dueDate = new Date(baseDate);
-      dueDate.setMonth(dueDate.getMonth() + i);
-      
-      const accountData: any = {
-        description: `${account.description} (${i + 1}/${installments})`,
-        amount: account.amount,
-        due_date: dueDate.toISOString().split('T')[0],
-        supplier: account.supplier || null,
-        notes: account.notes || null,
-        status: account.status || 'pending',
-        user_id: user.id
-      };
-
-      // Só adicionar category_id se tiver valor válido (não vazio, não "no_category", não undefined)
-      if (account.category_id && account.category_id !== "no_category" && account.category_id.trim() !== "") {
-        accountData.category_id = account.category_id;
-      }
-
-      // Verificar payment_method antes da tipagem para evitar erro TypeScript
-      const paymentMethodValue = (account as any).payment_method;
-      if (paymentMethodValue && paymentMethodValue !== "no_method" && typeof paymentMethodValue === 'string' && paymentMethodValue.trim() !== "") {
-        accountData.payment_method = paymentMethodValue;
-      }
-
-      accounts.push(accountData);
-    }
-
-    console.log("Contas a serem criadas:", accounts);
-
-    const { data, error } = await supabase
-      .from("accounts_payable")
-      .insert(accounts)
-      .select();
-
-    if (error) {
-      console.error("Erro do Supabase:", error);
-      throw error;
-    }
-
-    console.log("Contas recorrentes criadas:", data);
-    toast({
-      title: "Sucesso",
-      description: `${installments} contas recorrentes criadas com sucesso`,
-    });
-    return true;
-  } catch (error: any) {
-    console.error("Erro ao criar contas recorrentes:", error.message);
-    toast({
-      title: "Erro",
-      description: `Não foi possível criar as contas recorrentes: ${error.message}`,
-      variant: "destructive",
-    });
-    return false;
-  }
-}
-
-export async function updateAccountPayable(id: string, updates: Partial<AccountPayable>): Promise<boolean> {
+export const updateAccountPayable = async (id: string, updates: Partial<CreateAccountPayable>): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from("accounts_payable")
@@ -300,7 +172,7 @@ export async function updateAccountPayable(id: string, updates: Partial<AccountP
     });
     return true;
   } catch (error: any) {
-    console.error("Erro ao atualizar conta:", error.message);
+    console.error("Erro ao atualizar conta:", error);
     toast({
       title: "Erro",
       description: "Não foi possível atualizar a conta",
@@ -308,9 +180,9 @@ export async function updateAccountPayable(id: string, updates: Partial<AccountP
     });
     return false;
   }
-}
+};
 
-export async function deleteAccountPayable(id: string): Promise<boolean> {
+export const deleteAccountPayable = async (id: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from("accounts_payable")
@@ -325,7 +197,7 @@ export async function deleteAccountPayable(id: string): Promise<boolean> {
     });
     return true;
   } catch (error: any) {
-    console.error("Erro ao excluir conta:", error.message);
+    console.error("Erro ao excluir conta:", error);
     toast({
       title: "Erro",
       description: "Não foi possível excluir a conta",
@@ -333,9 +205,13 @@ export async function deleteAccountPayable(id: string): Promise<boolean> {
     });
     return false;
   }
-}
+};
 
-export async function markAsPaid(id: string, paymentDate: string, paymentMethod: string): Promise<boolean> {
+export const markAsPaid = async (
+  id: string, 
+  paymentDate: string, 
+  paymentMethod: string
+): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from("accounts_payable")
@@ -354,7 +230,7 @@ export async function markAsPaid(id: string, paymentDate: string, paymentMethod:
     });
     return true;
   } catch (error: any) {
-    console.error("Erro ao marcar como paga:", error.message);
+    console.error("Erro ao marcar como paga:", error);
     toast({
       title: "Erro",
       description: "Não foi possível marcar como paga",
@@ -362,4 +238,50 @@ export async function markAsPaid(id: string, paymentDate: string, paymentMethod:
     });
     return false;
   }
-}
+};
+
+export const createRecurringAccounts = async (
+  account: CreateAccountPayable,
+  installments: number,
+  startDate: string
+): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
+    const accounts = [];
+    const baseDate = new Date(startDate);
+
+    for (let i = 0; i < installments; i++) {
+      const dueDate = new Date(baseDate);
+      dueDate.setMonth(dueDate.getMonth() + i);
+      
+      accounts.push({
+        user_id: user.id,
+        ...account,
+        description: `${account.description} (${i + 1}/${installments})`,
+        due_date: dueDate.toISOString().split('T')[0]
+      });
+    }
+
+    const { error } = await supabase
+      .from("accounts_payable")
+      .insert(accounts);
+
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: `${installments} contas recorrentes criadas`,
+    });
+    return true;
+  } catch (error: any) {
+    console.error("Erro ao criar contas recorrentes:", error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível criar as contas recorrentes",
+      variant: "destructive",
+    });
+    return false;
+  }
+};

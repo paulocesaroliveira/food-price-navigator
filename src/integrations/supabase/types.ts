@@ -203,28 +203,31 @@ export type Database = {
       }
       expense_categories: {
         Row: {
-          color: string | null
+          color: string
           created_at: string
           description: string | null
           id: string
           name: string
-          user_id: string | null
+          updated_at: string
+          user_id: string
         }
         Insert: {
-          color?: string | null
+          color?: string
           created_at?: string
           description?: string | null
           id?: string
           name: string
-          user_id?: string | null
+          updated_at?: string
+          user_id: string
         }
         Update: {
-          color?: string | null
+          color?: string
           created_at?: string
           description?: string | null
           id?: string
           name?: string
-          user_id?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1456,6 +1459,10 @@ export type Database = {
           recipe_ids: string[]
           product_ids: string[]
         }[]
+      }
+      update_overdue_accounts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
