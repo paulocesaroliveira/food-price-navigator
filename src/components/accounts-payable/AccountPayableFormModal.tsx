@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -41,9 +41,10 @@ interface AccountPayableFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CreateAccountPayable) => void;
+  onUpdate?: (id: string, data: Partial<CreateAccountPayable>) => void;
   onSubmitRecurring?: (data: CreateAccountPayable, installments: number, startDate: string) => void;
   categories: ExpenseCategory[];
-  editingAccount?: AccountPayable;
+  editingAccount?: AccountPayable | null;
   isLoading?: boolean;
 }
 
@@ -51,6 +52,7 @@ export const AccountPayableFormModal = ({
   isOpen,
   onClose,
   onSubmit,
+  onUpdate,
   onSubmitRecurring,
   categories,
   editingAccount,
@@ -59,13 +61,13 @@ export const AccountPayableFormModal = ({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      description: editingAccount?.description || "",
-      amount: editingAccount?.amount || 0,
-      due_date: editingAccount?.due_date || new Date().toISOString().split('T')[0],
-      category_id: editingAccount?.category_id || "",
-      supplier: editingAccount?.supplier || "",
-      payment_method: editingAccount?.payment_method || undefined,
-      notes: editingAccount?.notes || "",
+      description: "",
+      amount: 0,
+      due_date: new Date().toISOString().split('T')[0],
+      category_id: "",
+      supplier: "",
+      payment_method: undefined,
+      notes: "",
       is_recurring: false,
       installments: 2,
     },
@@ -73,24 +75,63 @@ export const AccountPayableFormModal = ({
 
   const isRecurring = form.watch("is_recurring");
 
+  // Carregar dados quando editando
+  useEffect(() => {
+    if (editingAccount && isOpen) {
+      // Garantir que a data está no formato correto (YYYY-MM-DD)
+      const formattedDate = editingAccount.due_date.includes('T') 
+        ? editingAccount.due_date.split('T')[0] 
+        : editingAccount.due_date;
+
+      form.reset({
+        description: editingAccount.description,
+        amount: editingAccount.amount,
+        due_date: formattedDate,
+        category_id: editingAccount.category_id || "",
+        supplier: editingAccount.supplier || "",
+        payment_method: editingAccount.payment_method,
+        notes: editingAccount.notes || "",
+        is_recurring: false,
+        installments: 2,
+      });
+    } else if (!editingAccount && isOpen) {
+      // Reset para nova conta
+      form.reset({
+        description: "",
+        amount: 0,
+        due_date: new Date().toISOString().split('T')[0],
+        category_id: "",
+        supplier: "",
+        payment_method: undefined,
+        notes: "",
+        is_recurring: false,
+        installments: 2,
+      });
+    }
+  }, [editingAccount, isOpen, form]);
+
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     const accountData: CreateAccountPayable = {
       description: values.description,
       amount: values.amount,
-      due_date: values.due_date,
+      due_date: values.due_date, // Manter a data exatamente como digitada
       category_id: values.category_id || undefined,
       supplier: values.supplier || undefined,
       payment_method: values.payment_method,
       notes: values.notes || undefined,
     };
 
-    if (values.is_recurring && values.installments && onSubmitRecurring) {
+    if (editingAccount && onUpdate) {
+      // Modo edição
+      onUpdate(editingAccount.id, accountData);
+    } else if (values.is_recurring && values.installments && onSubmitRecurring) {
+      // Modo recorrente
       onSubmitRecurring(accountData, values.installments, values.due_date);
     } else {
+      // Modo normal
       onSubmit(accountData);
     }
 
-    form.reset();
     onClose();
   };
 

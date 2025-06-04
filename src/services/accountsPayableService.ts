@@ -255,17 +255,24 @@ export const createRecurringAccounts = async (
     if (!user) throw new Error('Usuário não autenticado');
 
     const accounts = [];
-    const baseDate = new Date(startDate);
+    const baseDate = new Date(startDate + 'T00:00:00'); // Garantir horário local
 
     for (let i = 0; i < installments; i++) {
       const dueDate = new Date(baseDate);
       dueDate.setMonth(dueDate.getMonth() + i);
       
+      // Garantir que mantém o mesmo dia do mês
+      const targetDay = baseDate.getDate();
+      const lastDayOfMonth = new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, 0).getDate();
+      const finalDay = Math.min(targetDay, lastDayOfMonth);
+      
+      dueDate.setDate(finalDay);
+      
       accounts.push({
         user_id: user.id,
         ...account,
         description: `${account.description} (${i + 1}/${installments})`,
-        due_date: dueDate.toISOString().split('T')[0]
+        due_date: dueDate.toISOString().split('T')[0] // Formato YYYY-MM-DD
       });
     }
 

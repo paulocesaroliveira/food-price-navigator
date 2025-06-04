@@ -1,5 +1,7 @@
 
-import React, { useState } from "react";
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -8,30 +10,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  MoreVertical, 
-  Edit, 
-  Trash2, 
-  CheckCircle, 
-  Clock, 
-  AlertTriangle 
-} from "lucide-react";
+import { Edit, Trash2, CheckCircle, Clock, AlertTriangle, Calendar } from "lucide-react";
 import type { AccountPayable } from "@/types/accountsPayable";
 
 interface AccountsPayableTableProps {
   accounts: AccountPayable[];
   onEdit: (account: AccountPayable) => void;
   onDelete: (id: string) => void;
-  onMarkAsPaid: (id: string) => void;
+  onMarkAsPaid: (account: AccountPayable) => void;
   isLoading?: boolean;
 }
 
@@ -42,57 +29,55 @@ export const AccountsPayableTable = ({
   onMarkAsPaid,
   isLoading = false
 }: AccountsPayableTableProps) => {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR');
+  const getStatusIcon = (status: string, dueDate: string) => {
+    const today = new Date();
+    const due = new Date(dueDate);
+    
+    switch (status) {
+      case 'paid':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'cancelled':
+        return <AlertTriangle className="h-4 w-4 text-gray-500" />;
+      case 'overdue':
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      default:
+        return due < today ? <AlertTriangle className="h-4 w-4 text-red-500" /> : <Clock className="h-4 w-4 text-yellow-500" />;
+    }
   };
 
   const getStatusBadge = (status: string, dueDate: string) => {
-    const isOverdue = new Date(dueDate) < new Date() && status === 'pending';
+    const today = new Date();
+    const due = new Date(dueDate);
     
     if (status === 'paid') {
-      return (
-        <Badge className="bg-green-100 text-green-800">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Pago
-        </Badge>
-      );
-    } else if (isOverdue) {
-      return (
-        <Badge className="bg-red-100 text-red-800">
-          <AlertTriangle className="w-3 h-3 mr-1" />
-          Vencido
-        </Badge>
-      );
-    } else if (status === 'cancelled') {
-      return (
-        <Badge className="bg-gray-100 text-gray-800">
-          Cancelado
-        </Badge>
-      );
-    } else {
-      return (
-        <Badge className="bg-yellow-100 text-yellow-800">
-          <Clock className="w-3 h-3 mr-1" />
-          Pendente
-        </Badge>
-      );
+      return <Badge variant="default" className="bg-green-100 text-green-800">Pago</Badge>;
     }
+    if (status === 'cancelled') {
+      return <Badge variant="secondary">Cancelado</Badge>;
+    }
+    if (status === 'pending' && due < today) {
+      return <Badge variant="destructive">Vencido</Badge>;
+    }
+    return <Badge variant="outline">Pendente</Badge>;
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
+  };
+
+  const formatCurrency = (amount: number) => {
+    return amount.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
   };
 
   if (isLoading) {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-            <p className="mt-2 text-gray-500">Carregando contas...</p>
+          <div className="flex items-center justify-center h-32">
+            <div className="text-gray-500">Carregando contas...</div>
           </div>
         </CardContent>
       </Card>
@@ -102,16 +87,16 @@ export const AccountsPayableTable = ({
   if (accounts.length === 0) {
     return (
       <Card>
-        <CardContent className="p-12 text-center">
-          <div className="text-gray-400 mb-4">
-            <CheckCircle className="h-16 w-16 mx-auto" />
+        <CardContent className="p-6">
+          <div className="text-center py-8">
+            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Nenhuma conta encontrada
+            </h3>
+            <p className="text-gray-500">
+              Não há contas a pagar para os filtros selecionados.
+            </p>
           </div>
-          <h3 className="text-lg font-medium text-gray-600 mb-2">
-            Nenhuma conta encontrada
-          </h3>
-          <p className="text-gray-500">
-            Não há contas registradas com os filtros aplicados.
-          </p>
         </CardContent>
       </Card>
     );
@@ -120,92 +105,95 @@ export const AccountsPayableTable = ({
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Fornecedor</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {accounts.map((account) => (
-                <TableRow key={account.id} className="hover:bg-gray-50">
-                  <TableCell className="font-medium">
-                    {account.description}
-                  </TableCell>
-                  <TableCell>
-                    {account.category ? (
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: account.category.color }}
-                        />
-                        <span className="text-sm">{account.category.name}</span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {account.supplier || <span className="text-gray-400">-</span>}
-                  </TableCell>
-                  <TableCell className="font-semibold">
-                    {formatCurrency(account.amount)}
-                  </TableCell>
-                  <TableCell>
-                    <span className={
-                      new Date(account.due_date) < new Date() && account.status === 'pending'
-                        ? "text-red-600 font-medium"
-                        : ""
-                    }>
-                      {formatDate(account.due_date)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Status</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Vencimento</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Fornecedor</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {accounts.map((account) => (
+              <TableRow key={account.id}>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(account.status, account.due_date)}
                     {getStatusBadge(account.status, account.due_date)}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {account.status === 'pending' && (
-                          <DropdownMenuItem 
-                            onClick={() => onMarkAsPaid(account.id)}
-                            className="text-green-600"
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Marcar como pago
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => onEdit(account)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-red-600"
-                          onClick={() => onDelete(account.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <div className="font-medium">{account.description}</div>
+                    {account.notes && (
+                      <div className="text-sm text-gray-500 mt-1">
+                        {account.notes}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="font-medium">
+                    {formatCurrency(account.amount)}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  {formatDate(account.due_date)}
+                </TableCell>
+                <TableCell>
+                  {account.category ? (
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: account.category.color }}
+                      />
+                      <span className="text-sm">{account.category.name}</span>
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 text-sm">Sem categoria</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {account.supplier || <span className="text-gray-400 text-sm">-</span>}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    {account.status === 'pending' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onMarkAsPaid(account)}
+                        className="gap-1 text-green-600 border-green-200 hover:bg-green-50"
+                      >
+                        <CheckCircle className="h-3 w-3" />
+                        Pagar
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onEdit(account)}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onDelete(account.id)}
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

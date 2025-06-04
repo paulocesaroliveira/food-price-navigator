@@ -7,13 +7,16 @@ import { AccountsPayableStats } from "@/components/accounts-payable/AccountsPaya
 import { AccountsPayableFilters } from "@/components/accounts-payable/AccountsPayableFilters";
 import { AccountsPayableTable } from "@/components/accounts-payable/AccountsPayableTable";
 import { AccountPayableFormModal } from "@/components/accounts-payable/AccountPayableFormModal";
+import { PaymentConfirmationDialog } from "@/components/accounts-payable/PaymentConfirmationDialog";
 import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
 import type { AccountPayable, AccountsPayableFilterData } from "@/types/accountsPayable";
 
 const AccountsPayable = () => {
   const [showForm, setShowForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [editingAccount, setEditingAccount] = useState<AccountPayable | null>(null);
+  const [payingAccount, setPayingAccount] = useState<AccountPayable | null>(null);
 
   // Filtros padrão para o mês atual
   const currentDate = new Date();
@@ -40,7 +43,8 @@ const AccountsPayable = () => {
     markAccountAsPaid,
     createRecurringAccounts,
     isCreating,
-    isUpdating
+    isUpdating,
+    isMarkingAsPaid
   } = useAccountsPayable(defaultFilters);
 
   const handleNewAccount = () => {
@@ -59,9 +63,16 @@ const AccountsPayable = () => {
     }
   };
 
-  const handleMarkAsPaid = (id: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    markAccountAsPaid({ id, paymentDate: today, paymentMethod: "pix" });
+  const handleMarkAsPaid = (account: AccountPayable) => {
+    setPayingAccount(account);
+    setShowPaymentDialog(true);
+  };
+
+  const handleConfirmPayment = (paymentDate: string, paymentMethod: string) => {
+    if (payingAccount) {
+      markAccountAsPaid(payingAccount.id, paymentDate, paymentMethod);
+      setPayingAccount(null);
+    }
   };
 
   const handleClearFilters = () => {
@@ -70,10 +81,6 @@ const AccountsPayable = () => {
 
   const handleCategoriesChange = () => {
     refetchCategories();
-  };
-
-  const handleCreateRecurring = (account: any, installments: number, startDate: string) => {
-    createRecurringAccounts({ account, installments, startDate });
   };
 
   return (
@@ -132,10 +139,21 @@ const AccountsPayable = () => {
         isOpen={showForm}
         onClose={() => setShowForm(false)}
         onSubmit={createAccount}
-        onSubmitRecurring={handleCreateRecurring}
+        onUpdate={updateAccount}
+        onSubmitRecurring={createRecurringAccounts}
         categories={categories}
         editingAccount={editingAccount}
         isLoading={isCreating || isUpdating}
+      />
+
+      {/* Modal de confirmação de pagamento */}
+      <PaymentConfirmationDialog
+        isOpen={showPaymentDialog}
+        onClose={() => setShowPaymentDialog(false)}
+        onConfirm={handleConfirmPayment}
+        accountDescription={payingAccount?.description || ""}
+        accountAmount={payingAccount?.amount || 0}
+        isLoading={isMarkingAsPaid}
       />
 
       {/* Modal de gerenciamento de categorias */}

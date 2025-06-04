@@ -114,12 +114,14 @@ export const useAccountsPayable = (initialFilters: AccountsPayableFilterData = {
     refetchAccounts,
     refetchCategories,
     
-    // Mutations
-    createAccount: createMutation.mutate,
-    updateAccount: updateMutation.mutate,
-    deleteAccount: deleteMutation.mutate,
-    markAccountAsPaid: markAsPaidMutation.mutate,
-    createRecurringAccounts: createRecurringMutation.mutate,
+    // Mutations - corrigindo as funções para serem mais fáceis de usar
+    createAccount: (data: CreateAccountPayable) => createMutation.mutate(data),
+    updateAccount: (id: string, data: Partial<CreateAccountPayable>) => updateMutation.mutate({ id, data }),
+    deleteAccount: (id: string) => deleteMutation.mutate(id),
+    markAccountAsPaid: (id: string, paymentDate: string, paymentMethod: string) => 
+      markAsPaidMutation.mutate({ id, paymentDate, paymentMethod }),
+    createRecurringAccounts: (account: CreateAccountPayable, installments: number, startDate: string) => 
+      createRecurringMutation.mutate({ account, installments, startDate }),
     
     // Mutation states
     isCreating: createMutation.isPending,
