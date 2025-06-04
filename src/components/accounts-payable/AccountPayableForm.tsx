@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -111,13 +110,15 @@ const AccountPayableForm = ({
       description: values.description,
       amount: values.amount,
       due_date: values.due_date,
-      category_id: values.category_id || undefined,
+      category_id: values.category_id && values.category_id !== "none" ? values.category_id : undefined,
       supplier: values.supplier || undefined,
-      payment_method: values.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' | undefined,
+      payment_method: values.payment_method && values.payment_method !== "none" ? values.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' : undefined,
       notes: values.notes || undefined,
       status: initialData?.status || 'pending' as const,
       payment_date: initialData?.payment_date,
     };
+
+    console.log("Dados do formulário sendo enviados:", accountData);
 
     if (values.is_recurring && values.installments && values.base_month && onSubmitRecurring) {
       onSubmitRecurring(accountData, values.installments, values.base_month);
@@ -231,7 +232,7 @@ const AccountPayableForm = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="none">Sem categoria</SelectItem>
+                            <SelectItem value="">Sem categoria</SelectItem>
                             {categories.map((category) => (
                               <SelectItem key={category.id} value={category.id}>
                                 <div className="flex items-center gap-2">
@@ -362,7 +363,7 @@ const AccountPayableForm = ({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="none">Não definido</SelectItem>
+                          <SelectItem value="">Não definido</SelectItem>
                           <SelectItem value="cash">Dinheiro</SelectItem>
                           <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
                           <SelectItem value="debit_card">Cartão de Débito</SelectItem>

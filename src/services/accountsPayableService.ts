@@ -146,7 +146,7 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
     console.log("Usuário ID:", user.id);
     console.log("Dados da conta:", account);
 
-    // Preparar os dados de forma mais simples
+    // Preparar os dados de forma mais limpa
     const accountData: any = {
       description: account.description,
       amount: account.amount,
@@ -157,13 +157,13 @@ export async function createAccountPayable(account: Omit<AccountPayable, 'id' | 
       user_id: user.id
     };
 
-    // Só adicionar category_id se tiver valor válido
+    // Só adicionar category_id se tiver valor válido (não vazio, não "none", não undefined)
     if (account.category_id && account.category_id !== "none" && account.category_id !== "") {
       accountData.category_id = account.category_id;
     }
 
-    // Só adicionar payment_method se tiver valor válido (verificar se não é undefined)
-    if (account.payment_method) {
+    // Só adicionar payment_method se tiver valor válido (não vazio, não "none", não undefined)
+    if (account.payment_method && account.payment_method !== "none" && account.payment_method !== "") {
       accountData.payment_method = account.payment_method;
     }
 
@@ -241,13 +241,13 @@ export async function createRecurringAccountsPayable(
         user_id: user.id
       };
 
-      // Só adicionar category_id se tiver valor válido
+      // Só adicionar category_id se tiver valor válido (não vazio, não "none", não undefined)
       if (account.category_id && account.category_id !== "none" && account.category_id !== "") {
         accountData.category_id = account.category_id;
       }
 
-      // Só adicionar payment_method se tiver valor válido (verificar se não é undefined)
-      if (account.payment_method) {
+      // Só adicionar payment_method se tiver valor válido (não vazio, não "none", não undefined)
+      if (account.payment_method && account.payment_method !== "none" && account.payment_method !== "") {
         accountData.payment_method = account.payment_method;
       }
 
