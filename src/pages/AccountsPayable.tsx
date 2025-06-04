@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Settings } from "lucide-react";
@@ -8,6 +7,7 @@ import { AccountsPayableFilters } from "@/components/accounts-payable/AccountsPa
 import { AccountsPayableTable } from "@/components/accounts-payable/AccountsPayableTable";
 import { AccountPayableFormModal } from "@/components/accounts-payable/AccountPayableFormModal";
 import { PaymentConfirmationDialog } from "@/components/accounts-payable/PaymentConfirmationDialog";
+import { PaymentReverseDialog } from "@/components/accounts-payable/PaymentReverseDialog";
 import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
 import type { AccountPayable, AccountsPayableFilterData } from "@/types/accountsPayable";
 
@@ -15,8 +15,10 @@ const AccountsPayable = () => {
   const [showForm, setShowForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showReverseDialog, setShowReverseDialog] = useState(false);
   const [editingAccount, setEditingAccount] = useState<AccountPayable | null>(null);
   const [payingAccount, setPayingAccount] = useState<AccountPayable | null>(null);
+  const [reversingAccount, setReversingAccount] = useState<AccountPayable | null>(null);
 
   // Filtros padrão para o mês atual
   const currentDate = new Date();
@@ -41,10 +43,12 @@ const AccountsPayable = () => {
     updateAccount,
     deleteAccount,
     markAccountAsPaid,
+    reverseAccountPayment,
     createRecurringAccounts,
     isCreating,
     isUpdating,
-    isMarkingAsPaid
+    isMarkingAsPaid,
+    isReversingPayment
   } = useAccountsPayable(defaultFilters);
 
   const handleNewAccount = () => {
@@ -66,6 +70,18 @@ const AccountsPayable = () => {
   const handleMarkAsPaid = (account: AccountPayable) => {
     setPayingAccount(account);
     setShowPaymentDialog(true);
+  };
+
+  const handleReversePayment = (account: AccountPayable) => {
+    setReversingAccount(account);
+    setShowReverseDialog(true);
+  };
+
+  const handleConfirmReverse = () => {
+    if (reversingAccount) {
+      reverseAccountPayment(reversingAccount.id);
+      setReversingAccount(null);
+    }
   };
 
   const handleConfirmPayment = (paymentDate: string, paymentMethod: string) => {
@@ -131,6 +147,7 @@ const AccountsPayable = () => {
         onEdit={handleEditAccount}
         onDelete={handleDeleteAccount}
         onMarkAsPaid={handleMarkAsPaid}
+        onReversePayment={handleReversePayment}
         isLoading={accountsLoading}
       />
 
@@ -154,6 +171,16 @@ const AccountsPayable = () => {
         accountDescription={payingAccount?.description || ""}
         accountAmount={payingAccount?.amount || 0}
         isLoading={isMarkingAsPaid}
+      />
+
+      {/* Modal de reversão de pagamento */}
+      <PaymentReverseDialog
+        isOpen={showReverseDialog}
+        onClose={() => setShowReverseDialog(false)}
+        onConfirm={handleConfirmReverse}
+        accountDescription={reversingAccount?.description || ""}
+        accountAmount={reversingAccount?.amount || 0}
+        isLoading={isReversingPayment}
       />
 
       {/* Modal de gerenciamento de categorias */}

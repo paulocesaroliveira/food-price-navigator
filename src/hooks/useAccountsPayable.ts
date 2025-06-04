@@ -8,6 +8,7 @@ import {
   updateAccountPayable,
   deleteAccountPayable,
   markAsPaid,
+  reversePayment,
   createRecurringAccounts
 } from "@/services/accountsPayableService";
 import type { AccountsPayableFilterData, CreateAccountPayable } from "@/types/accountsPayable";
@@ -70,6 +71,13 @@ export const useAccountsPayable = (initialFilters: AccountsPayableFilterData = {
     }
   });
 
+  const reversePaymentMutation = useMutation({
+    mutationFn: reversePayment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
+    }
+  });
+
   const createRecurringMutation = useMutation({
     mutationFn: ({ account, installments, startDate }: {
       account: CreateAccountPayable;
@@ -114,12 +122,13 @@ export const useAccountsPayable = (initialFilters: AccountsPayableFilterData = {
     refetchAccounts,
     refetchCategories,
     
-    // Mutations - corrigindo as funções para serem mais fáceis de usar
+    // Mutations
     createAccount: (data: CreateAccountPayable) => createMutation.mutate(data),
     updateAccount: (id: string, data: Partial<CreateAccountPayable>) => updateMutation.mutate({ id, data }),
     deleteAccount: (id: string) => deleteMutation.mutate(id),
     markAccountAsPaid: (id: string, paymentDate: string, paymentMethod: string) => 
       markAsPaidMutation.mutate({ id, paymentDate, paymentMethod }),
+    reverseAccountPayment: (id: string) => reversePaymentMutation.mutate(id),
     createRecurringAccounts: (account: CreateAccountPayable, installments: number, startDate: string) => 
       createRecurringMutation.mutate({ account, installments, startDate }),
     
@@ -128,6 +137,7 @@ export const useAccountsPayable = (initialFilters: AccountsPayableFilterData = {
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isMarkingAsPaid: markAsPaidMutation.isPending,
+    isReversingPayment: reversePaymentMutation.isPending,
     isCreatingRecurring: createRecurringMutation.isPending
   };
 };

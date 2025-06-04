@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { 
@@ -115,7 +114,6 @@ export const getAccountsPayable = async (filters: AccountsPayableFilterData = {}
     const { data, error } = await query;
     if (error) throw error;
     
-    // Garantir que os tipos estão corretos
     return (data || []).map(item => ({
       ...item,
       status: item.status as 'pending' | 'paid' | 'overdue' | 'cancelled',
@@ -164,10 +162,14 @@ export const createAccountPayable = async (account: CreateAccountPayable): Promi
 
 export const updateAccountPayable = async (id: string, updates: Partial<CreateAccountPayable>): Promise<boolean> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { error } = await supabase
       .from("accounts_payable")
       .update(updates)
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", user.id);
 
     if (error) throw error;
 
@@ -189,10 +191,14 @@ export const updateAccountPayable = async (id: string, updates: Partial<CreateAc
 
 export const deleteAccountPayable = async (id: string): Promise<boolean> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { error } = await supabase
       .from("accounts_payable")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", user.id);
 
     if (error) throw error;
 
@@ -218,6 +224,9 @@ export const markAsPaid = async (
   paymentMethod: string
 ): Promise<boolean> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { error } = await supabase
       .from("accounts_payable")
       .update({
@@ -225,7 +234,8 @@ export const markAsPaid = async (
         payment_date: paymentDate,
         payment_method: paymentMethod
       })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", user.id);
 
     if (error) throw error;
 
@@ -245,6 +255,39 @@ export const markAsPaid = async (
   }
 };
 
+export const reversePayment = async (id: string): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
+    const { error } = await supabase
+      .from("accounts_payable")
+      .update({
+        status: 'pending',
+        payment_date: null,
+        payment_method: null
+      })
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: "Pagamento revertido com sucesso",
+    });
+    return true;
+  } catch (error: any) {
+    console.error("Erro ao reverter pagamento:", error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível reverter o pagamento",
+      variant: "destructive",
+    });
+    return false;
+  }
+};
+
 export const createRecurringAccounts = async (
   account: CreateAccountPayable,
   installments: number,
@@ -255,13 +298,12 @@ export const createRecurringAccounts = async (
     if (!user) throw new Error('Usuário não autenticado');
 
     const accounts = [];
-    const baseDate = new Date(startDate + 'T00:00:00'); // Garantir horário local
+    const baseDate = new Date(startDate + 'T00:00:00');
 
     for (let i = 0; i < installments; i++) {
       const dueDate = new Date(baseDate);
       dueDate.setMonth(dueDate.getMonth() + i);
       
-      // Garantir que mantém o mesmo dia do mês
       const targetDay = baseDate.getDate();
       const lastDayOfMonth = new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, 0).getDate();
       const finalDay = Math.min(targetDay, lastDayOfMonth);
@@ -272,7 +314,7 @@ export const createRecurringAccounts = async (
         user_id: user.id,
         ...account,
         description: `${account.description} (${i + 1}/${installments})`,
-        due_date: dueDate.toISOString().split('T')[0] // Formato YYYY-MM-DD
+        due_date: dueDate.toISOString().split('T')[0]
       });
     }
 

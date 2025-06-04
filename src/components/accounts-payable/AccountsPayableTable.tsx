@@ -19,6 +19,7 @@ interface AccountsPayableTableProps {
   onEdit: (account: AccountPayable) => void;
   onDelete: (id: string) => void;
   onMarkAsPaid: (account: AccountPayable) => void;
+  onReversePayment: (account: AccountPayable) => void;
   isLoading?: boolean;
 }
 
@@ -27,6 +28,7 @@ export const AccountsPayableTable = ({
   onEdit,
   onDelete,
   onMarkAsPaid,
+  onReversePayment,
   isLoading = false
 }: AccountsPayableTableProps) => {
   const getStatusIcon = (status: string, dueDate: string) => {
@@ -171,6 +173,17 @@ export const AccountsPayableTable = ({
                       >
                         <CheckCircle className="h-3 w-3" />
                         Pagar
+                      </Button>
+                    )}
+                    {account.status === 'paid' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onReversePayment(account)}
+                        className="gap-1 text-yellow-600 border-yellow-200 hover:bg-yellow-50"
+                      >
+                        <Undo2 className="h-3 w-3" />
+                        Reverter
                       </Button>
                     )}
                     <Button
