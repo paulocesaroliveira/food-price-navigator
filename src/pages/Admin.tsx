@@ -72,15 +72,38 @@ const Admin = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          sales:sales(count),
-          products:products(count),
-          orders:orders(count)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      return data || [];
+      // Buscar contadores separadamente para cada usuário
+      const usersWithStats = await Promise.all((data || []).map(async (user) => {
+        // Contar vendas
+        const { count: salesCount } = await supabase
+          .from('sales')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        // Contar produtos
+        const { count: productsCount } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        // Contar pedidos
+        const { count: ordersCount } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        return {
+          ...user,
+          salesCount: salesCount || 0,
+          productsCount: productsCount || 0,
+          ordersCount: ordersCount || 0
+        };
+      }));
+
+      return usersWithStats;
     }
   });
 
@@ -245,13 +268,13 @@ const Admin = () => {
                       <div className="flex items-center space-x-4">
                         <div className="text-right text-sm">
                           <p className="text-gray-600">
-                            <span className="font-medium">{user.sales?.[0]?.count || 0}</span> vendas
+                            <span className="font-medium">{user.salesCount}</span> vendas
                           </p>
                           <p className="text-gray-600">
-                            <span className="font-medium">{user.products?.[0]?.count || 0}</span> produtos
+                            <span className="font-medium">{user.productsCount}</span> produtos
                           </p>
                           <p className="text-gray-600">
-                            <span className="font-medium">{user.orders?.[0]?.count || 0}</span> pedidos
+                            <span className="font-medium">{user.ordersCount}</span> pedidos
                           </p>
                         </div>
                         
