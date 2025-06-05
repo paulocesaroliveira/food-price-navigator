@@ -1,4 +1,3 @@
-
 export interface Reseller {
   id: string;
   user_id: string;
@@ -23,6 +22,10 @@ export interface ResaleTransaction {
   total_amount: number;
   commission_amount: number;
   status: 'pending' | 'delivered' | 'paid' | 'cancelled';
+  payment_status: PaymentStatus;
+  delivery_status: DeliveryStatus;
+  delivery_date?: string;
+  payment_date?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -64,4 +67,23 @@ export interface CreateTransactionItemRequest {
   product_id: string;
   quantity: number;
   unit_price: number;
+}
+
+export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'overdue';
+export type DeliveryStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+
+export interface CreateResaleTransactionRequest {
+  reseller_id: string;
+  transaction_date: string;
+  delivery_time?: string;
+  notes?: string;
+  items: CreateTransactionItemRequest[];
+  payment_status?: PaymentStatus;
+  delivery_status?: DeliveryStatus;
+  delivery_date?: string;
+  payment_date?: string;
+}
+
+export interface UpdateResaleTransactionRequest extends Partial<CreateResaleTransactionRequest> {
+  id: string;
 }

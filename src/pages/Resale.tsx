@@ -34,7 +34,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { resaleService } from "@/services/resaleService";
 import ResaleTransactionForm from "@/components/resale/ResaleTransactionForm";
 import SEOHead from "@/components/SEOHead";
-import type { Reseller, ResaleTransaction, CreateResellerRequest } from "@/types/resale";
+import type { Reseller, ResaleTransaction, CreateResellerRequest, PaymentStatus, DeliveryStatus } from "@/types/resale";
 
 const Resale = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -124,6 +124,48 @@ const Resale = () => {
     }
   };
 
+  const getPaymentStatusColor = (status: PaymentStatus) => {
+    switch (status) {
+      case "paid": return "bg-emerald-100 text-emerald-700 border-emerald-200";
+      case "partial": return "bg-yellow-100 text-yellow-700 border-yellow-200";
+      case "pending": return "bg-gray-100 text-gray-700 border-gray-200";
+      case "overdue": return "bg-red-100 text-red-700 border-red-200";
+      default: return "bg-gray-100 text-gray-700 border-gray-200";
+    }
+  };
+
+  const getDeliveryStatusColor = (status: DeliveryStatus) => {
+    switch (status) {
+      case "delivered": return "bg-emerald-100 text-emerald-700 border-emerald-200";
+      case "ready": return "bg-blue-100 text-blue-700 border-blue-200";
+      case "preparing": return "bg-yellow-100 text-yellow-700 border-yellow-200";
+      case "pending": return "bg-gray-100 text-gray-700 border-gray-200";
+      case "cancelled": return "bg-red-100 text-red-700 border-red-200";
+      default: return "bg-gray-100 text-gray-700 border-gray-200";
+    }
+  };
+
+  const getPaymentStatusLabel = (status: PaymentStatus) => {
+    switch (status) {
+      case "paid": return "Pago";
+      case "partial": return "Parcial";
+      case "pending": return "Pendente";
+      case "overdue": return "Atrasado";
+      default: return status;
+    }
+  };
+
+  const getDeliveryStatusLabel = (status: DeliveryStatus) => {
+    switch (status) {
+      case "delivered": return "Entregue";
+      case "ready": return "Pronto";
+      case "preparing": return "Preparando";
+      case "pending": return "Pendente";
+      case "cancelled": return "Cancelado";
+      default: return status;
+    }
+  };
+
   const handleCreateSeller = () => {
     if (!newSeller.name.trim()) {
       toast({ 
@@ -166,6 +208,48 @@ const Resale = () => {
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleUpdatePaymentStatus = async (transactionId: string, newStatus: PaymentStatus) => {
+    try {
+      await resaleService.updateTransaction(transactionId, { 
+        payment_status: newStatus,
+        payment_date: newStatus === 'paid' ? new Date().toISOString() : undefined
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['resale-transactions'] });
+      toast({ 
+        title: "✨ Sucesso", 
+        description: `Status de pagamento atualizado para ${getPaymentStatusLabel(newStatus)}` 
+      });
+    } catch (error: any) {
+      toast({ 
+        title: "❌ Erro", 
+        description: `Erro ao atualizar status: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateDeliveryStatus = async (transactionId: string, newStatus: DeliveryStatus) => {
+    try {
+      await resaleService.updateTransaction(transactionId, { 
+        delivery_status: newStatus,
+        delivery_date: newStatus === 'delivered' ? new Date().toISOString() : undefined
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['resale-transactions'] });
+      toast({ 
+        title: "✨ Sucesso", 
+        description: `Status de entrega atualizado para ${getDeliveryStatusLabel(newStatus)}` 
+      });
+    } catch (error: any) {
+      toast({ 
+        title: "❌ Erro", 
+        description: `Erro ao atualizar status: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <>
@@ -410,7 +494,7 @@ const Resale = () => {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {transactions.map((transaction) => (
+                      {filteredTransactions.map((transaction) => (
                         <div key={transaction.id} className="border rounded-xl p-6 hover:shadow-lg transition-all bg-gradient-to-r from-white to-gray-50">
                           <div className="flex justify-between items-start mb-4">
                             <div>
@@ -464,6 +548,53 @@ const Resale = () => {
                             <div className="bg-gray-50 p-3 rounded-lg">
                               <span className="font-medium text-gray-700">Status:</span>
                               <p className="font-bold text-lg text-gray-800">{getStatusLabel(transaction.status)}</p>
+                            </div>
+                          </div>
+
+                          {/* Status de Pagamento e Entrega */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div className="bg-yellow-50 p-4 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium text-yellow-700">Status do Pagamento:</span>
+                                <Badge className={`text-xs ${getPaymentStatusColor(transaction.payment_status)}`}>
+                                  {getPaymentStatusLabel(transaction.payment_status)}
+                                </Badge>
+                              </div>
+                              <div className="flex gap-1 flex-wrap">
+                                {(['pending', 'partial', 'paid', 'overdue'] as PaymentStatus[]).map((status) => (
+                                  <Button
+                                    key={status}
+                                    variant={transaction.payment_status === status ? "default" : "outline"}
+                                    size="sm"
+                                    className="text-xs"
+                                    onClick={() => handleUpdatePaymentStatus(transaction.id, status)}
+                                  >
+                                    {getPaymentStatusLabel(status)}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="bg-cyan-50 p-4 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium text-cyan-700">Status da Entrega:</span>
+                                <Badge className={`text-xs ${getDeliveryStatusColor(transaction.delivery_status)}`}>
+                                  {getDeliveryStatusLabel(transaction.delivery_status)}
+                                </Badge>
+                              </div>
+                              <div className="flex gap-1 flex-wrap">
+                                {(['pending', 'preparing', 'ready', 'delivered', 'cancelled'] as DeliveryStatus[]).map((status) => (
+                                  <Button
+                                    key={status}
+                                    variant={transaction.delivery_status === status ? "default" : "outline"}
+                                    size="sm"
+                                    className="text-xs"
+                                    onClick={() => handleUpdateDeliveryStatus(transaction.id, status)}
+                                  >
+                                    {getDeliveryStatusLabel(status)}
+                                  </Button>
+                                ))}
+                              </div>
                             </div>
                           </div>
 

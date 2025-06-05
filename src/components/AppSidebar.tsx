@@ -1,4 +1,3 @@
-
 import { 
   Home, 
   Package2, 
@@ -33,6 +32,9 @@ import {
 } from "@/components/ui/sidebar"
 import { Link, useLocation } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import AvatarUpload from "@/components/ui/avatar-upload";
 
 // Menu items organizados por grupos
 const menuGroups = [
@@ -147,15 +149,34 @@ export function AppSidebar() {
   const location = useLocation()
   const { user } = useAuth()
 
+  // Buscar dados do perfil do usuário
+  const { data: profile } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('store_name, avatar_url')
+        .eq('id', user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user?.id
+  });
+
+  const storeName = profile?.store_name || 'TastyHub';
+
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="border-b bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex items-center gap-3 px-4 py-4">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
-            <Store className="h-6 w-6 text-white" />
-          </div>
+          <AvatarUpload
+            size="md"
+            userName={user?.email || 'Usuário'}
+            editable={false}
+          />
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-gray-900 truncate">Loja Teste</h1>
+            <h1 className="text-lg font-bold text-gray-900 truncate">{storeName}</h1>
             <p className="text-xs text-gray-600 truncate" title={user?.email || ''}>
               {user?.email || 'Usuário não logado'}
             </p>

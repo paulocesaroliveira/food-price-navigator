@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,8 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import AvatarUpload from "@/components/ui/avatar-upload";
+import { useTheme, Theme } from "@/hooks/useTheme";
 
 interface UserProfile {
   id: string;
@@ -31,6 +32,34 @@ interface UserProfile {
   created_at: string;
   updated_at: string;
 }
+
+const themes = [
+  {
+    name: 'light' as Theme,
+    label: 'Claro Padrão',
+    colors: ['#3B82F6', '#2A9D8F', '#FFFFFF']
+  },
+  {
+    name: 'coral' as Theme,
+    label: 'Coral Vibrante',
+    colors: ['#FF6B6B', '#4ECDC4', '#FFF8F0']
+  },
+  {
+    name: 'mint' as Theme,
+    label: 'Menta Fresca',
+    colors: ['#26D0CE', '#A8E6CF', '#F0FFFF']
+  },
+  {
+    name: 'amber' as Theme,
+    label: 'Âmbar Aconchegante',
+    colors: ['#FFB347', '#DEB887', '#FFF8DC']
+  },
+  {
+    name: 'dark' as Theme,
+    label: 'Escuro Elegante',
+    colors: ['#3B82F6', '#2A9D8F', '#1A1A1A']
+  }
+];
 
 const Settings = () => {
   const { user } = useAuth();
@@ -57,6 +86,8 @@ const Settings = () => {
     smsNotifications: false,
     theme: "light"
   });
+
+  const { theme, changeTheme } = useTheme();
 
   useEffect(() => {
     if (user) {
@@ -257,18 +288,16 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={profileData.email}
-                  disabled
-                  className="bg-gray-50"
+              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                <AvatarUpload
+                  size="lg"
+                  userName={user?.email || 'Usuário'}
+                  editable={true}
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  O e-mail não pode ser alterado
-                </p>
+                <div>
+                  <h3 className="font-medium">Foto do Perfil</h3>
+                  <p className="text-sm text-gray-600">Clique no ícone da câmera para alterar sua foto</p>
+                </div>
               </div>
               
               <div>
@@ -456,15 +485,38 @@ const Settings = () => {
                 Personalize a aparência do sistema
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Tema</p>
-                  <p className="text-sm text-gray-600">Escolha entre tema claro ou escuro</p>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="font-medium mb-4">Tema do Sistema</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {themes.map((themeOption) => (
+                    <div
+                      key={themeOption.name}
+                      className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                        theme === themeOption.name
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => changeTheme(themeOption.name)}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="flex gap-1">
+                          {themeOption.colors.map((color, index) => (
+                            <div
+                              key={index}
+                              className="w-4 h-4 rounded-full border border-gray-300"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                        {theme === themeOption.name && (
+                          <Check className="h-4 w-4 text-primary ml-auto" />
+                        )}
+                      </div>
+                      <p className="font-medium text-sm">{themeOption.label}</p>
+                    </div>
+                  ))}
                 </div>
-                <Button variant="outline" size="sm">
-                  Claro
-                </Button>
               </div>
             </CardContent>
           </Card>

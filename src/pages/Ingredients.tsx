@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -56,6 +55,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { IngredientForm } from "@/components/ingredients/IngredientForm";
 import { CategoryDialog } from "@/components/ingredients/CategoryDialog";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import SEOHead from "@/components/SEOHead";
 
 const Ingredients = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -191,17 +191,36 @@ const Ingredients = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Ingredientes</h1>
-        <div className="flex gap-2">
-          <Button className="gap-2" onClick={() => setShowCategoryDialog(true)}>
-            <Tags className="h-4 w-4" />
-            Gerenciar Categorias
+    <div className="container mx-auto space-y-6 p-4 sm:p-6">
+      <SEOHead 
+        title="Ingredientes - TastyHub"
+        description="Gerencie seus ingredientes de forma eficiente. Controle custos, estoque e categorias dos ingredientes da sua confeitaria."
+        keywords="ingredientes, gestão ingredientes, custo ingredientes, estoque"
+      />
+      
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Ingredientes</h1>
+          <p className="text-gray-600 text-sm sm:text-base">Gerencie seus ingredientes e controle de custos</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button 
+            onClick={() => setShowCategoryDialog(true)}
+            variant="outline"
+            className="w-full sm:w-auto gap-2 text-xs sm:text-sm"
+          >
+            <Settings className="h-4 w-4" />
+            <span className="hidden xs:inline">Gerenciar Categorias</span>
+            <span className="xs:hidden">Categorias</span>
           </Button>
-          <Button className="gap-2" onClick={() => setShowForm(true)}>
-            <PlusCircle className="h-4 w-4" />
-            Novo Ingrediente
+          <Button 
+            onClick={() => setShowForm(true)}
+            className="w-full sm:w-auto gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-xs sm:text-sm"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden xs:inline">Novo Ingrediente</span>
+            <span className="xs:hidden">Novo</span>
           </Button>
         </div>
       </div>
