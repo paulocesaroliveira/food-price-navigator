@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -459,24 +460,25 @@ const Ingredients = () => {
         onOpenChange={setShowForm}
         categories={categories || []}
         ingredient={editingIngredient ? {
+          id: editingIngredient.id,
           name: editingIngredient.name,
-          category: editingIngredient.category,
-          unit: editingIngredient.unit,
+          image: editingIngredient.image_url,
+          categoryId: categories?.find(c => c.name === editingIngredient.category)?.id || '',
+          unit: editingIngredient.unit as 'g' | 'ml',
           brand: editingIngredient.brand,
           supplier: editingIngredient.supplier,
-          package_quantity: editingIngredient.package_quantity,
-          package_price: editingIngredient.package_price,
-          unit_cost: editingIngredient.unit_cost,
-          image_url: editingIngredient.image_url
+          packageQuantity: editingIngredient.package_quantity,
+          packagePrice: editingIngredient.package_price,
+          unitCost: editingIngredient.unit_cost
         } : null}
         onSubmit={async (values) => {
           try {
             if (editingIngredient) {
               // Update existing ingredient
-              await updateIngredientMutation.mutateAsync({ ...editingIngredient, ...values, cost: values.unit_cost || values.cost });
+              await updateIngredientMutation.mutateAsync({ ...editingIngredient, ...values, cost: values.unitCost || values.cost });
             } else {
               // Create new ingredient
-              await createIngredientMutation.mutateAsync({ ...values, cost: values.unit_cost || values.cost });
+              await createIngredientMutation.mutateAsync({ ...values, cost: values.unitCost || values.cost });
             }
           } catch (error) {
             console.error("Error creating/updating ingredient:", error);
