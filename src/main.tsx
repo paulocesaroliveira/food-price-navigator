@@ -31,6 +31,7 @@ import AccountsPayable from './pages/AccountsPayable'
 import Resale from './pages/Resale'
 import Relatorios from './pages/Relatorios'
 import CostUpdate from './pages/CostUpdate'
+import FluxoCaixa from './pages/FluxoCaixa'
 
 // Providers
 import { Toaster } from '@/components/ui/toaster'
@@ -55,25 +56,24 @@ const router = createBrowserRouter(
       <Route path="/auth" element={<Auth />} />
       
       {/* Admin app routes - protected */}
-      <Route path="/" element={
-        <ProtectedRoute>
-          <AppLayout />
-        </ProtectedRoute>
-      }>
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="orders" element={<Orders />} />
-        <Route path="products" element={<Products />} />
-        <Route path="recipes" element={<Recipes />} />
-        <Route path="ingredients" element={<Ingredients />} />
-        <Route path="packaging" element={<Packaging />} />
-        <Route path="customers" element={<Customers />} />
-        <Route path="pricing" element={<Pricing />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="sales" element={<Sales />} />
-        <Route path="accounts-payable" element={<AccountsPayable />} />
-        <Route path="resale" element={<Resale />} />
-        <Route path="relatorios" element={<Relatorios />} />
-        <Route path="cost-update" element={<CostUpdate />} />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="products" element={<Products />} />
+          <Route path="recipes" element={<Recipes />} />
+          <Route path="ingredients" element={<Ingredients />} />
+          <Route path="packaging" element={<Packaging />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="pricing" element={<Pricing />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="sales" element={<Sales />} />
+          <Route path="accounts-payable" element={<AccountsPayable />} />
+          <Route path="resale" element={<Resale />} />
+          <Route path="relatorios" element={<Relatorios />} />
+          <Route path="fluxo-caixa" element={<FluxoCaixa />} />
+          <Route path="cost-update" element={<CostUpdate />} />
+        </Route>
       </Route>
       
       {/* 404 route */}
