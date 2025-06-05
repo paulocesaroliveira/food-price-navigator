@@ -32,7 +32,7 @@ interface Order {
   status: string;
   total_amount: number;
   created_at: string;
-  delivery_date: string;
+  scheduled_date: string;
   items_count: number;
 }
 
@@ -62,7 +62,7 @@ const Orders = () => {
         status: order.status,
         total_amount: order.total_amount,
         created_at: order.created_at,
-        delivery_date: order.delivery_date,
+        scheduled_date: order.scheduled_date,
         items_count: order.order_items?.length || 0
       })) || [];
 
@@ -242,7 +242,7 @@ const Orders = () => {
                     <TableHead>Itens</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Data Criação</TableHead>
-                    <TableHead>Data Entrega</TableHead>
+                    <TableHead>Data Agendada</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -264,7 +264,7 @@ const Orders = () => {
                           {formatCurrency(order.total_amount)}
                         </TableCell>
                         <TableCell>{formatDate(order.created_at)}</TableCell>
-                        <TableCell>{formatDate(order.delivery_date)}</TableCell>
+                        <TableCell>{order.scheduled_date ? formatDate(order.scheduled_date) : '-'}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end space-x-2">
                             <Button variant="ghost" size="sm" className="rounded-full">
