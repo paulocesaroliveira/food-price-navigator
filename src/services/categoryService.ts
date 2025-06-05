@@ -19,3 +19,25 @@ export const getIngredientCategories = async () => {
     return [];
   }
 };
+
+export const createIngredientCategory = async (name: string) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
+    const { data, error } = await supabase
+      .from('ingredient_categories')
+      .insert({
+        name,
+        user_id: user.id
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Erro ao criar categoria:', error);
+    throw error;
+  }
+};

@@ -5,12 +5,16 @@ import { toast } from "@/hooks/use-toast";
 
 export const getCustomerList = async (): Promise<Customer[]> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from("customers")
       .select(`
         *,
         customer_addresses (*)
       `)
+      .eq('user_id', user.id)
       .order("name", { ascending: true });
 
     if (error) {
@@ -37,9 +41,13 @@ export const getCustomers = getCustomerList;
 
 export const createCustomer = async (customer: CreateCustomerRequest): Promise<Customer> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data: customerData, error: customerError } = await supabase
       .from("customers")
       .insert({
+        user_id: user.id,
         name: customer.name,
         email: customer.email,
         phone: customer.phone,
@@ -68,7 +76,6 @@ export const createCustomer = async (customer: CreateCustomerRequest): Promise<C
 
       if (addressError) {
         console.error("Erro ao criar endereços:", addressError);
-        // Não falha se der erro nos endereços, apenas loga
       }
     }
 
@@ -77,7 +84,6 @@ export const createCustomer = async (customer: CreateCustomerRequest): Promise<C
       description: "Cliente criado com sucesso!",
     });
     
-    // Buscar o cliente completo com endereços
     const completeCustomer = await getCustomerById(customerData.id);
     return completeCustomer || customerData;
   } catch (error: any) {
@@ -93,6 +99,9 @@ export const createCustomer = async (customer: CreateCustomerRequest): Promise<C
 
 export const getCustomerById = async (id: string): Promise<Customer | null> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from("customers")
       .select(`
@@ -100,6 +109,7 @@ export const getCustomerById = async (id: string): Promise<Customer | null> => {
         customer_addresses (*)
       `)
       .eq("id", id)
+      .eq('user_id', user.id)
       .single();
 
     if (error) throw error;
@@ -116,6 +126,9 @@ export const getCustomerById = async (id: string): Promise<Customer | null> => {
 
 export const updateCustomer = async (id: string, customer: Partial<CreateCustomerRequest>): Promise<Customer> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from("customers")
       .update({
@@ -125,6 +138,7 @@ export const updateCustomer = async (id: string, customer: Partial<CreateCustome
         notes: customer.notes
       })
       .eq("id", id)
+      .eq('user_id', user.id)
       .select()
       .single();
 
@@ -135,13 +149,11 @@ export const updateCustomer = async (id: string, customer: Partial<CreateCustome
 
     // Se houver endereços para atualizar, remove os existentes e cria novos
     if (customer.addresses) {
-      // Remove endereços existentes
       await supabase
         .from("customer_addresses")
         .delete()
         .eq("customer_id", id);
 
-      // Cria novos endereços
       if (customer.addresses.length > 0) {
         const addressesData = customer.addresses.map(address => ({
           customer_id: id,
@@ -161,7 +173,6 @@ export const updateCustomer = async (id: string, customer: Partial<CreateCustome
       description: "Cliente atualizado com sucesso!",
     });
     
-    // Buscar o cliente completo com endereços
     const completeCustomer = await getCustomerById(id);
     return completeCustomer || data;
   } catch (error: any) {
@@ -177,10 +188,14 @@ export const updateCustomer = async (id: string, customer: Partial<CreateCustome
 
 export const deleteCustomer = async (id: string): Promise<boolean> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { error } = await supabase
       .from("customers")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq('user_id', user.id);
 
     if (error) {
       console.error("Erro ao excluir cliente:", error);
@@ -206,12 +221,16 @@ export const deleteCustomer = async (id: string): Promise<boolean> => {
 
 export const searchCustomers = async (query: string): Promise<Customer[]> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from("customers")
       .select(`
         *,
         customer_addresses (*)
       `)
+      .eq('user_id', user.id)
       .or(`name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
       .order("name", { ascending: true });
 

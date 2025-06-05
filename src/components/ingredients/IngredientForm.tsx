@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getIngredientCategories } from "@/services/categoryService";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ImageUpload } from "./ImageUpload";
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 interface Ingredient {
   id?: string;
@@ -48,6 +51,7 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
   });
 
   const queryClient = useQueryClient();
+  const { uploadFile, isUploading } = useFileUpload();
 
   const { data: categories = [] } = useQuery({
     queryKey: ['ingredient-categories'],
@@ -69,7 +73,6 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
         image_url: ingredient.image_url || ""
       });
     } else if (!ingredient && open) {
-      // Reset form for new ingredient
       setFormData({
         name: "",
         category_id: "",
@@ -92,11 +95,55 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
     }
   }, [formData.package_quantity, formData.package_price]);
 
+  const handleImageUpload = async (file: File) => {
+    try {
+      const result = await uploadFile(file, "ingredients");
+      if (result?.url) {
+        setFormData(prev => ({ ...prev, image_url: result.url }));
+        toast({
+          title: "Sucesso",
+          description: "Imagem enviada com sucesso!"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao enviar imagem",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const formatCurrency = (value: string): string => {
+    const numericValue = value.replace(/\D/g, '');
+    const numberValue = parseFloat(numericValue) / 100;
+    return numberValue.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+  };
+
+  const parseCurrency = (value: string): number => {
+    const numericValue = value.replace(/[^\d]/g, '');
+    return parseFloat(numericValue) / 100;
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCurrency(e.target.value);
+    const numericValue = parseCurrency(e.target.value);
+    setFormData(prev => ({ ...prev, package_price: numericValue }));
+    e.target.value = formatted;
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data: Ingredient) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('ingredients')
         .insert([{
+          user_id: user.id,
           name: data.name,
           category_id: data.category_id || null,
           unit: data.unit,
@@ -116,6 +163,7 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Ingrediente criado com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient-categories'] });
       onSuccess?.();
       onOpenChange(false);
     },
@@ -132,6 +180,9 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
     mutationFn: async (data: Ingredient) => {
       if (!ingredient?.id) throw new Error('ID do ingrediente não encontrado');
       
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+      
       const { data: result, error } = await supabase
         .from('ingredients')
         .update({
@@ -146,6 +197,7 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
           image_url: data.image_url
         })
         .eq('id', ingredient.id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -184,10 +236,6 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
     } else {
       createMutation.mutate(formData);
     }
-  };
-
-  const handleImageUpload = async (url: string) => {
-    setFormData(prev => ({ ...prev, image_url: url }));
   };
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
@@ -243,13 +291,9 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
                   <SelectValue placeholder="Selecione a unidade" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="kg">Quilograma (kg)</SelectItem>
                   <SelectItem value="g">Grama (g)</SelectItem>
-                  <SelectItem value="l">Litro (l)</SelectItem>
                   <SelectItem value="ml">Mililitro (ml)</SelectItem>
                   <SelectItem value="unidade">Unidade</SelectItem>
-                  <SelectItem value="caixa">Caixa</SelectItem>
-                  <SelectItem value="pacote">Pacote</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -293,12 +337,10 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
               <Label htmlFor="package_price">Preço da Embalagem (R$) *</Label>
               <Input
                 id="package_price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.package_price}
-                onChange={(e) => setFormData(prev => ({ ...prev, package_price: parseFloat(e.target.value) || 0 }))}
-                placeholder="Ex: 25.90"
+                type="text"
+                defaultValue={formData.package_price > 0 ? formatCurrency(formData.package_price.toString()) : ""}
+                onChange={handlePriceChange}
+                placeholder="R$ 0,00"
                 required
               />
             </div>
@@ -307,9 +349,8 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
               <Label htmlFor="unit_cost">Custo Unitário (R$)</Label>
               <Input
                 id="unit_cost"
-                type="number"
-                step="0.0001"
-                value={formData.unit_cost}
+                type="text"
+                value={formData.unit_cost > 0 ? formData.unit_cost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "R$ 0,00"}
                 readOnly
                 className="bg-gray-100"
               />
@@ -317,21 +358,17 @@ export const IngredientForm: React.FC<IngredientFormProps> = ({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Imagem URL</Label>
-            <Input
-              type="url"
-              value={formData.image_url}
-              onChange={(e) => handleImageUpload(e.target.value)}
-              placeholder="URL da imagem do ingrediente"
-            />
-          </div>
+          <ImageUpload
+            currentImageUrl={formData.image_url || null}
+            onImageUpload={handleImageUpload}
+            isUploading={isUploading}
+          />
 
           <div className="flex justify-end gap-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || isUploading}>
               {isLoading ? 'Salvando...' : (ingredient ? 'Atualizar' : 'Criar')}
             </Button>
           </div>
