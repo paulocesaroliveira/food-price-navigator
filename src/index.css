@@ -22,7 +22,7 @@ html {
   
   /* Theme-specific body backgrounds */
   :root.theme-light body {
-    background: linear-gradient(135deg, #FAF3E0 0%, #F8F8FF 100%);
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
   }
   
   :root.theme-coral body {
@@ -38,14 +38,35 @@ html {
   }
   
   :root.theme-dark body {
-    background: linear-gradient(135deg, #1A1A1A 0%, #2A2A2A 100%);
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--card)) 100%);
+  }
+
+  /* Sidebar theme backgrounds */
+  :root.theme-light .sidebar {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+  }
+  
+  :root.theme-coral .sidebar {
+    background: linear-gradient(135deg, #FFF 0%, #FFF8F0 100%);
+  }
+  
+  :root.theme-mint .sidebar {
+    background: linear-gradient(135deg, #FFF 0%, #F0FFFF 100%);
+  }
+  
+  :root.theme-amber .sidebar {
+    background: linear-gradient(135deg, #FFF 0%, #FFF8DC 100%);
+  }
+  
+  :root.theme-dark .sidebar {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
   }
 }
 
 @layer components {
   /* Page Header Styles */
   .page-header {
-    @apply relative overflow-hidden rounded-2xl p-6 sm:p-8 text-white shadow-xl mb-6 sm:mb-8;
+    @apply relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white shadow-xl mb-6 sm:mb-8;
     background-size: 100% 100%;
     min-height: 200px;
   }
@@ -102,12 +123,25 @@ html {
 
   /* Button improvements */
   .btn-gradient {
-    @apply bg-gradient-to-r from-primary to-secondary text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105;
+    @apply bg-gradient-to-r from-primary to-secondary text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl;
+  }
+
+  .btn-category {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl border border-primary/20 shadow-md transition-all duration-200;
   }
 
   /* Input focus improvements */
   .input-focus {
-    @apply focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200;
+    @apply focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 rounded-xl;
+  }
+
+  /* Card styling */
+  .custom-card {
+    @apply rounded-2xl border border-border bg-card text-card-foreground shadow-lg;
+  }
+
+  .stats-card {
+    @apply custom-card border-0 shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
   }
 }
 
@@ -157,12 +191,12 @@ html {
 
 /* Toast improvements */
 .toast {
-  @apply shadow-lg border-l-4 border-primary;
+  @apply shadow-lg border-l-4 border-primary rounded-xl;
 }
 
 /* Loading states */
 .skeleton {
-  @apply animate-pulse bg-muted rounded;
+  @apply animate-pulse bg-muted rounded-xl;
 }
 
 /* Form improvements */
@@ -175,7 +209,7 @@ html {
 }
 
 .form-input {
-  @apply w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors;
+  @apply w-full px-3 py-2 border border-border rounded-xl bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors;
 }
 
 .form-error {

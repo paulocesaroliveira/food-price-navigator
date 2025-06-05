@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -17,52 +17,75 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  ShoppingCart
+  ShoppingCart,
+  Loader2
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/utils/calculations";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
-// Mock data - replace with actual data fetching
-const mockOrders = [
-  {
-    id: "1",
-    orderNumber: "PED-001",
-    customerName: "João Silva",
-    status: "pending",
-    totalAmount: 150.00,
-    createdAt: "2024-01-15",
-    deliveryDate: "2024-01-20",
-    items: 3
-  },
-  {
-    id: "2",
-    orderNumber: "PED-002",
-    customerName: "Maria Santos",
-    status: "confirmed",
-    totalAmount: 320.50,
-    createdAt: "2024-01-16",
-    deliveryDate: "2024-01-22",
-    items: 5
-  },
-  {
-    id: "3",
-    orderNumber: "PED-003",
-    customerName: "Pedro Costa",
-    status: "delivered",
-    totalAmount: 89.90,
-    createdAt: "2024-01-10",
-    deliveryDate: "2024-01-15",
-    items: 2
-  }
-];
+interface Order {
+  id: string;
+  order_number: string;
+  customer_name: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+  delivery_date: string;
+  items_count: number;
+}
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [orders] = useState(mockOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          customer:customers(name),
+          order_items(id)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedOrders = data?.map(order => ({
+        id: order.id,
+        order_number: order.order_number,
+        customer_name: order.customer?.name || 'Cliente não encontrado',
+        status: order.status,
+        total_amount: order.total_amount,
+        created_at: order.created_at,
+        delivery_date: order.delivery_date,
+        items_count: order.order_items?.length || 0
+      })) || [];
+
+      setOrders(formattedOrders);
+    } catch (error: any) {
+      console.error('Erro ao buscar pedidos:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os pedidos.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const filteredOrders = orders.filter(order =>
-    order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customerName.toLowerCase().includes(searchTerm.toLowerCase())
+    order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.customer_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusColor = (status: string) => {
@@ -98,8 +121,17 @@ const Orders = () => {
   // Calculate stats
   const totalOrders = orders.length;
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
-  const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
   const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-3 text-muted-foreground">Carregando pedidos...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
@@ -114,9 +146,7 @@ const Orders = () => {
           { icon: DollarSign, text: `Receita: ${formatCurrency(totalRevenue)}` }
         ]}
         actions={
-          <Button
-            className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto"
-          >
+          <Button className="btn-gradient">
             <Plus className="mr-2 h-4 w-4" />
             Novo Pedido
           </Button>
@@ -125,7 +155,7 @@ const Orders = () => {
 
       {/* Estatísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
+        <Card className="stats-card bg-gradient-to-br from-blue-50 to-blue-100">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-blue-700">Total de Pedidos</CardTitle>
             <ShoppingCart className="h-4 w-4 text-blue-600" />
@@ -136,7 +166,7 @@ const Orders = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-yellow-50 to-yellow-100">
+        <Card className="stats-card bg-gradient-to-br from-yellow-50 to-yellow-100">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-yellow-700">Pedidos Pendentes</CardTitle>
             <Clock className="h-4 w-4 text-yellow-600" />
@@ -147,7 +177,7 @@ const Orders = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100">
+        <Card className="stats-card bg-gradient-to-br from-green-50 to-green-100">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-green-700">Receita Total</CardTitle>
             <DollarSign className="h-4 w-4 text-green-600" />
@@ -158,7 +188,7 @@ const Orders = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100">
+        <Card className="stats-card bg-gradient-to-br from-purple-50 to-purple-100">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-purple-700">Ticket Médio</CardTitle>
             <DollarSign className="h-4 w-4 text-purple-600" />
@@ -177,12 +207,12 @@ const Orders = () => {
           placeholder="Buscar por número do pedido ou cliente..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full sm:max-w-sm"
+          className="w-full sm:max-w-sm input-focus"
         />
       </div>
 
       {/* Lista de Pedidos */}
-      <Card className="shadow-lg">
+      <Card className="custom-card">
         <CardHeader>
           <CardTitle className="text-xl">Lista de Pedidos</CardTitle>
         </CardHeader>
@@ -194,6 +224,12 @@ const Orders = () => {
               <p className="text-muted-foreground">
                 {searchTerm ? "Tente alterar os termos de busca" : "Comece criando seu primeiro pedido"}
               </p>
+              {!searchTerm && (
+                <Button className="mt-4 btn-gradient">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Criar Primeiro Pedido
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -215,29 +251,29 @@ const Orders = () => {
                     const StatusIcon = getStatusIcon(order.status);
                     return (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                        <TableCell>{order.customerName}</TableCell>
+                        <TableCell className="font-medium">{order.order_number}</TableCell>
+                        <TableCell>{order.customer_name}</TableCell>
                         <TableCell>
-                          <Badge className={`${getStatusColor(order.status)} flex items-center gap-1 w-fit`}>
+                          <Badge className={`${getStatusColor(order.status)} flex items-center gap-1 w-fit rounded-full`}>
                             <StatusIcon className="h-3 w-3" />
                             {getStatusText(order.status)}
                           </Badge>
                         </TableCell>
-                        <TableCell>{order.items} itens</TableCell>
+                        <TableCell>{order.items_count} itens</TableCell>
                         <TableCell className="font-semibold text-green-600">
-                          {formatCurrency(order.totalAmount)}
+                          {formatCurrency(order.total_amount)}
                         </TableCell>
-                        <TableCell>{formatDate(order.createdAt)}</TableCell>
-                        <TableCell>{formatDate(order.deliveryDate)}</TableCell>
+                        <TableCell>{formatDate(order.created_at)}</TableCell>
+                        <TableCell>{formatDate(order.delivery_date)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end space-x-2">
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" className="rounded-full">
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" className="rounded-full">
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700">
+                            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 rounded-full">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
