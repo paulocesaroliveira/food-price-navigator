@@ -1,16 +1,20 @@
+
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Trash2, ChefHat, DollarSign, Settings } from "lucide-react";
+import { Plus, Search, ChefHat, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import RecipeForm from "@/components/recipes/RecipeForm";
 import { createRecipe, updateRecipe, deleteRecipe } from "@/services/recipeService";
 import { RecipeCategoryManager } from "@/components/recipes/RecipeCategoryManager";
+import { RecipesGrid } from "@/components/recipes/RecipesGrid";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { usePagination } from "@/hooks/usePagination";
+import { useLoadingStates } from "@/hooks/useLoadingStates";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface Recipe {
   id: string;
@@ -32,6 +36,7 @@ const Recipes = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const queryClient = useQueryClient();
+  const { isLoading: isActionLoading, withLoading } = useLoadingStates();
 
   const { data: recipes = [], isLoading } = useQuery({
     queryKey: ['recipes'],
@@ -120,24 +125,38 @@ const Recipes = () => {
     recipe.category?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const {
+    currentPage,
+    totalPages,
+    paginatedData: paginatedRecipes,
+    goToPage,
+    hasNextPage,
+    hasPreviousPage,
+    totalItems,
+    startIndex,
+    endIndex
+  } = usePagination({ data: filteredRecipes, itemsPerPage: 12 });
+
   const handleDelete = async (id: string) => {
-    try {
-      await deleteRecipe(id);
+    await withLoading(`delete-${id}`, async () => {
+      try {
+        await deleteRecipe(id);
 
-      toast({
-        title: "Receita excluída",
-        description: "A receita foi excluída com sucesso",
-      });
+        toast({
+          title: "Receita excluída",
+          description: "A receita foi excluída com sucesso",
+        });
 
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
-    } catch (error: any) {
-      console.error("Erro ao excluir receita:", error.message);
-      toast({
-        title: "Erro",
-        description: "Não foi possível excluir a receita",
-        variant: "destructive",
-      });
-    }
+        queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      } catch (error: any) {
+        console.error("Erro ao excluir receita:", error.message);
+        toast({
+          title: "Erro",
+          description: "Não foi possível excluir a receita",
+          variant: "destructive",
+        });
+      }
+    });
   };
 
   const handleFormClose = () => {
@@ -146,33 +165,35 @@ const Recipes = () => {
   };
 
   const handleFormSubmit = async (data: any) => {
-    try {
-      console.log("Salvando receita com dados:", data);
-      
-      if (editingRecipe) {
-        await updateRecipe(editingRecipe.id, data);
-      } else {
-        await createRecipe(data);
-      }
+    await withLoading('save-recipe', async () => {
+      try {
+        console.log("Salvando receita com dados:", data);
+        
+        if (editingRecipe) {
+          await updateRecipe(editingRecipe.id, data);
+        } else {
+          await createRecipe(data);
+        }
 
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      
-      toast({
-        title: "Receita salva",
-        description: "A receita foi salva com sucesso",
-      });
-      
-      handleFormClose();
-    } catch (error: any) {
-      console.error("Erro ao salvar receita:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar a receita",
-        variant: "destructive",
-      });
-      throw error;
-    }
+        queryClient.invalidateQueries({ queryKey: ['recipes'] });
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+        
+        toast({
+          title: "Receita salva",
+          description: "A receita foi salva com sucesso",
+        });
+        
+        handleFormClose();
+      } catch (error: any) {
+        console.error("Erro ao salvar receita:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível salvar a receita",
+          variant: "destructive",
+        });
+        throw error;
+      }
+    });
   };
 
   const handleEdit = (recipe: Recipe) => {
@@ -185,17 +206,17 @@ const Recipes = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Receitas</h1>
-        <div className="flex gap-2">
+    <div className="space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold">Receitas</h1>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <RecipeCategoryManager 
             categories={categories}
             onCategoriesChange={handleCategoriesChange}
           />
           <Button
             onClick={() => setShowForm(true)}
-            className="bg-food-coral hover:bg-food-coral/90 text-white dark:bg-food-coralDark dark:hover:bg-food-coralDark/90"
+            className="bg-food-coral hover:bg-food-coral/90 text-white dark:bg-food-coralDark dark:hover:bg-food-coralDark/90 w-full sm:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
             Nova Receita
@@ -204,7 +225,7 @@ const Recipes = () => {
       </div>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Receitas</CardTitle>
@@ -233,7 +254,7 @@ const Recipes = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="sm:col-span-2 lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Porções</CardTitle>
             <ChefHat className="h-4 w-4 text-muted-foreground" />
@@ -251,104 +272,37 @@ const Recipes = () => {
 
       {/* Busca */}
       <div className="flex items-center space-x-2">
-        <Search className="h-4 w-4 text-gray-400" />
+        <Search className="h-4 w-4 text-gray-400 shrink-0" />
         <Input
           placeholder="Buscar por nome, categoria ou observações..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
+          className="w-full sm:max-w-sm"
         />
+        {isLoading && <LoadingSpinner size="sm" />}
       </div>
 
       {/* Lista de receitas */}
-      <div className="grid gap-4">
-        {isLoading ? (
-          <div className="text-center py-8">Carregando receitas...</div>
-        ) : filteredRecipes.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <p className="text-gray-500">
-                {searchTerm ? "Nenhuma receita encontrada para sua busca." : "Nenhuma receita cadastrada ainda."}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredRecipes.map((recipe) => {
-              console.log(`Displaying recipe ${recipe.name}: total_cost=${recipe.total_cost}, unit_cost=${recipe.unit_cost}`);
-              
-              return (
-                <Card key={recipe.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">{recipe.name}</CardTitle>
-                        <CardDescription>
-                          {recipe.portions} {recipe.portions === 1 ? 'porção' : 'porções'}
-                        </CardDescription>
-                      </div>
-                      {recipe.category && (
-                        <Badge variant="secondary">
-                          {recipe.category.name}
-                        </Badge>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Custo Total</p>
-                        <p className="font-semibold">R$ {recipe.total_cost.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Custo por Porção</p>
-                        <p className="font-semibold">R$ {recipe.unit_cost.toFixed(2)}</p>
-                      </div>
-                    </div>
-                    
-                    {recipe.notes && (
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.notes}</p>
-                    )}
-                    
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(recipe)}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja excluir a receita "{recipe.name}"? Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(recipe.id)}>
-                              Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <RecipesGrid
+        recipes={paginatedRecipes}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        isLoading={isLoading}
+        searchTerm={searchTerm}
+        deletingRecipeId={isActionLoading('delete-') ? Object.keys(isActionLoading).find(key => key.startsWith('delete-') && isActionLoading(key))?.replace('delete-', '') : undefined}
+      />
+
+      {/* Paginação */}
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={goToPage}
+        hasNextPage={hasNextPage}
+        hasPreviousPage={hasPreviousPage}
+        totalItems={totalItems}
+        startIndex={startIndex}
+        endIndex={endIndex}
+      />
 
       <RecipeForm
         open={showForm || !!editingRecipe}
@@ -357,6 +311,7 @@ const Recipes = () => {
         editingRecipe={editingRecipe}
         categories={categories}
         ingredients={ingredients}
+        isLoading={isActionLoading('save-recipe')}
       />
     </div>
   );
