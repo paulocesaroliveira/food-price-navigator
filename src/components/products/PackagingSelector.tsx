@@ -13,10 +13,10 @@ import { Badge } from "@/components/ui/badge";
 interface PackagingSelectorProps {
   packaging: Packaging[];
   selectedItems: Array<{
-    packagingId: string;
-    quantity: number;
-    cost: number;
-    isPrimary: boolean;
+    packagingId?: string;
+    quantity?: number;
+    cost?: number;
+    isPrimary?: boolean;
   }>;
   onItemChange: (index: number, field: string, value: any) => void;
   onRemoveItem: (index: number) => void;
@@ -76,7 +76,7 @@ export const PackagingSelector = ({
                     <div className="col-span-5">
                       <Label className="text-sm text-muted-foreground">Embalagem</Label>
                       <Select
-                        value={item.packagingId}
+                        value={item.packagingId || ""}
                         onValueChange={(value) => onItemChange(index, 'packagingId', value)}
                       >
                         <SelectTrigger>
@@ -102,7 +102,7 @@ export const PackagingSelector = ({
                       <Input
                         type="number"
                         min="1"
-                        value={item.quantity}
+                        value={item.quantity || 1}
                         onChange={(e) => onItemChange(index, 'quantity', Number(e.target.value))}
                       />
                     </div>
@@ -110,7 +110,7 @@ export const PackagingSelector = ({
                     <div className="col-span-2">
                       <Label className="text-sm text-muted-foreground">Custo</Label>
                       <div className="text-sm font-medium text-green-600">
-                        {formatCurrency(item.cost)}
+                        {formatCurrency(item.cost || 0)}
                       </div>
                     </div>
 

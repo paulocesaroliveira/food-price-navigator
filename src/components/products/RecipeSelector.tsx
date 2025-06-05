@@ -12,9 +12,9 @@ import { Trash2, FileText } from "lucide-react";
 interface RecipeSelectorProps {
   recipes: Recipe[];
   selectedItems: Array<{
-    recipeId: string;
-    quantity: number;
-    cost: number;
+    recipeId?: string;
+    quantity?: number;
+    cost?: number;
   }>;
   onItemChange: (index: number, field: string, value: any) => void;
   onRemoveItem: (index: number) => void;
@@ -63,7 +63,7 @@ export const RecipeSelector = ({
                     <div className="col-span-6">
                       <Label className="text-sm text-muted-foreground">Receita</Label>
                       <Select
-                        value={item.recipeId}
+                        value={item.recipeId || ""}
                         onValueChange={(value) => onItemChange(index, 'recipeId', value)}
                       >
                         <SelectTrigger>
@@ -89,7 +89,7 @@ export const RecipeSelector = ({
                       <Input
                         type="number"
                         min="1"
-                        value={item.quantity}
+                        value={item.quantity || 1}
                         onChange={(e) => onItemChange(index, 'quantity', Number(e.target.value))}
                       />
                     </div>
@@ -97,7 +97,7 @@ export const RecipeSelector = ({
                     <div className="col-span-2">
                       <Label className="text-sm text-muted-foreground">Custo</Label>
                       <div className="text-sm font-medium text-green-600">
-                        {formatCurrency(item.cost)}
+                        {formatCurrency(item.cost || 0)}
                       </div>
                     </div>
 
