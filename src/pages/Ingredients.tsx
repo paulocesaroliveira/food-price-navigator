@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,10 +24,28 @@ import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import ImageUpload from "@/components/ingredients/ImageUpload";
-import CategoryDialog from "@/components/ingredients/CategoryDialog";
-import IngredientForm from "@/components/ingredients/IngredientForm";
+import { ImageUpload } from "@/components/ingredients/ImageUpload";
+import { CategoryDialog } from "@/components/ingredients/CategoryDialog";
+import { IngredientForm } from "@/components/ingredients/IngredientForm";
 import SEOHead from "@/components/SEOHead";
+
+interface DatabaseIngredient {
+  id: string;
+  created_at: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+  unit_cost: number;
+  unit: string;
+  category_id?: string;
+  supplier?: string;
+  notes?: string;
+  user_id: string;
+  brand: string;
+  package_quantity: number;
+  package_price: number;
+  updated_at: string;
+}
 
 interface Ingredient {
   id: string;
@@ -56,24 +75,41 @@ const Ingredients = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
-  const [editingIngredient, setEditingIngredient] = useState(null);
+  const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
 
   const queryClient = useQueryClient();
 
-  const { data: ingredients, isLoading } = useQuery({
+  const { data: ingredientsRaw, isLoading } = useQuery({
     queryKey: ['ingredients', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
         .from('ingredients')
-        .select('*')
+        .select(`
+          *,
+          ingredient_categories(name)
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as Ingredient[];
+      return data as (DatabaseIngredient & { ingredient_categories?: { name: string } })[];
     },
     enabled: !!user?.id,
   });
+
+  const ingredients: Ingredient[] = ingredientsRaw?.map(item => ({
+    id: item.id,
+    created_at: item.created_at,
+    name: item.name,
+    description: item.notes,
+    image_url: item.image_url,
+    cost: item.unit_cost,
+    unit: item.unit,
+    category: item.ingredient_categories?.name || 'Sem categoria',
+    supplier: item.supplier,
+    notes: item.notes,
+    user_id: item.user_id
+  })) || [];
 
   const { data: categories, isLoading: loadingCategories } = useQuery({
     queryKey: ['categories', user?.id],
@@ -91,15 +127,42 @@ const Ingredients = () => {
   });
 
   const createIngredientMutation = useMutation({
-    mutationFn: async (newIngredient: Omit<Ingredient, 'id' | 'created_at' | 'user_id'>) => {
+    mutationFn: async (newIngredient: { 
+      name: string; 
+      description?: string; 
+      image_url?: string; 
+      cost: number; 
+      unit: string; 
+      category: string; 
+      supplier?: string; 
+      notes?: string; 
+    }) => {
       if (!user?.id) throw new Error("User not authenticated");
+      
+      // Find category_id by name
+      const category = categories?.find(c => c.name === newIngredient.category);
+      
+      const ingredientData = {
+        name: newIngredient.name,
+        notes: newIngredient.notes || newIngredient.description,
+        image_url: newIngredient.image_url,
+        unit_cost: newIngredient.cost,
+        unit: newIngredient.unit,
+        category_id: category?.id,
+        supplier: newIngredient.supplier,
+        user_id: user.id,
+        brand: newIngredient.supplier || 'Sem marca',
+        package_quantity: 1,
+        package_price: newIngredient.cost
+      };
+
       const { data, error } = await supabase
         .from('ingredients')
-        .insert([{ ...newIngredient, user_id: user.id }])
+        .insert([ingredientData])
         .select()
         .single();
       if (error) throw error;
-      return data as Ingredient;
+      return data as DatabaseIngredient;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredients', user?.id] });
@@ -113,14 +176,30 @@ const Ingredients = () => {
 
   const updateIngredientMutation = useMutation({
     mutationFn: async (updatedIngredient: Ingredient) => {
+      // Find category_id by name
+      const category = categories?.find(c => c.name === updatedIngredient.category);
+      
+      const ingredientData = {
+        name: updatedIngredient.name,
+        notes: updatedIngredient.notes || updatedIngredient.description,
+        image_url: updatedIngredient.image_url,
+        unit_cost: updatedIngredient.cost,
+        unit: updatedIngredient.unit,
+        category_id: category?.id,
+        supplier: updatedIngredient.supplier,
+        brand: updatedIngredient.supplier || 'Sem marca',
+        package_quantity: 1,
+        package_price: updatedIngredient.cost
+      };
+
       const { data, error } = await supabase
         .from('ingredients')
-        .update(updatedIngredient)
+        .update(ingredientData)
         .eq('id', updatedIngredient.id)
         .select()
         .single();
       if (error) throw error;
-      return data as Ingredient;
+      return data as DatabaseIngredient;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredients', user?.id] });
@@ -215,19 +294,17 @@ const Ingredients = () => {
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                   <Button 
                     onClick={() => setShowCategoryDialog(true)}
-                    className="gap-2 bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-white/30 h-8 sm:h-10 lg:h-12 text-xs sm:text-sm"
+                    className="gap-2 bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-white/30 h-10 sm:h-10 lg:h-12 text-xs sm:text-sm px-3 sm:px-4"
                   >
                     <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">Categorias</span>
-                    <span className="sm:hidden">Cat.</span>
+                    <span>Categorias</span>
                   </Button>
                   <Button 
                     onClick={() => setShowForm(true)}
-                    className="gap-2 bg-white text-emerald-600 hover:bg-emerald-50 h-8 sm:h-10 lg:h-12 text-xs sm:text-sm"
+                    className="gap-2 bg-white text-emerald-600 hover:bg-emerald-50 h-10 sm:h-10 lg:h-12 text-xs sm:text-sm px-3 sm:px-4"
                   >
                     <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">Novo Ingrediente</span>
-                    <span className="sm:hidden">Novo</span>
+                    <span>Novo Ingrediente</span>
                   </Button>
                 </div>
               </div>
@@ -349,10 +426,10 @@ const Ingredients = () => {
                             <p className="text-gray-500 text-xs">por {ingredient.unit}</p>
                           </div>
                           <div className="flex gap-2">
-                            <Button size="icon" variant="outline" onClick={() => handleEdit(ingredient)} className="border-gray-300 hover:bg-gray-50">
+                            <Button size="icon" variant="outline" onClick={() => handleEdit(ingredient)} className="border-gray-300 hover:bg-gray-50 h-8 w-8">
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button size="icon" variant="outline" onClick={() => handleDelete(ingredient.id)} className="text-red-600 border-red-300 hover:bg-red-50">
+                            <Button size="icon" variant="outline" onClick={() => handleDelete(ingredient.id)} className="text-red-600 border-red-300 hover:bg-red-50 h-8 w-8">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -397,7 +474,7 @@ const Ingredients = () => {
       <CategoryDialog
         open={showCategoryDialog}
         onOpenChange={setShowCategoryDialog}
-        onCategoryCreated={() => {
+        onCategoriesChange={() => {
           queryClient.invalidateQueries({ queryKey: ['categories', user?.id] });
         }}
       />
