@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -332,7 +331,19 @@ const Products = () => {
       {/* Formulários e Dialogs */}
       {showForm && (
         <ProductForm
-          product={editingProduct}
+          product={editingProduct ? {
+            id: editingProduct.id,
+            name: editingProduct.name,
+            categoryId: editingProduct.category_id,
+            category: editingProduct.category,
+            items: [],
+            packagingId: editingProduct.packaging_id,
+            packagingCost: 0,
+            packagingItems: [],
+            totalCost: editingProduct.total_cost,
+            sellingPrice: editingProduct.selling_price,
+            imageUrl: editingProduct.image_url
+          } : undefined}
           onSubmit={async (data) => {
             console.log('Form submitted:', data);
             setShowForm(false);
@@ -343,6 +354,9 @@ const Products = () => {
             setShowForm(false);
             setEditingProduct(null);
           }}
+          categories={[]}
+          recipes={[]}
+          packaging={[]}
         />
       )}
 
