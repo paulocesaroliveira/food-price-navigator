@@ -1,5 +1,22 @@
 
-import { Home, Package2, Beaker, ChefHat, Package, Calculator, ShoppingCart, DollarSign, Users, FileText, CreditCard, BarChart3, TrendingUp, Repeat, Settings, RefreshCw } from "lucide-react"
+import { 
+  Home, 
+  Package2, 
+  Beaker, 
+  ChefHat, 
+  Package, 
+  Calculator, 
+  ShoppingCart, 
+  DollarSign, 
+  Users, 
+  FileText, 
+  CreditCard, 
+  BarChart3, 
+  TrendingUp, 
+  Repeat, 
+  Settings, 
+  RefreshCw 
+} from "lucide-react"
 
 import {
   Sidebar,
@@ -10,112 +27,170 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar"
 import { Link, useLocation } from "react-router-dom"
 
-// Menu items.
-const items = [
+// Menu items organizados por grupos
+const menuGroups = [
   {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: Home,
+    label: "Dashboard",
+    items: [
+      {
+        title: "Visão Geral",
+        url: "/dashboard",
+        icon: Home,
+      }
+    ]
   },
   {
-    title: "Ingredientes",
-    url: "/ingredients",
-    icon: Beaker,
+    label: "Produção",
+    items: [
+      {
+        title: "Ingredientes",
+        url: "/ingredients",
+        icon: Beaker,
+      },
+      {
+        title: "Receitas",
+        url: "/recipes",
+        icon: ChefHat,
+      },
+      {
+        title: "Embalagens",
+        url: "/packaging",
+        icon: Package2,
+      },
+      {
+        title: "Produtos",
+        url: "/products",
+        icon: Package,
+      },
+      {
+        title: "Precificação",
+        url: "/pricing",
+        icon: Calculator,
+      }
+    ]
   },
   {
-    title: "Receitas",
-    url: "/recipes",
-    icon: ChefHat,
+    label: "Vendas & Pedidos",
+    items: [
+      {
+        title: "Pedidos",
+        url: "/orders",
+        icon: ShoppingCart,
+      },
+      {
+        title: "Vendas",
+        url: "/sales",
+        icon: DollarSign,
+      },
+      {
+        title: "Revenda",
+        url: "/resale",
+        icon: Repeat,
+      },
+      {
+        title: "Clientes",
+        url: "/customers",
+        icon: Users,
+      }
+    ]
   },
   {
-    title: "Embalagens",
-    url: "/packaging",
-    icon: Package2,
+    label: "Financeiro",
+    items: [
+      {
+        title: "Contas a Pagar",
+        url: "/accounts-payable",
+        icon: CreditCard,
+      },
+      {
+        title: "Fluxo de Caixa",
+        url: "/fluxo-caixa",
+        icon: TrendingUp,
+      }
+    ]
   },
   {
-    title: "Produtos",
-    url: "/products",
-    icon: Package,
+    label: "Relatórios & Ferramentas",
+    items: [
+      {
+        title: "Relatórios",
+        url: "/relatorios",
+        icon: BarChart3,
+      },
+      {
+        title: "Atualizar Custos",
+        url: "/cost-update",
+        icon: RefreshCw,
+      }
+    ]
   },
   {
-    title: "Precificação",
-    url: "/pricing",
-    icon: Calculator,
-  },
-  {
-    title: "Pedidos",
-    url: "/orders",
-    icon: ShoppingCart,
-  },
-  {
-    title: "Vendas",
-    url: "/sales",
-    icon: DollarSign,
-  },
-  {
-    title: "Revenda",
-    url: "/resale",
-    icon: Repeat,
-  },
-  {
-    title: "Clientes",
-    url: "/customers",
-    icon: Users,
-  },
-  {
-    title: "Contas a Pagar",
-    url: "/accounts-payable",
-    icon: CreditCard,
-  },
-  {
-    title: "Relatórios",
-    url: "/relatorios",
-    icon: BarChart3,
-  },
-  {
-    title: "Fluxo de Caixa",
-    url: "/fluxo-caixa",
-    icon: TrendingUp,
-  },
-  {
-    title: "Atualizar Custos",
-    url: "/cost-update",
-    icon: RefreshCw,
-  },
-  {
-    title: "Configurações",
-    url: "/settings",
-    icon: Settings,
-  },
+    label: "Configurações",
+    items: [
+      {
+        title: "Configurações",
+        url: "/settings",
+        icon: Settings,
+      }
+    ]
+  }
 ]
 
 export function AppSidebar() {
   const location = useLocation()
 
   return (
-    <Sidebar>
+    <Sidebar className="border-r">
+      <SidebarHeader className="border-b">
+        <div className="flex items-center gap-3 px-4 py-4">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <Package className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">TastyHub</h1>
+            <p className="text-xs text-gray-500">Sistema de Gestão</p>
+          </div>
+        </div>
+      </SidebarHeader>
+      
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Gestão Culinária</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
-                    <Link to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {menuGroups.map((group, groupIndex) => (
+          <SidebarGroup key={groupIndex}>
+            <SidebarGroupLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location.pathname === item.url}
+                      className="h-10"
+                    >
+                      <Link to={item.url} className="flex items-center gap-3">
+                        <item.icon className="h-4 w-4" />
+                        <span className="font-medium">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
+      
+      <SidebarFooter className="border-t">
+        <div className="px-4 py-3 text-xs text-gray-500">
+          <p>&copy; 2024 TastyHub</p>
+        </div>
+      </SidebarFooter>
     </Sidebar>
   )
 }

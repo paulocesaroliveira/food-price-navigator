@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -25,8 +24,9 @@ import { RecipeSelector } from "./RecipeSelector";
 import { PackagingSelector } from "./PackagingSelector";
 import { ProductCostSummary } from "./ProductCostSummary";
 import { Product, ProductCategory, Recipe, Packaging } from "@/types";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
 
 const productSchema = z.object({
   name: z.string().min(2, { message: "Nome é obrigatório" }),
@@ -62,6 +62,7 @@ export const ProductForm = ({
   recipes,
   packaging,
 }: ProductFormProps) => {
+  const { user } = useAuth();
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -187,7 +188,12 @@ export const ProductForm = ({
   };
 
   const handleFormSubmit = async (values: z.infer<typeof productSchema>) => {
-    onSubmit(values);
+    // Garantir que o user_id seja incluído nos dados
+    const productData = {
+      ...values,
+      userId: user?.id, // Adicionar user_id do usuário autenticado
+    };
+    onSubmit(productData);
   };
 
   return (
