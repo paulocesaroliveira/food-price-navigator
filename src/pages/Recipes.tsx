@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -311,7 +310,6 @@ const Recipes = () => {
         editingRecipe={editingRecipe}
         categories={categories}
         ingredients={ingredients}
-        isLoading={isActionLoading('save-recipe')}
       />
     </div>
   );
