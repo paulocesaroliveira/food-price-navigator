@@ -264,7 +264,7 @@ const Recipes = () => {
       {showCategoryDialog && (
         <RecipeCategoryDialog
           open={showCategoryDialog}
-          onOpenChange={setShowCategoryDialog}
+          onClose={() => setShowCategoryDialog(false)}
         />
       )}
     </div>
