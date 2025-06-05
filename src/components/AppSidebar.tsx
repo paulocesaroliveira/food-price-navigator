@@ -17,7 +17,8 @@ import {
   Settings, 
   RefreshCw,
   Store,
-  HelpCircle
+  HelpCircle,
+  Shield
 } from "lucide-react"
 
 import {
@@ -37,120 +38,6 @@ import { useAuth } from "@/hooks/useAuth"
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AvatarUpload from "@/components/ui/avatar-upload";
-
-// Menu items organizados por grupos
-const menuGroups = [
-  {
-    label: "Dashboard",
-    items: [
-      {
-        title: "Visão Geral",
-        url: "/dashboard",
-        icon: Home,
-      }
-    ]
-  },
-  {
-    label: "Produção",
-    items: [
-      {
-        title: "Ingredientes",
-        url: "/ingredients",
-        icon: Beaker,
-      },
-      {
-        title: "Receitas",
-        url: "/recipes",
-        icon: ChefHat,
-      },
-      {
-        title: "Embalagens",
-        url: "/packaging",
-        icon: Package2,
-      },
-      {
-        title: "Produtos",
-        url: "/products",
-        icon: Package,
-      },
-      {
-        title: "Precificação",
-        url: "/pricing",
-        icon: Calculator,
-      }
-    ]
-  },
-  {
-    label: "Vendas & Pedidos",
-    items: [
-      {
-        title: "Pedidos",
-        url: "/orders",
-        icon: ShoppingCart,
-      },
-      {
-        title: "Vendas",
-        url: "/sales",
-        icon: DollarSign,
-      },
-      {
-        title: "Revenda",
-        url: "/resale",
-        icon: Repeat,
-      },
-      {
-        title: "Clientes",
-        url: "/customers",
-        icon: Users,
-      }
-    ]
-  },
-  {
-    label: "Financeiro",
-    items: [
-      {
-        title: "Contas a Pagar",
-        url: "/accounts-payable",
-        icon: CreditCard,
-      },
-      {
-        title: "Fluxo de Caixa",
-        url: "/fluxo-caixa",
-        icon: TrendingUp,
-      }
-    ]
-  },
-  {
-    label: "Relatórios & Ferramentas",
-    items: [
-      {
-        title: "Relatórios",
-        url: "/relatorios",
-        icon: BarChart3,
-      },
-      {
-        title: "Atualizar Custos",
-        url: "/cost-update",
-        icon: RefreshCw,
-      }
-    ]
-  },
-  {
-    label: "Configurações",
-    items: [
-      {
-        title: "Configurações",
-        url: "/settings",
-        icon: Settings,
-      },
-      {
-        title: "Ajuda",
-        url: "/help",
-        icon: HelpCircle,
-      }
-    ]
-  }
-]
 
 export function AppSidebar() {
   const location = useLocation()
@@ -173,6 +60,129 @@ export function AppSidebar() {
 
   const storeName = profile?.store_name || 'TastyHub';
 
+  // Verificar se o usuário é admin
+  const isAdmin = user?.email === 'doceteriadafer@gmail.com';
+
+  // Menu items organizados por grupos
+  const menuGroups = [
+    {
+      label: "Dashboard",
+      items: [
+        {
+          title: "Visão Geral",
+          url: "/dashboard",
+          icon: Home,
+        },
+        // Mostrar página Admin apenas para o usuário específico
+        ...(isAdmin ? [{
+          title: "Admin",
+          url: "/admin",
+          icon: Shield,
+        }] : [])
+      ]
+    },
+    {
+      label: "Produção",
+      items: [
+        {
+          title: "Ingredientes",
+          url: "/ingredients",
+          icon: Beaker,
+        },
+        {
+          title: "Receitas",
+          url: "/recipes",
+          icon: ChefHat,
+        },
+        {
+          title: "Embalagens",
+          url: "/packaging",
+          icon: Package2,
+        },
+        {
+          title: "Produtos",
+          url: "/products",
+          icon: Package,
+        },
+        {
+          title: "Precificação",
+          url: "/pricing",
+          icon: Calculator,
+        }
+      ]
+    },
+    {
+      label: "Vendas & Pedidos",
+      items: [
+        {
+          title: "Pedidos",
+          url: "/orders",
+          icon: ShoppingCart,
+        },
+        {
+          title: "Vendas",
+          url: "/sales",
+          icon: DollarSign,
+        },
+        {
+          title: "Revenda",
+          url: "/resale",
+          icon: Repeat,
+        },
+        {
+          title: "Clientes",
+          url: "/customers",
+          icon: Users,
+        }
+      ]
+    },
+    {
+      label: "Financeiro",
+      items: [
+        {
+          title: "Contas a Pagar",
+          url: "/accounts-payable",
+          icon: CreditCard,
+        },
+        {
+          title: "Fluxo de Caixa",
+          url: "/fluxo-caixa",
+          icon: TrendingUp,
+        }
+      ]
+    },
+    {
+      label: "Relatórios & Ferramentas",
+      items: [
+        {
+          title: "Relatórios",
+          url: "/relatorios",
+          icon: BarChart3,
+        },
+        {
+          title: "Atualizar Custos",
+          url: "/cost-update",
+          icon: RefreshCw,
+        }
+      ]
+    },
+    {
+      label: "Configurações",
+      items: [
+        {
+          title: "Configurações",
+          url: "/settings",
+          icon: Settings,
+        },
+        {
+          title: "Ajuda",
+          url: "/help",
+          icon: HelpCircle,
+        }
+      ]
+    }
+  ]
+
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="border-b bg-gradient-to-r from-blue-50 to-purple-50">
@@ -187,6 +197,12 @@ export function AppSidebar() {
             <p className="text-xs text-gray-600 truncate" title={user?.email || ''}>
               {user?.email || 'Usuário não logado'}
             </p>
+            {isAdmin && (
+              <div className="flex items-center gap-1 mt-1">
+                <Shield className="h-3 w-3 text-red-500" />
+                <span className="text-xs text-red-600 font-medium">Admin</span>
+              </div>
+            )}
           </div>
         </div>
       </SidebarHeader>
@@ -209,6 +225,9 @@ export function AppSidebar() {
                       <Link to={item.url} className="flex items-center gap-3 px-3">
                         <item.icon className="h-4 w-4 flex-shrink-0" />
                         <span className="font-medium truncate">{item.title}</span>
+                        {item.title === "Admin" && (
+                          <Shield className="h-3 w-3 text-red-400" />
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

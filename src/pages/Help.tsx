@@ -97,7 +97,7 @@ const Help = () => {
         ]}
         actions={
           <Button 
-            className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 shadow-lg"
+            className="bg-white text-indigo-600 hover:bg-indigo-50 border-white shadow-lg"
             onClick={() => window.open('mailto:suporte@tastyhub.com')}
           >
             <Mail className="mr-2 h-4 w-4" />
@@ -131,7 +131,7 @@ const Help = () => {
       </div>
 
       {/* FAQ */}
-      <Card className="custom-card">
+      <Card className="border-0 shadow-lg">
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
@@ -152,7 +152,7 @@ const Help = () => {
 
       {/* Contatos de Suporte */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="text-center hover:shadow-lg transition-shadow">
+        <Card className="text-center hover:shadow-lg transition-shadow border-0 shadow-lg">
           <CardContent className="p-6">
             <Mail className="h-8 w-8 mx-auto mb-3 text-blue-600" />
             <h3 className="font-medium mb-2">Email</h3>
@@ -164,7 +164,7 @@ const Help = () => {
           </CardContent>
         </Card>
 
-        <Card className="text-center hover:shadow-lg transition-shadow">
+        <Card className="text-center hover:shadow-lg transition-shadow border-0 shadow-lg">
           <CardContent className="p-6">
             <MessageCircle className="h-8 w-8 mx-auto mb-3 text-green-600" />
             <h3 className="font-medium mb-2">Chat Online</h3>
@@ -176,7 +176,7 @@ const Help = () => {
           </CardContent>
         </Card>
 
-        <Card className="text-center hover:shadow-lg transition-shadow">
+        <Card className="text-center hover:shadow-lg transition-shadow border-0 shadow-lg">
           <CardContent className="p-6">
             <Phone className="h-8 w-8 mx-auto mb-3 text-purple-600" />
             <h3 className="font-medium mb-2">Telefone</h3>
@@ -190,7 +190,7 @@ const Help = () => {
       </div>
 
       {/* Recursos Adicionais */}
-      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-lg">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
             <Video className="h-8 w-8 text-blue-600 flex-shrink-0 mt-1" />
