@@ -93,7 +93,7 @@ const themeStyles = {
     '--secondary': '173 58% 47%',     // #3CBFB0 teal light
     '--background': '222.2 84% 4.9%', // dark background
     '--foreground': '210 40% 98%',    // light text
-    '--card': '222.2 84% 8%',         // slightly lighter dark
+    '--card': '222.2 84% 11%',        // lighter dark for cards
     '--muted': '215 27.9% 16.9%',     // dark muted
     '--accent': '215 27.9% 19%',      // dark accent
     '--border': '215 27.9% 16.9%',    // dark border
@@ -104,7 +104,7 @@ const themeStyles = {
     '--secondary-foreground': '210 40% 98%',
     '--muted-foreground': '215.4 16.3% 56%',
     '--accent-foreground': '210 40% 98%',
-    '--popover': '222.2 84% 8%',
+    '--popover': '222.2 84% 11%',
     '--popover-foreground': '210 40% 98%',
     '--card-foreground': '210 40% 98%',
     '--input': '215 27.9% 16.9%'
@@ -124,8 +124,8 @@ export const useTheme = () => {
     const root = document.documentElement;
     const styles = themeStyles[newTheme];
     
-    // Remove dark class for all themes
-    root.classList.remove('dark');
+    // Remove all theme classes
+    root.classList.remove('dark', 'theme-light', 'theme-coral', 'theme-mint', 'theme-amber', 'theme-dark');
     
     // Add dark class only for dark theme
     if (newTheme === 'dark') {
@@ -138,7 +138,6 @@ export const useTheme = () => {
     });
 
     // Apply theme-specific body class for background
-    root.classList.remove('theme-light', 'theme-coral', 'theme-mint', 'theme-amber', 'theme-dark');
     root.classList.add(`theme-${newTheme}`);
 
     // Force a repaint to ensure styles are applied

@@ -1,528 +1,371 @@
-import React, { useState, useEffect } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { PlusCircle, Search, Edit, Trash, Package, RefreshCw, Settings, DollarSign, ShoppingCart } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "@/hooks/use-toast";
-import { formatCurrency } from "@/utils/calculations";
-import { Product, Recipe, Packaging, ProductCategory } from "@/types";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle
-} from "@/components/ui/dialog";
-import { ProductForm } from "@/components/products/ProductForm";
-import { DeleteProductDialog } from "@/components/products/DeleteProductDialog";
-import { ProductCategoryManager } from "@/components/products/ProductCategoryManager";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { 
-  getProductList, 
-  createProduct, 
-  updateProduct, 
-  deleteProduct, 
-  searchProducts,
-  getProductCategories
-} from "@/services/productService";
-import { fetchRecipes } from "@/services/recipeService";
-import { getPackagingList } from "@/services/packagingService";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { supabase } from "@/integrations/supabase/client";
 
-const mapRecipesData = (recipesData: any[]): Recipe[] => {
-  return recipesData.map(recipe => ({
-    id: recipe.id,
-    name: recipe.name,
-    image: recipe.image_url,
-    categoryId: recipe.category_id,
-    baseIngredients: [],
-    portionIngredients: [],
-    portions: recipe.portions,
-    totalCost: recipe.total_cost,
-    unitCost: recipe.unit_cost,
-    notes: recipe.notes
-  }));
-};
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Search, Plus, Package, DollarSign, Calculator } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { ProductForm } from "@/components/products/ProductForm";
+import { ProductCategoryDialog } from "@/components/products/ProductCategoryDialog";
+import { DeleteProductDialog } from "@/components/products/DeleteProductDialog";
+import { formatCurrency } from "@/utils/calculations";
+import { toast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { ViewToggle } from "@/components/shared/ViewToggle";
+
+interface Product {
+  id: string;
+  name: string;
+  selling_price?: number;
+  profit_margin_percentage?: number;
+  notes?: string;
+  image_url?: string;
+  recipe_id?: string;
+  packaging_id?: string;
+  category_id?: string;
+  created_at: string;
+  recipe?: {
+    id: string;
+    name: string;
+    unit_cost: number;
+  };
+  packaging?: {
+    id: string;
+    name: string;
+    unit_cost: number;
+  };
+  category?: {
+    id: string;
+    name: string;
+  };
+}
 
 const Products = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [view, setView] = useState<'grid' | 'list'>('grid');
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState<Product | undefined>(undefined);
-  const [isEditing, setIsEditing] = useState(false);
 
-  const { 
-    data: products = [], 
-    isLoading: isLoadingProducts,
-    refetch: refetchProducts
-  } = useQuery({
+  // Query para buscar produtos
+  const { data: products = [], isLoading } = useQuery({
     queryKey: ['products'],
-    queryFn: getProductList,
-    refetchOnWindowFocus: true,
-    staleTime: 0, // Sempre buscar dados atualizados
-  });
-
-  const { 
-    data: recipesData = [],
-    isLoading: isLoadingRecipes,
-    refetch: refetchRecipes
-  } = useQuery({
-    queryKey: ['recipes'],
-    queryFn: fetchRecipes,
-    refetchOnWindowFocus: true,
-    staleTime: 0, // Sempre buscar dados atualizados
-  });
-
-  const recipes: Recipe[] = mapRecipesData(recipesData);
-
-  const { 
-    data: packaging = [],
-    isLoading: isLoadingPackaging,
-    refetch: refetchPackaging
-  } = useQuery({
-    queryKey: ['packaging'],
-    queryFn: getPackagingList,
-    refetchOnWindowFocus: true,
-    staleTime: 0, // Sempre buscar dados atualizados
-  });
-
-  const {
-    data: categories = [],
-    isLoading: isLoadingCategories,
-    refetch: refetchCategories
-  } = useQuery({
-    queryKey: ['productCategories'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
       const { data, error } = await supabase
-        .from('product_categories')
-        .select('*')
+        .from('products')
+        .select(`
+          *,
+          recipe:recipes(id, name, unit_cost),
+          packaging:packaging(id, name, unit_cost),
+          category:product_categories(id, name)
+        `)
         .eq('user_id', user.id)
-        .order('name');
-
+        .order('created_at', { ascending: false });
+      
       if (error) throw error;
-      return data;
-    },
-    refetchOnWindowFocus: true,
-    staleTime: 0,
+      return data || [];
+    }
   });
 
-  const createProductMutation = useMutation({
-    mutationFn: createProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast({
-        title: "Sucesso",
-        description: "Produto criado com sucesso!",
-      });
-      setDialogOpen(false);
-      setSheetOpen(false);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erro",
-        description: `Erro ao criar produto: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateProductMutation = useMutation({
-    mutationFn: ({ id, product }: { id: string; product: Omit<Product, "id"> }) => 
-      updateProduct(id, product),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast({
-        title: "Sucesso",
-        description: "Produto atualizado com sucesso!",
-      });
-      setDialogOpen(false);
-      setSheetOpen(false);
-      setCurrentProduct(undefined);
-      setIsEditing(false);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erro",
-        description: `Erro ao atualizar produto: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteProductMutation = useMutation({
-    mutationFn: deleteProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast({
-        title: "Sucesso",
-        description: "Produto excluído com sucesso!",
-      });
-      setDeleteDialogOpen(false);
-      setCurrentProduct(undefined);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erro",
-        description: `Erro ao excluir produto: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
-
-  useEffect(() => {
-    const searchTimer = setTimeout(async () => {
-      if (searchQuery) {
-        try {
-          const results = await searchProducts(searchQuery);
-          queryClient.setQueryData(['products'], results);
-        } catch (error: any) {
-          toast({
-            title: "Erro",
-            description: `Erro na busca: ${error.message}`,
-            variant: "destructive",
-          });
-        }
-      } else {
-        refetchProducts();
-      }
-    }, 300);
-
-    return () => clearTimeout(searchTimer);
-  }, [searchQuery, queryClient, refetchProducts]);
-
-  const handleCreateProduct = (data: any) => {
-    if (data.categoryId === "_none") {
-      data.categoryId = null;
-    }
-    createProductMutation.mutate(data);
-  };
-
-  const handleUpdateProduct = (data: any) => {
-    if (data.categoryId === "_none") {
-      data.categoryId = null;
-    }
-    
-    if (currentProduct) {
-      updateProductMutation.mutate({
-        id: currentProduct.id,
-        product: data,
-      });
-    }
-  };
-
-  const handleDeleteProduct = () => {
-    if (currentProduct) {
-      deleteProductMutation.mutate(currentProduct.id);
-    }
-  };
-
-  const handleCategoriesChange = () => {
-    refetchCategories();
-  };
-
-  const handleRefreshData = () => {
-    console.log('🔄 Atualizando todos os dados...');
-    refetchProducts();
-    refetchRecipes();
-    refetchPackaging();
-    refetchCategories();
-    toast({
-      title: "Dados Atualizados",
-      description: "Todos os dados foram recarregados com sucesso!",
-    });
-  };
-
-  const openCreateDialog = () => {
-    setCurrentProduct(undefined);
-    setIsEditing(false);
-    setDialogOpen(true);
-  };
-
-  const openCreateSheet = () => {
-    setCurrentProduct(undefined);
-    setIsEditing(false);
-    setSheetOpen(true);
-  };
-
-  const openEditDialog = (product: Product) => {
-    setCurrentProduct(product);
-    setIsEditing(true);
-    setDialogOpen(true);
-  };
-
-  const openEditSheet = (product: Product) => {
-    setCurrentProduct(product);
-    setIsEditing(true);
-    setSheetOpen(true);
-  };
-
-  const openDeleteDialog = (product: Product) => {
-    setCurrentProduct(product);
-    setDeleteDialogOpen(true);
-  };
+  const filteredProducts = products.filter(product =>
+    product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.recipe?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const totalProducts = products.length;
-  const totalValue = products.reduce((sum, product) => sum + product.totalCost, 0);
-  const averageSellingPrice = products.length > 0 ? products.filter(p => p.sellingPrice > 0).reduce((sum, product) => sum + product.sellingPrice, 0) / products.filter(p => p.sellingPrice > 0).length : 0;
+  const avgSellingPrice = products.length > 0 
+    ? products.reduce((acc, product) => acc + (product.selling_price || 0), 0) / products.length 
+    : 0;
 
-  const isLoading = isLoadingProducts || isLoadingRecipes || isLoadingPackaging || isLoadingCategories;
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setShowForm(true);
+  };
+
+  const handleDelete = (product: Product) => {
+    setDeletingProduct(product);
+  };
+
+  const calculateTotalCost = (product: Product) => {
+    const recipeCost = product.recipe?.unit_cost || 0;
+    const packagingCost = product.packaging?.unit_cost || 0;
+    return recipeCost + packagingCost;
+  };
+
+  const renderGridView = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {isLoading ? (
+        Array.from({ length: 6 }).map((_, i) => (
+          <Card key={i} className="custom-card">
+            <CardContent className="p-6">
+              <div className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+                <div className="h-3 bg-gray-200 rounded w-full"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      ) : filteredProducts.length === 0 ? (
+        <div className="col-span-full text-center py-12">
+          <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h3 className="text-lg font-medium">Nenhum produto encontrado</h3>
+          <p className="text-muted-foreground">
+            {searchTerm ? "Tente alterar os termos de busca" : "Comece criando seu primeiro produto"}
+          </p>
+          {!searchTerm && (
+            <Button 
+              className="mt-4 btn-gradient"
+              onClick={() => setShowForm(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Criar Primeiro Produto
+            </Button>
+          )}
+        </div>
+      ) : (
+        filteredProducts.map((product) => {
+          const totalCost = calculateTotalCost(product);
+          const profit = (product.selling_price || 0) - totalCost;
+          const profitMargin = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+
+          return (
+            <Card key={product.id} className="custom-card card-hover">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">{product.name}</CardTitle>
+                    {product.category && (
+                      <p className="text-sm text-purple-600 bg-purple-50 px-2 py-1 rounded-full inline-block">
+                        {product.category.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  {product.recipe && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Receita:</span>
+                      <span className="font-medium">{product.recipe.name}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Custo total:</span>
+                    <span className="font-medium text-red-600">{formatCurrency(totalCost)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Preço de venda:</span>
+                    <span className="font-medium text-green-600">{formatCurrency(product.selling_price || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Margem:</span>
+                    <span className={`font-medium ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {profitMargin.toFixed(1)}%
+                    </span>
+                  </div>
+                  {product.notes && (
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Observações:</span>
+                      <p className="text-sm mt-1 line-clamp-2">{product.notes}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end space-x-2 mt-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(product)}
+                    className="rounded-full"
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(product)}
+                    className="text-red-500 hover:text-red-700 rounded-full"
+                  >
+                    Excluir
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })
+      )}
+    </div>
+  );
+
+  const renderListView = () => (
+    <div className="space-y-2">
+      {isLoading ? (
+        Array.from({ length: 6 }).map((_, i) => (
+          <Card key={i} className="p-4">
+            <div className="animate-pulse flex items-center space-x-4">
+              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+            </div>
+          </Card>
+        ))
+      ) : filteredProducts.length === 0 ? (
+        <div className="text-center py-12">
+          <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h3 className="text-lg font-medium">Nenhum produto encontrado</h3>
+          <p className="text-muted-foreground">
+            {searchTerm ? "Tente alterar os termos de busca" : "Comece criando seu primeiro produto"}
+          </p>
+        </div>
+      ) : (
+        filteredProducts.map((product) => {
+          const totalCost = calculateTotalCost(product);
+          const profit = (product.selling_price || 0) - totalCost;
+          const profitMargin = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+
+          return (
+            <Card key={product.id} className="p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4 flex-1">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-medium truncate">{product.name}</h3>
+                    {product.category && (
+                      <p className="text-sm text-purple-600">{product.category.name}</p>
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground min-w-0">
+                    {product.recipe?.name || "Sem receita"}
+                  </div>
+                  <div className="text-sm font-medium text-red-600 min-w-0">
+                    {formatCurrency(totalCost)}
+                  </div>
+                  <div className="text-sm font-medium text-green-600 min-w-0">
+                    {formatCurrency(product.selling_price || 0)}
+                  </div>
+                  <div className={`text-sm font-medium min-w-0 ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {profitMargin.toFixed(1)}%
+                  </div>
+                </div>
+                <div className="flex space-x-2 ml-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(product)}
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(product)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    Excluir
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          );
+        })
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
         title="Produtos"
-        subtitle="Gerencie produtos finais e defina preços de venda"
-        icon={ShoppingCart}
-        gradient="bg-gradient-to-br from-green-500 via-teal-500 to-cyan-500"
+        subtitle="Gerencie seus produtos finais e preços"
+        icon={Package}
+        gradient="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500"
         badges={[
-          { icon: ShoppingCart, text: `${totalProducts} produtos` },
-          { icon: DollarSign, text: `Valor total: R$ ${totalValue.toFixed(2)}` }
+          { icon: Calculator, text: `${totalProducts} produtos` },
+          { icon: DollarSign, text: `Preço médio: ${formatCurrency(avgSellingPrice)}` }
         ]}
         actions={
-          <>
-            <ProductCategoryManager 
-              categories={categories}
-              onCategoriesChange={handleCategoriesChange}
-            />
-            <Button variant="outline" onClick={handleRefreshData} className="bg-white/20 hover:bg-white/30 text-white border-white/30">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setShowCategoryDialog(true)}
+              variant="outline"
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+            >
+              Categorias
             </Button>
-            <Button className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto" onClick={() => window.innerWidth >= 768 ? openCreateDialog() : openCreateSheet()}>
-              <PlusCircle className="h-4 w-4 mr-2" />
+            <Button 
+              onClick={() => setShowForm(true)}
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+            >
+              <Plus className="mr-2 h-4 w-4" />
               Novo Produto
             </Button>
-          </>
+          </div>
         }
       />
 
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalProducts}</div>
-            <p className="text-xs text-muted-foreground">
-              Produtos cadastrados
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custo Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ {totalValue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Valor total de produção
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="sm:col-span-2 lg:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Preço Médio de Venda</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ {averageSellingPrice.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Preço médio dos produtos
-            </p>
-          </CardContent>
-        </Card>
+      {/* Controles de busca e visualização */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center space-x-2 flex-1 max-w-md">
+          <Search className="h-4 w-4 text-gray-400 shrink-0" />
+          <Input
+            placeholder="Buscar produtos..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full input-focus"
+          />
+        </div>
+        <ViewToggle view={view} onViewChange={setView} />
       </div>
-      
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Lista de Produtos</CardTitle>
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Buscar produto..."
-                  className="pl-9 w-[250px]"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-6">
-              <div className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                <p>Carregando produtos...</p>
-              </div>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-6">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
-              <h3 className="mt-4 text-lg font-semibold">Nenhum produto cadastrado</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Comece adicionando seu primeiro produto clicando no botão "Novo Produto".
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => {
-                const totalItems = product.items.reduce((acc, item) => acc + item.quantity, 0);
-                const totalPackaging = product.packagingItems?.reduce((acc, pkg) => acc + pkg.quantity, 0) || 0;
-                
-                return (
-                  <Card key={product.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex flex-col space-y-3">
-                        {/* Product Image */}
-                        <div className="aspect-square w-full rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                          {product.imageUrl ? (
-                            <img 
-                              src={product.imageUrl} 
-                              alt={product.name} 
-                              className="w-full h-full object-cover"
-                            />
-                          ) : product.packagingItems?.find(pkg => pkg.isPrimary)?.packaging?.imageUrl ? (
-                            <img 
-                              src={product.packagingItems?.find(pkg => pkg.isPrimary)?.packaging?.imageUrl} 
-                              alt={product.name} 
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Package className="h-12 w-12 text-muted-foreground" />
-                          )}
-                        </div>
-                        
-                        {/* Product Info */}
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between">
-                            <h3 className="font-semibold text-lg truncate flex-1 mr-2">{product.name}</h3>
-                          </div>
-                          
-                          {product.category && (
-                            <Badge variant="secondary" className="text-xs">
-                              {product.category.name}
-                            </Badge>
-                          )}
-                          
-                          <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                            <div>
-                              <span className="font-medium">Itens:</span> {totalItems}
-                            </div>
-                            <div>
-                              <span className="font-medium">Embalagens:</span> {totalPackaging}
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm font-medium">Custo Total:</span>
-                              <span className="text-sm font-bold text-blue-600">{formatCurrency(product.totalCost)}</span>
-                            </div>
-                            
-                            {product.sellingPrice > 0 && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium">Preço de Venda:</span>
-                                <span className="text-sm font-semibold text-green-600">
-                                  {formatCurrency(product.sellingPrice)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* Actions */}
-                        <div className="flex gap-2 pt-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => window.innerWidth >= 768 ? openEditDialog(product) : openEditSheet(product)}
-                          >
-                            <Edit className="h-4 w-4 mr-1" />
-                            Editar
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => openDeleteDialog(product)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{isEditing ? "Editar Produto" : "Novo Produto"}</DialogTitle>
-          </DialogHeader>
-          {(dialogOpen || sheetOpen) && !isLoading && (
-            <ProductForm
-              product={currentProduct}
-              recipes={recipes}
-              packaging={packaging}
-              categories={categories}
-              onSubmit={isEditing ? handleUpdateProduct : handleCreateProduct}
-              onCancel={() => setDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Lista de Produtos */}
+      {view === 'grid' ? renderGridView() : renderListView()}
 
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>{isEditing ? "Editar Produto" : "Novo Produto"}</SheetTitle>
-          </SheetHeader>
-          {(dialogOpen || sheetOpen) && !isLoading && (
-            <ProductForm
-              product={currentProduct}
-              recipes={recipes}
-              packaging={packaging}
-              categories={categories}
-              onSubmit={isEditing ? handleUpdateProduct : handleCreateProduct}
-              onCancel={() => setSheetOpen(false)}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
+      {/* Formulários e Dialogs */}
+      {showForm && (
+        <ProductForm
+          product={editingProduct}
+          onSubmit={async (data) => {
+            console.log('Form submitted:', data);
+            setShowForm(false);
+            setEditingProduct(null);
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+          }}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingProduct(null);
+          }}
+        />
+      )}
 
-      <DeleteProductDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        onConfirm={handleDeleteProduct}
-        productName={currentProduct?.name || ""}
-      />
+      {showCategoryDialog && (
+        <ProductCategoryDialog
+          open={showCategoryDialog}
+          onOpenChange={setShowCategoryDialog}
+        />
+      )}
+
+      {deletingProduct && (
+        <DeleteProductDialog
+          open={!!deletingProduct}
+          onOpenChange={(open) => {
+            if (!open) setDeletingProduct(null);
+          }}
+          onConfirm={() => {
+            console.log('Delete confirmed:', deletingProduct);
+            setDeletingProduct(null);
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+          }}
+          productName={deletingProduct.name}
+        />
+      )}
     </div>
   );
 };

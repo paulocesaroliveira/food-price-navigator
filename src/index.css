@@ -16,7 +16,9 @@ html {
 
 @layer base {
   body {
-    @apply font-inter antialiased text-foreground;
+    @apply font-inter antialiased;
+    color: hsl(var(--foreground));
+    background: hsl(var(--background));
     transition: background-color 0.3s ease, color 0.3s ease;
   }
   
@@ -41,25 +43,57 @@ html {
     background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--card)) 100%);
   }
 
-  /* Sidebar theme backgrounds */
-  :root.theme-light .sidebar {
-    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+  /* Sidebar theme improvements */
+  [data-sidebar] {
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border-color: hsl(var(--border));
   }
   
-  :root.theme-coral .sidebar {
-    background: linear-gradient(135deg, #FFF 0%, #FFF8F0 100%);
+  /* Sidebar text improvements for all themes */
+  [data-sidebar] .sidebar-header,
+  [data-sidebar] .sidebar-content,
+  [data-sidebar] .sidebar-footer {
+    color: hsl(var(--card-foreground));
   }
   
-  :root.theme-mint .sidebar {
-    background: linear-gradient(135deg, #FFF 0%, #F0FFFF 100%);
+  [data-sidebar] [data-sidebar-menu-button] {
+    color: hsl(var(--muted-foreground));
+    transition: all 0.2s ease;
   }
   
-  :root.theme-amber .sidebar {
-    background: linear-gradient(135deg, #FFF 0%, #FFF8DC 100%);
+  [data-sidebar] [data-sidebar-menu-button]:hover {
+    color: hsl(var(--primary));
+    background: hsl(var(--accent));
   }
   
-  :root.theme-dark .sidebar {
-    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
+  [data-sidebar] [data-sidebar-menu-button][data-active="true"] {
+    color: hsl(var(--primary-foreground));
+    background: hsl(var(--primary));
+  }
+
+  /* Dark theme specific sidebar fixes */
+  :root.theme-dark [data-sidebar] {
+    background: hsl(var(--card));
+    border-color: hsl(var(--border));
+  }
+  
+  :root.theme-dark [data-sidebar] [data-sidebar-menu-button] {
+    color: hsl(var(--card-foreground));
+  }
+  
+  /* Dropdown and popover improvements */
+  [data-radix-popper-content-wrapper] {
+    z-index: 50;
+  }
+  
+  .dropdown-content,
+  [role="menu"],
+  [data-radix-select-content] {
+    background: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
 }
 
