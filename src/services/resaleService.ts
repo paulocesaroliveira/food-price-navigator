@@ -6,7 +6,9 @@ import type {
   ResaleTransactionItem, 
   CreateResellerRequest, 
   CreateTransactionRequest, 
-  CreateTransactionItemRequest 
+  CreateTransactionItemRequest,
+  PaymentStatus,
+  DeliveryStatus
 } from "@/types/resale";
 
 export const resaleService = {
@@ -87,6 +89,8 @@ export const resaleService = {
     return (data || []).map(transaction => ({
       ...transaction,
       status: transaction.status as 'pending' | 'delivered' | 'paid' | 'cancelled',
+      payment_status: (transaction.payment_status || 'pending') as PaymentStatus,
+      delivery_status: (transaction.delivery_status || 'pending') as DeliveryStatus,
       reseller: transaction.reseller ? {
         ...transaction.reseller,
         status: transaction.reseller.status as 'active' | 'inactive'
@@ -122,6 +126,10 @@ export const resaleService = {
         delivery_time: transaction.delivery_time,
         total_amount: totalAmount,
         commission_amount: commissionAmount,
+        payment_status: transaction.payment_status || 'pending',
+        delivery_status: transaction.delivery_status || 'pending',
+        delivery_date: transaction.delivery_date,
+        payment_date: transaction.payment_date,
         notes: transaction.notes
       }])
       .select()
@@ -156,7 +164,9 @@ export const resaleService = {
 
     return {
       ...newTransaction,
-      status: newTransaction.status as 'pending' | 'delivered' | 'paid' | 'cancelled'
+      status: newTransaction.status as 'pending' | 'delivered' | 'paid' | 'cancelled',
+      payment_status: (newTransaction.payment_status || 'pending') as PaymentStatus,
+      delivery_status: (newTransaction.delivery_status || 'pending') as DeliveryStatus
     };
   },
 
@@ -167,6 +177,10 @@ export const resaleService = {
         reseller_id: updates.reseller_id,
         transaction_date: updates.transaction_date,
         delivery_time: updates.delivery_time,
+        payment_status: updates.payment_status,
+        delivery_status: updates.delivery_status,
+        delivery_date: updates.delivery_date,
+        payment_date: updates.payment_date,
         notes: updates.notes
       })
       .eq('id', id)
@@ -177,7 +191,9 @@ export const resaleService = {
     
     return {
       ...data,
-      status: data.status as 'pending' | 'delivered' | 'paid' | 'cancelled'
+      status: data.status as 'pending' | 'delivered' | 'paid' | 'cancelled',
+      payment_status: (data.payment_status || 'pending') as PaymentStatus,
+      delivery_status: (data.delivery_status || 'pending') as DeliveryStatus
     };
   },
 

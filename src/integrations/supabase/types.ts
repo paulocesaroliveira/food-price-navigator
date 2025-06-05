@@ -867,6 +867,7 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          avatar_url: string | null
           created_at: string
           id: string
           phone: string | null
@@ -875,6 +876,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          avatar_url?: string | null
           created_at?: string
           id: string
           phone?: string | null
@@ -883,6 +885,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          avatar_url?: string | null
           created_at?: string
           id?: string
           phone?: string | null
@@ -1148,9 +1151,13 @@ export type Database = {
         Row: {
           commission_amount: number
           created_at: string
+          delivery_date: string | null
+          delivery_status: string | null
           delivery_time: string | null
           id: string
           notes: string | null
+          payment_date: string | null
+          payment_status: string | null
           reseller_id: string
           status: string
           total_amount: number
@@ -1161,9 +1168,13 @@ export type Database = {
         Insert: {
           commission_amount?: number
           created_at?: string
+          delivery_date?: string | null
+          delivery_status?: string | null
           delivery_time?: string | null
           id?: string
           notes?: string | null
+          payment_date?: string | null
+          payment_status?: string | null
           reseller_id: string
           status?: string
           total_amount?: number
@@ -1174,9 +1185,13 @@ export type Database = {
         Update: {
           commission_amount?: number
           created_at?: string
+          delivery_date?: string | null
+          delivery_status?: string | null
           delivery_time?: string | null
           id?: string
           notes?: string | null
+          payment_date?: string | null
+          payment_status?: string | null
           reseller_id?: string
           status?: string
           total_amount?: number

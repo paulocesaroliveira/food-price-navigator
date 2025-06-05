@@ -1,593 +1,329 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { 
   Settings as SettingsIcon, 
   User, 
-  Lock,
+  Palette, 
+  Shield, 
+  Bell, 
+  Database,
   Save,
+  Upload,
   Eye,
   EyeOff,
-  Bell,
-  Palette,
-  Shield,
-  LogOut
-} from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import AvatarUpload from "@/components/ui/avatar-upload";
-import { useTheme, Theme } from "@/hooks/useTheme";
-
-interface UserProfile {
-  id: string;
-  store_name: string | null;
-  phone: string | null;
-  address: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-const themes = [
-  {
-    name: 'light' as Theme,
-    label: 'Claro Padrão',
-    colors: ['#3B82F6', '#2A9D8F', '#FFFFFF']
-  },
-  {
-    name: 'coral' as Theme,
-    label: 'Coral Vibrante',
-    colors: ['#FF6B6B', '#4ECDC4', '#FFF8F0']
-  },
-  {
-    name: 'mint' as Theme,
-    label: 'Menta Fresca',
-    colors: ['#26D0CE', '#A8E6CF', '#F0FFFF']
-  },
-  {
-    name: 'amber' as Theme,
-    label: 'Âmbar Aconchegante',
-    colors: ['#FFB347', '#DEB887', '#FFF8DC']
-  },
-  {
-    name: 'dark' as Theme,
-    label: 'Escuro Elegante',
-    colors: ['#3B82F6', '#2A9D8F', '#1A1A1A']
-  }
-];
+  Check,
+  X,
+  Phone,
+  Mail,
+  MapPin,
+  Store
+} from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import SEOHead from '@/components/SEOHead';
+import AvatarUpload from '@/components/ui/avatar-upload';
+import { useTheme, type Theme } from '@/hooks/useTheme';
 
 const Settings = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  
-  const [profileData, setProfileData] = useState({
-    email: "",
-    store_name: "",
-    phone: "",
-    address: ""
-  });
-
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  });
-
-  const [preferences, setPreferences] = useState({
-    emailNotifications: true,
-    smsNotifications: false,
-    theme: "light"
-  });
-
   const { theme, changeTheme } = useTheme();
+  const queryClient = useQueryClient();
+  
+  const [activeTab, setActiveTab] = useState('profile');
+  const [profileData, setProfileData] = useState({
+    store_name: '',
+    phone: '',
+    address: ''
+  });
 
-  useEffect(() => {
-    if (user) {
-      setProfileData(prev => ({
-        ...prev,
-        email: user.email || ""
-      }));
-      loadUserProfile();
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { store_name: string; phone: string; address: string }) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      const { error } = await supabase
+        .from('profiles')
+        .update(data)
+        .eq('id', user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
+      toast({ title: "Perfil atualizado!", description: "Suas informações foram atualizadas com sucesso." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
     }
-  }, [user]);
+  });
 
-  const loadUserProfile = async () => {
-    if (!user?.id) return;
+  const handleProfileUpdate = async () => {
+    updateProfileMutation.mutate(profileData);
+  };
 
-    try {
-      console.log('Carregando perfil do usuário:', user.id);
-      
-      const { data: existingProfile, error: fetchError } = await supabase
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle();
-
-      if (fetchError) {
-        console.error('Erro ao buscar perfil:', fetchError);
-        return;
-      }
-
-      if (existingProfile) {
-        console.log('Perfil encontrado:', existingProfile);
-        setProfileData(prev => ({
-          ...prev,
-          store_name: existingProfile.store_name || "",
-          phone: existingProfile.phone || "",
-          address: existingProfile.address || ""
-        }));
-      } else {
-        console.log('Nenhum perfil encontrado para o usuário');
-      }
-    } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
-    }
-  };
-
-  const handleProfileUpdate = async () => {
-    if (!user?.id) return;
-
-    setIsLoading(true);
-    
-    try {
-      console.log('Atualizando perfil:', {
-        id: user.id,
-        store_name: profileData.store_name,
-        phone: profileData.phone,
-        address: profileData.address
-      });
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          store_name: profileData.store_name || null,
-          phone: profileData.phone || null,
-          address: profileData.address || null
-        })
-        .select()
         .single();
+      return data;
+    },
+    enabled: !!user?.id
+  });
 
-      if (error) {
-        console.error('Erro ao salvar perfil:', error);
-        throw error;
-      }
-
-      console.log('Perfil salvo com sucesso:', data);
-
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas informações foram salvas com sucesso.",
-      });
-    } catch (error: any) {
-      console.error('Erro completo:', error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível atualizar o perfil.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePasswordChange = async () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast({
-        title: "Erro",
-        description: "As senhas não conferem.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (passwordData.newPassword.length < 6) {
-      toast({
-        title: "Erro",
-        description: "A nova senha deve ter pelo menos 6 caracteres.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword
-      });
-
-      if (error) throw error;
-
-      setPasswordData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-      });
-
-      toast({
-        title: "Senha alterada",
-        description: "Sua senha foi alterada com sucesso.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível alterar a senha.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso.",
-      });
-      navigate('/');
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível fazer logout.",
-        variant: "destructive",
+  React.useEffect(() => {
+    if (profile) {
+      setProfileData({
+        store_name: profile.store_name || '',
+        phone: profile.phone || '',
+        address: profile.address || ''
       });
     }
-  };
+  }, [profile]);
 
-  const handleDeleteAccount = async () => {
-    if (window.confirm('Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.')) {
-      toast({
-        title: "Funcionalidade em desenvolvimento",
-        description: "A exclusão de conta será implementada em breve.",
-      });
-    }
-  };
+  const themes: { value: Theme; label: string; preview: string }[] = [
+    { value: 'light', label: 'Claro', preview: 'bg-blue-500' },
+    { value: 'coral', label: 'Coral', preview: 'bg-orange-500' },
+    { value: 'mint', label: 'Menta', preview: 'bg-teal-500' },
+    { value: 'amber', label: 'Âmbar', preview: 'bg-yellow-500' },
+    { value: 'dark', label: 'Escuro', preview: 'bg-gray-800' }
+  ];
 
   return (
-    <div className="container mx-auto max-w-4xl space-y-8 p-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-blue-100 rounded-lg">
-          <SettingsIcon className="h-6 w-6 text-blue-600" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Configurações</h1>
-          <p className="text-gray-600">Gerencie suas informações e preferências</p>
+    <>
+      <SEOHead 
+        title="Configurações - TastyHub"
+        description="Configure suas preferências, perfil e dados da empresa no TastyHub"
+        keywords="configurações, perfil, preferências, empresa"
+      />
+      
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="container-responsive py-6 lg:py-8 spacing-responsive">
+          {/* Header */}
+          <div className="relative overflow-hidden rounded-2xl lg:rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 p-6 sm:p-8 lg:p-10 text-white shadow-2xl mb-6 lg:mb-8">
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="absolute -right-4 -top-4 h-24 w-24 lg:h-32 lg:w-32 rounded-full bg-white/10"></div>
+            <div className="absolute -left-4 -bottom-4 h-32 w-32 lg:h-40 lg:w-40 rounded-full bg-white/5"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 lg:gap-6">
+                <div className="rounded-2xl bg-white/20 p-3 lg:p-4 backdrop-blur-sm">
+                  <SettingsIcon className="h-6 w-6 lg:h-8 lg:w-8" />
+                </div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">Configurações</h1>
+                  <p className="text-blue-100 text-sm sm:text-base lg:text-lg">Gerencie suas preferências e dados do perfil</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Settings Content */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-white shadow-lg rounded-xl">
+              <TabsTrigger value="profile" className="text-sm lg:text-base data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                Perfil
+              </TabsTrigger>
+              <TabsTrigger value="preferences" className="text-sm lg:text-base data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                Preferências
+              </TabsTrigger>
+              <TabsTrigger value="security" className="text-sm lg:text-base data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                Segurança
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="profile" className="space-y-6">
+              <Card className="border-0 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                  <CardTitle className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-blue-600" />
+                    Informações do Perfil
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  {/* Avatar Section */}
+                  <div className="flex items-center gap-6">
+                    <AvatarUpload
+                      size="lg"
+                      editable={true}
+                      userName={user?.email || 'Usuário'}
+                    />
+                    <div>
+                      <h3 className="font-semibold text-lg">Foto do Perfil</h3>
+                      <p className="text-sm text-gray-600">Clique no ícone da câmera para alterar sua foto</p>
+                      <p className="text-xs text-gray-500 mt-1">Formatos aceitos: JPG, PNG, WEBP (máx. 5MB)</p>
+                    </div>
+                  </div>
+
+                  {/* Profile Form */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input 
+                        id="email" 
+                        value={user?.email || ''} 
+                        disabled 
+                        className="bg-gray-50"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">O email não pode ser alterado</p>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="store_name">Nome da Loja</Label>
+                      <Input 
+                        id="store_name" 
+                        value={profileData.store_name}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, store_name: e.target.value }))}
+                        placeholder="Nome da sua loja"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="phone">Telefone</Label>
+                      <Input 
+                        id="phone" 
+                        value={profileData.phone}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+                    
+                    <div className="lg:col-span-2">
+                      <Label htmlFor="address">Endereço</Label>
+                      <Textarea 
+                        id="address" 
+                        value={profileData.address}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
+                        placeholder="Endereço completo da loja"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+
+                  <Button 
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                    onClick={handleProfileUpdate}
+                    disabled={updateProfileMutation.isPending}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Salvar Alterações
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="preferences" className="space-y-6">
+              <Card className="border-0 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+                  <CardTitle className="flex items-center gap-3">
+                    <Palette className="h-5 w-5 text-purple-600" />
+                    Aparência
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  <div>
+                    <h3 className="font-semibold mb-4">Tema da Interface</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                      {themes.map((themeOption) => (
+                        <div
+                          key={themeOption.value}
+                          className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-lg ${
+                            theme === themeOption.value 
+                              ? 'border-blue-500 bg-blue-50' 
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => changeTheme(themeOption.value)}
+                        >
+                          <div className={`w-8 h-8 rounded-full ${themeOption.preview} mb-2 mx-auto`}></div>
+                          <p className="text-center text-sm font-medium">{themeOption.label}</p>
+                          {theme === themeOption.value && (
+                            <div className="absolute top-2 right-2">
+                              <Check className="h-4 w-4 text-blue-600" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
+                  <CardTitle className="flex items-center gap-3">
+                    <Bell className="h-5 w-5 text-orange-600" />
+                    Notificações
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <h3 className="font-semibold mb-2">Notificações por Email</h3>
+                    <p className="text-sm text-gray-600">Receba atualizações importantes e novidades por email.</p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <Label htmlFor="email-notifications" className="text-sm">Ativar notificações por email</Label>
+                      {/* Switch component would go here */}
+                    </div>
+                  </div>
+                  <hr className="my-4 border-gray-200" />
+                  <div>
+                    <h3 className="font-semibold mb-2">Alertas no Sistema</h3>
+                    <p className="text-sm text-gray-600">Receba alertas e avisos diretamente no sistema.</p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <Label htmlFor="system-alerts" className="text-sm">Ativar alertas no sistema</Label>
+                      {/* Switch component would go here */}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="security" className="space-y-6">
+              <Card className="border-0 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-green-50 to-teal-50">
+                  <CardTitle className="flex items-center gap-3">
+                    <Shield className="h-5 w-5 text-green-600" />
+                    Segurança
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  <div>
+                    <h3 className="font-semibold mb-2">Alterar Senha</h3>
+                    <p className="text-sm text-gray-600">Altere sua senha regularmente para manter sua conta segura.</p>
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <Label htmlFor="current-password">Senha Atual</Label>
+                        <Input type="password" id="current-password" placeholder="Senha atual" />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-password">Nova Senha</Label>
+                        <Input type="password" id="new-password" placeholder="Nova senha" />
+                      </div>
+                      <div>
+                        <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
+                        <Input type="password" id="confirm-password" placeholder="Confirmar nova senha" />
+                      </div>
+                    </div>
+                    <Button className="mt-6 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600">
+                      <Save className="h-4 w-4 mr-2" />
+                      Alterar Senha
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
-
-      <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="profile">Perfil</TabsTrigger>
-          <TabsTrigger value="security">Segurança</TabsTrigger>
-          <TabsTrigger value="preferences">Preferências</TabsTrigger>
-          <TabsTrigger value="account">Conta</TabsTrigger>
-        </TabsList>
-
-        {/* Aba Perfil */}
-        <TabsContent value="profile" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Informações do Perfil
-              </CardTitle>
-              <CardDescription>
-                Atualize suas informações pessoais e da loja
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                <AvatarUpload
-                  size="lg"
-                  userName={user?.email || 'Usuário'}
-                  editable={true}
-                />
-                <div>
-                  <h3 className="font-medium">Foto do Perfil</h3>
-                  <p className="text-sm text-gray-600">Clique no ícone da câmera para alterar sua foto</p>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="store_name">Nome da Loja</Label>
-                <Input
-                  id="store_name"
-                  value={profileData.store_name}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, store_name: e.target.value }))}
-                  placeholder="Digite o nome da sua loja"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  value={profileData.phone}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="address">Endereço</Label>
-                <Input
-                  id="address"
-                  value={profileData.address}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder="Endereço da loja"
-                />
-              </div>
-              
-              <Button 
-                onClick={handleProfileUpdate}
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Salvando...
-                  </div>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Salvar Perfil
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Aba Segurança */}
-        <TabsContent value="security" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="h-5 w-5" />
-                Alterar Senha
-              </CardTitle>
-              <CardDescription>
-                Mantenha sua conta segura alterando sua senha regularmente
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="currentPassword">Senha Atual</Label>
-                <div className="relative">
-                  <Input
-                    id="currentPassword"
-                    type={showCurrentPassword ? "text" : "password"}
-                    value={passwordData.currentPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                    placeholder="Digite sua senha atual"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  >
-                    {showCurrentPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="newPassword">Nova Senha</Label>
-                <div className="relative">
-                  <Input
-                    id="newPassword"
-                    type={showNewPassword ? "text" : "password"}
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                    placeholder="Digite a nova senha"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                  >
-                    {showNewPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  placeholder="Confirme a nova senha"
-                />
-              </div>
-              
-              <Button 
-                onClick={handlePasswordChange}
-                disabled={isLoading || !passwordData.newPassword}
-                className="w-full"
-              >
-                Alterar Senha
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Aba Preferências */}
-        <TabsContent value="preferences" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notificações
-              </CardTitle>
-              <CardDescription>
-                Configure como você deseja receber notificações
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Notificações por E-mail</p>
-                  <p className="text-sm text-gray-600">Receba atualizações importantes por e-mail</p>
-                </div>
-                <Button variant="outline" size="sm">
-                  {preferences.emailNotifications ? 'Ativado' : 'Desativado'}
-                </Button>
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Notificações por SMS</p>
-                  <p className="text-sm text-gray-600">Receba lembretes urgentes por SMS</p>
-                </div>
-                <Button variant="outline" size="sm">
-                  {preferences.smsNotifications ? 'Ativado' : 'Desativado'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Aparência
-              </CardTitle>
-              <CardDescription>
-                Personalize a aparência do sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <h3 className="font-medium mb-4">Tema do Sistema</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {themes.map((themeOption) => (
-                    <div
-                      key={themeOption.name}
-                      className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                        theme === themeOption.name
-                          ? 'border-primary bg-primary/5'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => changeTheme(themeOption.name)}
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="flex gap-1">
-                          {themeOption.colors.map((color, index) => (
-                            <div
-                              key={index}
-                              className="w-4 h-4 rounded-full border border-gray-300"
-                              style={{ backgroundColor: color }}
-                            />
-                          ))}
-                        </div>
-                        {theme === themeOption.name && (
-                          <Check className="h-4 w-4 text-primary ml-auto" />
-                        )}
-                      </div>
-                      <p className="font-medium text-sm">{themeOption.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="account" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Informações da Conta
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">E-mail da Conta</p>
-                <p className="font-medium">{user?.email}</p>
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">ID do Usuário</p>
-                <p className="font-medium text-xs">{user?.id}</p>
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">Membro desde</p>
-                <p className="font-medium">
-                  {user?.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : 'N/A'}
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">Versão do Sistema</p>
-                <p className="font-medium">TastyHub v1.0.0</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-red-600">Zona de Perigo</CardTitle>
-              <CardDescription>
-                Ações irreversíveis relacionadas à sua conta
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg">
-                <div>
-                  <p className="font-medium text-red-600">Sair da Conta</p>
-                  <p className="text-sm text-gray-600">Desconectar desta sessão</p>
-                </div>
-                <Button variant="destructive" onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sair
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg">
-                <div>
-                  <p className="font-medium text-red-600">Excluir Conta</p>
-                  <p className="text-sm text-gray-600">Deletar permanentemente sua conta e todos os dados</p>
-                </div>
-                <Button variant="destructive" onClick={handleDeleteAccount}>
-                  Excluir Conta
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+    </>
   );
 };
 

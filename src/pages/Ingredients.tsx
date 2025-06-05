@@ -1,451 +1,407 @@
-import React, { useState, useEffect } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { 
-  PlusCircle, 
+  Plus, 
   Search, 
   Filter, 
+  Package, 
   Edit, 
   Trash2, 
-  Tags,
-  X,
-  FileEdit,
-  Loader2,
-  Image as ImageIcon
+  Upload,
+  Settings,
+  ChefHat,
+  DollarSign,
+  Calendar,
+  TrendingUp
 } from "lucide-react";
-import { formatCurrency } from "@/utils/calculations";
-import { useToast } from "@/components/ui/use-toast";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle,
-  DialogFooter
-} from "@/components/ui/dialog";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { IngredientForm } from "@/components/ingredients/IngredientForm";
-import { CategoryDialog } from "@/components/ingredients/CategoryDialog";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import ImageUpload from "@/components/ingredients/ImageUpload";
+import CategoryDialog from "@/components/ingredients/CategoryDialog";
+import IngredientForm from "@/components/ingredients/IngredientForm";
 import SEOHead from "@/components/SEOHead";
 
+interface Ingredient {
+  id: string;
+  created_at: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+  cost: number;
+  unit: string;
+  category: string;
+  supplier?: string;
+  notes?: string;
+  user_id: string;
+}
+
+interface Category {
+  id: string;
+  created_at: string;
+  name: string;
+  description?: string;
+  user_id: string;
+}
+
 const Ingredients = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [editingIngredient, setEditingIngredient] = useState<any>(null);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [ingredientToDelete, setIngredientToDelete] = useState<any>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const { toast } = useToast();
+  const [editingIngredient, setEditingIngredient] = useState(null);
+
   const queryClient = useQueryClient();
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ['ingredientCategories'],
+  const { data: ingredients, isLoading } = useQuery({
+    queryKey: ['ingredients', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('ingredients')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as Ingredient[];
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: categories, isLoading: loadingCategories } = useQuery({
+    queryKey: ['categories', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
       const { data, error } = await supabase
         .from('ingredient_categories')
         .select('*')
-        .order('name');
-      
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
       if (error) throw error;
-      return data || [];
-    }
+      return data as Category[];
+    },
+    enabled: !!user?.id,
   });
 
-  const { data: ingredients = [], isLoading, refetch } = useQuery({
-    queryKey: ['ingredients', searchTerm, selectedCategory],
-    queryFn: async () => {
-      let query = supabase
+  const createIngredientMutation = useMutation({
+    mutationFn: async (newIngredient: Omit<Ingredient, 'id' | 'created_at' | 'user_id'>) => {
+      if (!user?.id) throw new Error("User not authenticated");
+      const { data, error } = await supabase
         .from('ingredients')
-        .select(`
-          *,
-          ingredient_categories(name)
-        `)
-        .order('name');
-      
-      if (searchTerm) {
-        query = query.ilike('name', `%${searchTerm}%`);
-      }
-      
-      if (selectedCategory) {
-        query = query.eq('category_id', selectedCategory);
-      }
-      
-      const { data, error } = await query;
-      
+        .insert([{ ...newIngredient, user_id: user.id }])
+        .select()
+        .single();
       if (error) throw error;
-      return data || [];
-    }
+      return data as Ingredient;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients', user?.id] });
+      toast({ title: "Sucesso", description: "Ingrediente criado com sucesso!" });
+      setShowForm(false);
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: `Erro ao criar ingrediente: ${error.message}`, variant: "destructive" });
+    },
   });
 
-  const handleEdit = (ingredient: any) => {
+  const updateIngredientMutation = useMutation({
+    mutationFn: async (updatedIngredient: Ingredient) => {
+      const { data, error } = await supabase
+        .from('ingredients')
+        .update(updatedIngredient)
+        .eq('id', updatedIngredient.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Ingredient;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients', user?.id] });
+      toast({ title: "Sucesso", description: "Ingrediente atualizado com sucesso!" });
+      setShowForm(false);
+      setEditingIngredient(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: `Erro ao atualizar ingrediente: ${error.message}`, variant: "destructive" });
+    },
+  });
+
+  const deleteIngredientMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('ingredients')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients', user?.id] });
+      toast({ title: "Sucesso", description: "Ingrediente removido com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: `Erro ao remover ingrediente: ${error.message}`, variant: "destructive" });
+    },
+  });
+
+  const filteredIngredients = ingredients
+    ?.filter(ingredient =>
+      ingredient.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (selectedCategory ? ingredient.category === selectedCategory : true)
+    );
+
+  const totalIngredients = ingredients?.length || 0;
+  const totalCategories = categories?.length || 0;
+
+  const handleEdit = (ingredient: Ingredient) => {
     setEditingIngredient(ingredient);
     setShowForm(true);
   };
 
-  const confirmDelete = (ingredient: any) => {
-    setIngredientToDelete(ingredient);
-    setShowDeleteDialog(true);
-  };
-
-  const handleDelete = async () => {
-    if (!ingredientToDelete) return;
-    
-    try {
-      setIsDeleting(true);
-      
-      const baseIngredients = await supabase
-        .from('recipe_base_ingredients')
-        .select('id')
-        .eq('ingredient_id', ingredientToDelete.id)
-        .limit(1);
-        
-      const portionIngredients = await supabase
-        .from('recipe_portion_ingredients')
-        .select('id')
-        .eq('ingredient_id', ingredientToDelete.id)
-        .limit(1);
-        
-      if (
-        (baseIngredients.data && baseIngredients.data.length > 0) || 
-        (portionIngredients.data && portionIngredients.data.length > 0)
-      ) {
-        toast({
-          title: "Não é possível excluir",
-          description: "Este ingrediente está sendo usado em uma ou mais receitas",
-          variant: "destructive",
-        });
-        setShowDeleteDialog(false);
-        return;
-      }
-      
-      const { error } = await supabase
-        .from('ingredients')
-        .delete()
-        .eq('id', ingredientToDelete.id);
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Sucesso",
-        description: "Ingrediente excluído com sucesso",
-      });
-      
-      setShowDeleteDialog(false);
-      refetch();
-    } catch (error) {
-      console.error("Erro ao excluir ingrediente:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível excluir o ingrediente",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Tem certeza que deseja remover este ingrediente?")) {
+      await deleteIngredientMutation.mutateAsync(id);
     }
   };
 
-  const handleSuccess = () => {
-    setShowForm(false);
-    setEditingIngredient(null);
-    refetch();
-  };
-
-  const clearFilters = () => {
-    setSearchTerm("");
-    setSelectedCategory(null);
-  };
-
-  const handleCategoriesChange = () => {
-    queryClient.invalidateQueries({ queryKey: ['ingredientCategories'] });
-  };
-
   return (
-    <div className="container mx-auto space-y-6 p-4 sm:p-6">
+    <>
       <SEOHead 
         title="Ingredientes - TastyHub"
-        description="Gerencie seus ingredientes de forma eficiente. Controle custos, estoque e categorias dos ingredientes da sua confeitaria."
-        keywords="ingredientes, gestão ingredientes, custo ingredientes, estoque"
+        description="Gerencie seus ingredientes de forma eficiente. Controle custos, fornecedores e estoque com facilidade."
+        keywords="ingredientes, custos, fornecedores, estoque, gestão"
       />
       
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Ingredientes</h1>
-          <p className="text-gray-600 text-sm sm:text-base">Gerencie seus ingredientes e controle de custos</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Button 
-            onClick={() => setShowCategoryDialog(true)}
-            variant="outline"
-            className="w-full sm:w-auto gap-2 text-xs sm:text-sm"
-          >
-            <Settings className="h-4 w-4" />
-            <span className="hidden xs:inline">Gerenciar Categorias</span>
-            <span className="xs:hidden">Categorias</span>
-          </Button>
-          <Button 
-            onClick={() => setShowForm(true)}
-            className="w-full sm:w-auto gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-xs sm:text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden xs:inline">Novo Ingrediente</span>
-            <span className="xs:hidden">Novo</span>
-          </Button>
-        </div>
-      </div>
-      
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CardTitle>Lista de Ingredientes</CardTitle>
-            <div className="flex flex-col md:flex-row items-center gap-3">
-              <div className="relative w-full md:w-auto">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Buscar ingrediente..."
-                  className="pl-9 md:w-[250px]"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                {searchTerm && (
-                  <button 
-                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                    onClick={() => setSearchTerm("")}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <Filter className="h-4 w-4" />
-                    Filtrar
-                    {selectedCategory && (
-                      <span className="ml-1 h-2 w-2 rounded-full bg-primary"></span>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="p-2">
-                    <p className="mb-2 text-sm font-medium">Categoria</p>
-                    <Select 
-                      value={selectedCategory || ""} 
-                      onValueChange={(value) => setSelectedCategory(value || null)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todas as categorias" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas as categorias</SelectItem>
-                        {categories.map((category: any) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    
-                    {(searchTerm || selectedCategory) && (
-                      <Button 
-                        variant="ghost" 
-                        className="mt-2 w-full justify-start text-muted-foreground"
-                        onClick={clearFilters}
-                      >
-                        <X className="mr-2 h-4 w-4" />
-                        Limpar filtros
-                      </Button>
-                    )}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="container-responsive py-4 sm:py-6 lg:py-8 spacing-responsive">
+          {/* Hero Header */}
+          <div className="relative overflow-hidden rounded-2xl lg:rounded-3xl bg-gradient-to-r from-emerald-600 via-green-600 to-teal-700 p-4 sm:p-6 lg:p-8 text-white shadow-2xl mb-4 sm:mb-6 lg:mb-8">
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="absolute -right-2 -top-2 sm:-right-4 sm:-top-4 h-16 w-16 sm:h-24 sm:w-24 lg:h-32 lg:w-32 rounded-full bg-white/10"></div>
+            <div className="absolute -left-2 -bottom-2 sm:-left-4 sm:-bottom-4 h-20 w-20 sm:h-32 sm:w-32 lg:h-40 lg:w-40 rounded-full bg-white/5"></div>
+            
+            <div className="relative z-10">
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-6">
+                <div className="space-y-2 sm:space-y-4">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="rounded-xl sm:rounded-2xl bg-white/20 p-2 sm:p-3 lg:p-4 backdrop-blur-sm">
+                      <Package className="h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />
+                    </div>
+                    <div>
+                      <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold">Ingredientes</h1>
+                      <p className="text-emerald-100 text-xs sm:text-sm lg:text-lg">Gerencie seus ingredientes e custos</p>
+                    </div>
                   </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  
+                  <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                    <div className="flex items-center gap-2 rounded-full bg-white/20 px-2 py-1 sm:px-3 sm:py-2 backdrop-blur-sm">
+                      <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span>Controle Total</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-full bg-white/20 px-2 py-1 sm:px-3 sm:py-2 backdrop-blur-sm">
+                      <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span>Gestão de Custos</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                  <Button 
+                    onClick={() => setShowCategoryDialog(true)}
+                    className="gap-2 bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-white/30 h-8 sm:h-10 lg:h-12 text-xs sm:text-sm"
+                  >
+                    <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Categorias</span>
+                    <span className="sm:hidden">Cat.</span>
+                  </Button>
+                  <Button 
+                    onClick={() => setShowForm(true)}
+                    className="gap-2 bg-white text-emerald-600 hover:bg-emerald-50 h-8 sm:h-10 lg:h-12 text-xs sm:text-sm"
+                  >
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Novo Ingrediente</span>
+                    <span className="sm:hidden">Novo</span>
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+
+          {/* Search and Filter */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4 sm:mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar ingredientes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 h-8 sm:h-10 border-0 shadow-lg bg-white text-xs sm:text-sm"
+              />
             </div>
-          ) : ingredients.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <FileEdit className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <h3 className="text-lg font-medium">Nenhum ingrediente encontrado</h3>
-              <p className="mt-1">
-                {searchTerm || selectedCategory
-                  ? "Tente mudar os filtros ou a busca"
-                  : "Comece cadastrando um novo ingrediente"}
-              </p>
-              {searchTerm || selectedCategory ? (
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={clearFilters}
-                >
-                  Limpar filtros
-                </Button>
-              ) : (
-                <Button
-                  className="mt-4"
-                  onClick={() => setShowForm(true)}
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Novo Ingrediente
-                </Button>
-              )}
+            <div className="relative">
+              <select
+                className="h-8 sm:h-10 border-0 shadow-lg bg-white text-xs sm:text-sm pl-3 pr-8 rounded-md appearance-none text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="">Todas as Categorias</option>
+                {categories?.map((category) => (
+                  <option key={category.id} value={category.name}>{category.name}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+              </div>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Imagem</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Marca</TableHead>
-                    <TableHead>Unidade</TableHead>
-                    <TableHead>Qtd. Embalagem</TableHead>
-                    <TableHead>Preço Embalagem</TableHead>
-                    <TableHead>Custo Unitário</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {ingredients.map((ingredient) => (
-                    <TableRow key={ingredient.id}>
-                      <TableCell>
-                        {ingredient.image_url ? (
-                          <div className="h-10 w-10 rounded-md overflow-hidden">
-                            <img 
-                              src={ingredient.image_url} 
-                              alt={ingredient.name} 
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
-                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">{ingredient.name}</TableCell>
-                      <TableCell>{ingredient.ingredient_categories?.name}</TableCell>
-                      <TableCell>{ingredient.brand}</TableCell>
-                      <TableCell>{ingredient.unit}</TableCell>
-                      <TableCell>{ingredient.package_quantity} {ingredient.unit}</TableCell>
-                      <TableCell>{formatCurrency(ingredient.package_price)}</TableCell>
-                      <TableCell>{formatCurrency(ingredient.unit_cost)}/{ingredient.unit}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleEdit(ingredient)}
-                          >
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Editar</span>
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => confirmDelete(ingredient)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Excluir</span>
-                          </Button>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-blue-50 group">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="rounded-xl p-2 bg-gradient-to-r from-blue-500 to-blue-600 group-hover:scale-110 transition-transform duration-300">
+                    <Package className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-xs text-gray-500">Total</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900">{totalIngredients}</p>
+                <p className="text-xs text-gray-500">Ingredientes</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-green-50 group">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="rounded-xl p-2 bg-gradient-to-r from-green-500 to-green-600 group-hover:scale-110 transition-transform duration-300">
+                    <ChefHat className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-xs text-gray-500">Total</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900">{totalCategories}</p>
+                <p className="text-xs text-gray-500">Categorias</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-purple-50 group">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="rounded-xl p-2 bg-gradient-to-r from-purple-500 to-purple-600 group-hover:scale-110 transition-transform duration-300">
+                    <Upload className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-xs text-gray-500">Em breve</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900">Uploads</p>
+                <p className="text-xs text-gray-500">de custos</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-orange-50 group">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="rounded-xl p-2 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:scale-110 transition-transform duration-300">
+                    <Calendar className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-xs text-gray-500">Em breve</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900">Relatórios</p>
+                <p className="text-xs text-gray-500">de custos</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Ingredients List */}
+          <Card className="border-0 shadow-xl">
+            <CardHeader className="py-3 sm:py-4 bg-gradient-to-r from-emerald-50 to-teal-50">
+              <CardTitle className="text-sm sm:text-lg font-semibold text-gray-700">Lista de Ingredientes</CardTitle>
+            </CardHeader>
+            <CardContent className="p-2 sm:p-4">
+              {isLoading ? (
+                <div className="text-center p-4">Carregando ingredientes...</div>
+              ) : filteredIngredients && filteredIngredients.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                  {filteredIngredients.map((ingredient) => (
+                    <div key={ingredient.id} className="relative border rounded-md p-2 sm:p-3 bg-white hover:shadow-lg transition-all duration-200">
+                      {ingredient.image_url && (
+                        <div className="absolute top-0 left-0 w-full h-24 sm:h-32 rounded-t-md overflow-hidden">
+                          <img
+                            src={ingredient.image_url}
+                            alt={ingredient.name}
+                            className="w-full h-full object-cover object-center"
+                          />
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      )}
+                      <div className={`pt-2 ${ingredient.image_url ? 'mt-24 sm:mt-32' : ''}`}>
+                        <h3 className="text-sm font-semibold text-gray-800">{ingredient.name}</h3>
+                        <p className="text-xs text-gray-600 truncate">{ingredient.description}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <div>
+                            <p className="text-gray-700 text-sm font-bold">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ingredient.cost)}
+                            </p>
+                            <p className="text-gray-500 text-xs">por {ingredient.unit}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="icon" variant="outline" onClick={() => handleEdit(ingredient)} className="border-gray-300 hover:bg-gray-50">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="outline" onClick={() => handleDelete(ingredient.id)} className="text-red-600 border-red-300 hover:bg-red-50">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      <IngredientForm 
+                </div>
+              ) : (
+                <div className="text-center p-4 text-gray-500">Nenhum ingrediente encontrado.</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Ingredient Form Modal */}
+      <IngredientForm
         open={showForm}
         onOpenChange={setShowForm}
-        ingredient={editingIngredient} 
-        onSuccess={handleSuccess}
+        categories={categories || []}
+        ingredient={editingIngredient}
+        onSubmit={async (values) => {
+          try {
+            if (editingIngredient) {
+              // Update existing ingredient
+              await updateIngredientMutation.mutateAsync({ ...editingIngredient, ...values });
+            } else {
+              // Create new ingredient
+              await createIngredientMutation.mutateAsync(values);
+            }
+          } catch (error) {
+            console.error("Error creating/updating ingredient:", error);
+          } finally {
+            setEditingIngredient(null);
+            setShowForm(false);
+          }
+        }}
       />
-      
-      <CategoryDialog 
-        open={showCategoryDialog} 
+
+      {/* Category Dialog */}
+      <CategoryDialog
+        open={showCategoryDialog}
         onOpenChange={setShowCategoryDialog}
-        onCategoriesChange={handleCategoriesChange}
+        onCategoryCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['categories', user?.id] });
+        }}
       />
-      
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar exclusão</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir o ingrediente "{ingredientToDelete?.name}"?
-              Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDeleteDialog(false)}
-              disabled={isDeleting}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Excluindo...
-                </>
-              ) : (
-                "Excluir"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </>
   );
 };
 

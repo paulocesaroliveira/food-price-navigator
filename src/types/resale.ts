@@ -1,3 +1,4 @@
+
 export interface Reseller {
   id: string;
   user_id: string;
@@ -61,6 +62,10 @@ export interface CreateTransactionRequest {
   delivery_time?: string;
   notes?: string;
   items: CreateTransactionItemRequest[];
+  payment_status?: PaymentStatus;
+  delivery_status?: DeliveryStatus;
+  delivery_date?: string;
+  payment_date?: string;
 }
 
 export interface CreateTransactionItemRequest {
