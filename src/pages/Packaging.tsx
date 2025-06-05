@@ -35,9 +35,13 @@ const PackagingPage = () => {
   const { data: packagingList = [], isLoading } = useQuery({
     queryKey: ['packaging'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('packaging')
         .select('*')
+        .eq('user_id', user.id)
         .order('name');
 
       if (error) throw error;
@@ -57,9 +61,13 @@ const PackagingPage = () => {
 
   const createPackagingMutation = useMutation({
     mutationFn: async (packaging: Omit<Packaging, "id">) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from("packaging")
         .insert({
+          user_id: user.id,
           name: packaging.name,
           type: packaging.type,
           bulk_quantity: packaging.bulkQuantity,

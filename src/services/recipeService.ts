@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Recipe, RecipeIngredient } from "@/types";
 
@@ -96,6 +95,8 @@ export const fetchIngredients = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Usuário não autenticado');
 
+  console.log("Fetching ingredients for user:", user.id);
+
   const { data, error } = await supabase
     .from('ingredients')
     .select(`
@@ -105,7 +106,12 @@ export const fetchIngredients = async () => {
     .eq('user_id', user.id)
     .order('name');
   
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching ingredients:", error);
+    throw error;
+  }
+  
+  console.log("Fetched ingredients:", data);
   return data || [];
 };
 

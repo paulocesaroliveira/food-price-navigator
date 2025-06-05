@@ -45,6 +45,8 @@ export const createPackaging = async (packaging: Omit<Packaging, "id">): Promise
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuário não autenticado');
 
+    console.log("Creating packaging with user_id:", user.id);
+
     const { data, error } = await supabase
       .from("packaging")
       .insert({
