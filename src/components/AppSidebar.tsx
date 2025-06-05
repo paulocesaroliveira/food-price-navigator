@@ -58,10 +58,25 @@ export function AppSidebar() {
     enabled: !!user?.id
   });
 
-  const storeName = profile?.store_name || 'TastyHub';
+  // Check if user has admin role using the new system
+  const { data: isAdmin } = useQuery({
+    queryKey: ['user-role', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .single();
+      
+      return !!data;
+    },
+    enabled: !!user?.id
+  });
 
-  // Verificar se o usuário é admin
-  const isAdmin = user?.email === 'doceteriadafer@gmail.com';
+  const storeName = profile?.store_name || 'TastyHub';
 
   // Menu items organizados por grupos
   const menuGroups = [
@@ -73,7 +88,7 @@ export function AppSidebar() {
           url: "/dashboard",
           icon: Home,
         },
-        // Mostrar página Admin apenas para o usuário específico
+        // Mostrar página Admin apenas para usuários com role admin
         ...(isAdmin ? [{
           title: "Admin",
           url: "/admin",
