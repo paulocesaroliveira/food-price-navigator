@@ -5,9 +5,13 @@ import { toast } from "@/hooks/use-toast";
 
 export const getPackagingList = async (): Promise<Packaging[]> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from("packaging")
       .select("*")
+      .eq('user_id', user.id)
       .order("name", { ascending: true });
 
     if (error) {
@@ -38,9 +42,13 @@ export const getPackagingList = async (): Promise<Packaging[]> => {
 
 export const createPackaging = async (packaging: Omit<Packaging, "id">): Promise<Packaging> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from("packaging")
       .insert({
+        user_id: user.id,
         name: packaging.name,
         type: packaging.type,
         bulk_quantity: packaging.bulkQuantity,
@@ -80,6 +88,9 @@ export const createPackaging = async (packaging: Omit<Packaging, "id">): Promise
 
 export const updatePackaging = async (id: string, packaging: Partial<Omit<Packaging, "id">>): Promise<Packaging> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     // Calcular o custo unitário se os valores necessários forem fornecidos
     let unitCost = undefined;
     if (packaging.bulkQuantity && packaging.bulkPrice) {
@@ -90,6 +101,7 @@ export const updatePackaging = async (id: string, packaging: Partial<Omit<Packag
         .from("packaging")
         .select("bulk_price")
         .eq("id", id)
+        .eq('user_id', user.id)
         .single();
       
       if (currentData) {
@@ -101,6 +113,7 @@ export const updatePackaging = async (id: string, packaging: Partial<Omit<Packag
         .from("packaging")
         .select("bulk_quantity")
         .eq("id", id)
+        .eq('user_id', user.id)
         .single();
       
       if (currentData) {
@@ -125,6 +138,7 @@ export const updatePackaging = async (id: string, packaging: Partial<Omit<Packag
       .from("packaging")
       .update(updateData)
       .eq("id", id)
+      .eq('user_id', user.id)
       .select()
       .single();
 
@@ -156,10 +170,14 @@ export const updatePackaging = async (id: string, packaging: Partial<Omit<Packag
 
 export const deletePackaging = async (id: string): Promise<boolean> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { error } = await supabase
       .from("packaging")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq('user_id', user.id);
 
     if (error) {
       console.error("Erro ao excluir embalagem:", error);
@@ -185,9 +203,13 @@ export const deletePackaging = async (id: string): Promise<boolean> => {
 
 export const searchPackaging = async (query: string): Promise<Packaging[]> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from("packaging")
       .select("*")
+      .eq('user_id', user.id)
       .or(`name.ilike.%${query}%,type.ilike.%${query}%`)
       .order("name", { ascending: true });
 

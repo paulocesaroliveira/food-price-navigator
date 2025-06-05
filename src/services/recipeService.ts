@@ -3,12 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Recipe, RecipeIngredient } from "@/types";
 
 export const fetchRecipes = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
+
   const { data, error } = await supabase
     .from('recipes')
     .select(`
       *,
       recipe_categories(name)
     `)
+    .eq('user_id', user.id)
     .order('name');
   
   if (error) throw error;
@@ -47,10 +51,14 @@ export const createRecipeCategory = async (name: string) => {
 };
 
 export const updateRecipeCategory = async (id: string, name: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
+
   const { data, error } = await supabase
     .from('recipe_categories')
     .update({ name })
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
     .single();
   
@@ -59,10 +67,14 @@ export const updateRecipeCategory = async (id: string, name: string) => {
 };
 
 export const deleteRecipeCategory = async (id: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
+
   const { data: recipes, error: checkError } = await supabase
     .from('recipes')
     .select('id')
     .eq('category_id', id)
+    .eq('user_id', user.id)
     .limit(1);
   
   if (checkError) throw checkError;
@@ -74,18 +86,23 @@ export const deleteRecipeCategory = async (id: string) => {
   const { error } = await supabase
     .from('recipe_categories')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
   
   if (error) throw error;
 };
 
 export const fetchIngredients = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
+
   const { data, error } = await supabase
     .from('ingredients')
     .select(`
       *,
       ingredient_categories(name)
     `)
+    .eq('user_id', user.id)
     .order('name');
   
   if (error) throw error;
@@ -93,10 +110,14 @@ export const fetchIngredients = async () => {
 };
 
 export const createRecipe = async (recipe: Omit<Recipe, "id">) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
+
   // Inserir receita com custos iniciais zerados
   const { data: newRecipe, error: recipeError } = await supabase
     .from('recipes')
     .insert({
+      user_id: user.id,
       name: recipe.name,
       image_url: recipe.image,
       category_id: recipe.categoryId,
@@ -150,6 +171,7 @@ export const createRecipe = async (recipe: Omit<Recipe, "id">) => {
     .from('recipes')
     .select('*')
     .eq('id', newRecipe.id)
+    .eq('user_id', user.id)
     .single();
   
   if (fetchError) throw fetchError;
@@ -157,6 +179,9 @@ export const createRecipe = async (recipe: Omit<Recipe, "id">) => {
 };
 
 export const updateRecipe = async (id: string, recipe: Partial<Recipe>) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
+
   // Atualizar dados básicos da receita
   const { error: updateError } = await supabase
     .from('recipes')
@@ -167,7 +192,8 @@ export const updateRecipe = async (id: string, recipe: Partial<Recipe>) => {
       portions: recipe.portions,
       notes: recipe.notes
     })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
   
   if (updateError) throw updateError;
 
@@ -215,6 +241,7 @@ export const updateRecipe = async (id: string, recipe: Partial<Recipe>) => {
     .from('recipes')
     .select('*')
     .eq('id', id)
+    .eq('user_id', user.id)
     .single();
   
   if (fetchError) throw fetchError;
@@ -222,6 +249,9 @@ export const updateRecipe = async (id: string, recipe: Partial<Recipe>) => {
 };
 
 export const deleteRecipe = async (id: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
+
   // Deletar ingredientes primeiro
   await supabase.from('recipe_base_ingredients').delete().eq('recipe_id', id);
   await supabase.from('recipe_portion_ingredients').delete().eq('recipe_id', id);
@@ -230,13 +260,17 @@ export const deleteRecipe = async (id: string) => {
   const { error } = await supabase
     .from('recipes')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
   
   if (error) throw error;
 };
 
 export const fetchRecipeWithIngredients = async (recipeId: string) => {
   console.log("Fetching recipe with ID:", recipeId);
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
   
   const { data: recipe, error: recipeError } = await supabase
     .from("recipes")
@@ -245,6 +279,7 @@ export const fetchRecipeWithIngredients = async (recipeId: string) => {
       recipe_categories(name)
     `)
     .eq("id", recipeId)
+    .eq('user_id', user.id)
     .single();
 
   if (recipeError) {

@@ -38,12 +38,16 @@ const Recipes = () => {
     queryFn: async () => {
       console.log("Fetching recipes...");
       
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('recipes')
         .select(`
           *,
           category:recipe_categories(id, name)
         `)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -96,9 +100,13 @@ const Recipes = () => {
   const { data: ingredients = [] } = useQuery({
     queryKey: ['ingredients'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('ingredients')
         .select('*')
+        .eq('user_id', user.id)
         .order('name');
 
       if (error) throw error;
