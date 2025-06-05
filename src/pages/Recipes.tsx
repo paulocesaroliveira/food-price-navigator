@@ -58,6 +58,27 @@ const Recipes = () => {
     }
   });
 
+  // Query para buscar ingredientes
+  const { data: ingredients = [] } = useQuery({
+    queryKey: ['ingredients'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { data, error } = await supabase
+        .from('ingredients')
+        .select(`
+          *,
+          ingredient_categories(name)
+        `)
+        .eq('user_id', user.id)
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   // Mutation para deletar receita
   const deleteRecipe = useMutation({
     mutationFn: async (id: string) => {
@@ -99,6 +120,57 @@ const Recipes = () => {
   const handleDelete = (id: string) => {
     if (confirm('Tem certeza que deseja deletar esta receita?')) {
       deleteRecipe.mutate(id);
+    }
+  };
+
+  const handleSubmit = async (data: any) => {
+    try {
+      if (editingRecipe) {
+        // Update existing recipe
+        const { error } = await supabase
+          .from('recipes')
+          .update({
+            name: data.name,
+            image_url: data.image_url,
+            category_id: data.category_id,
+            portions: data.portions,
+            notes: data.notes
+          })
+          .eq('id', editingRecipe.id);
+        
+        if (error) throw error;
+      } else {
+        // Create new recipe
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Usuário não autenticado');
+
+        const { error } = await supabase
+          .from('recipes')
+          .insert({
+            user_id: user.id,
+            name: data.name,
+            image_url: data.image_url,
+            category_id: data.category_id,
+            portions: data.portions,
+            notes: data.notes,
+            total_cost: 0,
+            unit_cost: 0
+          });
+        
+        if (error) throw error;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      toast({
+        title: "Sucesso",
+        description: editingRecipe ? "Receita atualizada com sucesso." : "Receita criada com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao salvar receita.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -243,15 +315,14 @@ const Recipes = () => {
       {showForm && (
         <RecipeForm
           open={showForm}
-          onOpenChange={(open) => {
-            setShowForm(open);
-            if (!open) setEditingRecipe(null);
-          }}
-          onSuccess={() => {
+          onClose={() => {
             setShowForm(false);
             setEditingRecipe(null);
-            queryClient.invalidateQueries({ queryKey: ['recipes'] });
           }}
+          onSubmit={handleSubmit}
+          editingRecipe={editingRecipe}
+          categories={categories}
+          ingredients={ingredients}
         />
       )}
 
