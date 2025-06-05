@@ -24,6 +24,7 @@ import { formatCurrency, formatDate } from "@/utils/calculations";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { NewOrderForm } from "@/components/orders/NewOrderForm";
 
 interface Order {
   id: string;
@@ -40,6 +41,7 @@ const Orders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showNewOrderForm, setShowNewOrderForm] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -146,7 +148,10 @@ const Orders = () => {
           { icon: DollarSign, text: `Receita: ${formatCurrency(totalRevenue)}` }
         ]}
         actions={
-          <Button className="btn-gradient">
+          <Button 
+            className="btn-gradient bg-white/20 text-white border-white/30 hover:bg-white/30"
+            onClick={() => setShowNewOrderForm(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Novo Pedido
           </Button>
@@ -225,7 +230,10 @@ const Orders = () => {
                 {searchTerm ? "Tente alterar os termos de busca" : "Comece criando seu primeiro pedido"}
               </p>
               {!searchTerm && (
-                <Button className="mt-4 btn-gradient">
+                <Button 
+                  className="mt-4 btn-gradient"
+                  onClick={() => setShowNewOrderForm(true)}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Criar Primeiro Pedido
                 </Button>
@@ -287,6 +295,21 @@ const Orders = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Formulário de Novo Pedido */}
+      {showNewOrderForm && (
+        <NewOrderForm
+          onClose={() => setShowNewOrderForm(false)}
+          onSuccess={() => {
+            setShowNewOrderForm(false);
+            fetchOrders();
+            toast({
+              title: "Sucesso",
+              description: "Pedido criado com sucesso.",
+            });
+          }}
+        />
+      )}
     </div>
   );
 };

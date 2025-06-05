@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { 
   Calendar, 
   TrendingUp, 
@@ -21,8 +22,17 @@ import { Badge } from "@/components/ui/badge";
 
 const FluxoCaixa = () => {
   const [dateRange, setDateRange] = useState("month");
+  const [customStartDate, setCustomStartDate] = useState<Date>();
+  const [customEndDate, setCustomEndDate] = useState<Date>();
 
   const getDateRange = () => {
+    if (dateRange === "custom" && customStartDate && customEndDate) {
+      return {
+        startDate: customStartDate.toISOString().split('T')[0],
+        endDate: customEndDate.toISOString().split('T')[0]
+      };
+    }
+
     const now = new Date();
     const start = new Date();
     
@@ -183,6 +193,10 @@ const FluxoCaixa = () => {
   const COLORS = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#EC4899'];
 
   const formatPeriodLabel = () => {
+    if (dateRange === "custom" && customStartDate && customEndDate) {
+      return "Período personalizado";
+    }
+    
     switch (dateRange) {
       case "week": return "Última semana";
       case "month": return "Último mês";
@@ -190,6 +204,11 @@ const FluxoCaixa = () => {
       case "year": return "Último ano";
       default: return "Último mês";
     }
+  };
+
+  const handleCustomDateChange = (start: Date, end: Date) => {
+    setCustomStartDate(start);
+    setCustomEndDate(end);
   };
 
   return (
@@ -207,8 +226,16 @@ const FluxoCaixa = () => {
               <SelectItem value="month">Último mês</SelectItem>
               <SelectItem value="quarter">Último trimestre</SelectItem>
               <SelectItem value="year">Último ano</SelectItem>
+              <SelectItem value="custom">Período personalizado</SelectItem>
             </SelectContent>
           </Select>
+          {dateRange === "custom" && (
+            <DateRangePicker
+              startDate={customStartDate}
+              endDate={customEndDate}
+              onDateChange={handleCustomDateChange}
+            />
+          )}
         </div>
       </div>
 

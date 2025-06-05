@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Calendar, TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart, Users, AlertTriangle, Target, PieChart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/utils/calculations";
@@ -11,9 +12,18 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const Relatorios = () => {
   const [dateRange, setDateRange] = useState("month");
+  const [customStartDate, setCustomStartDate] = useState<Date>();
+  const [customEndDate, setCustomEndDate] = useState<Date>();
 
   // Calcular período baseado na seleção
   const getDateRange = () => {
+    if (dateRange === "custom" && customStartDate && customEndDate) {
+      return {
+        startDate: customStartDate.toISOString().split('T')[0],
+        endDate: customEndDate.toISOString().split('T')[0]
+      };
+    }
+
     const now = new Date();
     const start = new Date();
     
@@ -209,6 +219,10 @@ const Relatorios = () => {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
   const formatPeriodLabel = () => {
+    if (dateRange === "custom" && customStartDate && customEndDate) {
+      return "Período personalizado";
+    }
+    
     switch (dateRange) {
       case "week": return "Última semana";
       case "month": return "Último mês";
@@ -216,6 +230,11 @@ const Relatorios = () => {
       case "year": return "Último ano";
       default: return "Último mês";
     }
+  };
+
+  const handleCustomDateChange = (start: Date, end: Date) => {
+    setCustomStartDate(start);
+    setCustomEndDate(end);
   };
 
   return (
@@ -233,8 +252,16 @@ const Relatorios = () => {
               <SelectItem value="month">Último mês</SelectItem>
               <SelectItem value="quarter">Último trimestre</SelectItem>
               <SelectItem value="year">Último ano</SelectItem>
+              <SelectItem value="custom">Período personalizado</SelectItem>
             </SelectContent>
           </Select>
+          {dateRange === "custom" && (
+            <DateRangePicker
+              startDate={customStartDate}
+              endDate={customEndDate}
+              onDateChange={handleCustomDateChange}
+            />
+          )}
         </div>
       </div>
 
