@@ -42,12 +42,12 @@
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222.2 84% 7%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222.2 84% 7%;
     --popover-foreground: 210 40% 98%;
     --primary: 14 71% 61%;
-    --primary-foreground: 222.2 84% 4.9%;
+    --primary-foreground: 210 40% 98%;
     --secondary: 173 58% 37%;
     --secondary-foreground: 210 40% 98%;
     --muted: 215 27.9% 16.9%;
@@ -73,11 +73,12 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border transition-colors duration-200;
   }
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
   
   /* Responsive typography */
@@ -136,6 +137,43 @@
   .margin-responsive {
     @apply m-4 sm:m-6 lg:m-8;
   }
+
+  /* Header padrão para todas as páginas */
+  .page-header {
+    @apply relative overflow-hidden rounded-2xl lg:rounded-3xl p-4 sm:p-6 lg:p-8 text-white shadow-2xl mb-4 sm:mb-6 lg:mb-8;
+  }
+
+  .page-header-overlay {
+    @apply absolute inset-0 bg-black/10;
+  }
+
+  .page-header-decoration-1 {
+    @apply absolute -right-2 -top-2 sm:-right-4 sm:-top-4 h-16 w-16 sm:h-24 sm:w-24 lg:h-32 lg:w-32 rounded-full bg-white/10;
+  }
+
+  .page-header-decoration-2 {
+    @apply absolute -left-2 -bottom-2 sm:-left-4 sm:-bottom-4 h-20 w-20 sm:h-32 sm:w-32 lg:h-40 lg:w-40 rounded-full bg-white/5;
+  }
+
+  .page-header-content {
+    @apply relative z-10;
+  }
+
+  .page-header-title {
+    @apply text-xl sm:text-2xl lg:text-4xl font-bold;
+  }
+
+  .page-header-subtitle {
+    @apply text-xs sm:text-sm lg:text-lg opacity-90;
+  }
+
+  .page-header-icon {
+    @apply rounded-xl sm:rounded-2xl bg-white/20 p-2 sm:p-3 lg:p-4 backdrop-blur-sm;
+  }
+
+  .page-header-icon-size {
+    @apply h-4 w-4 sm:h-6 sm:w-6 lg:h-8 lg:w-8;
+  }
 }
 
 /* SEO and performance optimizations */
@@ -168,5 +206,10 @@
   /* Focus visible for accessibility */
   .focus-visible {
     @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  }
+
+  /* Theme transitions */
+  .theme-transition {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
 }

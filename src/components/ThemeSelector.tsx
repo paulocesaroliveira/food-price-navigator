@@ -40,8 +40,8 @@ const themes = [
     name: 'mint',
     label: 'Menta Fresca',
     colors: {
-      primary: '#26D0CE',
-      secondary: '#A8E6CF',
+      primary: '#26A69A',
+      secondary: '#81C784',
       background: '#F0FFFF'
     }
   },
@@ -49,8 +49,8 @@ const themes = [
     name: 'amber',
     label: 'Âmbar Aconchegante',
     colors: {
-      primary: '#FFB347',
-      secondary: '#DEB887',
+      primary: '#FFC107',
+      secondary: '#FF9800',
       background: '#FFF8DC'
     }
   },
@@ -89,16 +89,16 @@ const ThemeSelector: React.FC<ThemeSelectorProps> = ({ currentTheme, onThemeChan
           <Palette className="h-5 w-5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-48 bg-card border-border">
         {themes.map((theme) => (
           <DropdownMenuItem 
             key={theme.name}
             onClick={() => handleThemeChange(theme.name as Theme)}
-            className="cursor-pointer flex items-center justify-between"
+            className="cursor-pointer flex items-center justify-between hover:bg-accent"
           >
             <div className="flex items-center gap-2">
               <div 
-                className="w-4 h-4 rounded-full border-2 border-gray-300"
+                className="w-4 h-4 rounded-full border-2 border-border"
                 style={{ backgroundColor: theme.colors.primary }}
               />
               <span>{theme.label}</span>

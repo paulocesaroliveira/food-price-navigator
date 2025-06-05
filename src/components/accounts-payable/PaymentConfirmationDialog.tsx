@@ -1,111 +1,197 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { CalendarIcon, CreditCard } from "lucide-react";
 
 interface PaymentConfirmationDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (paymentDate: string, paymentMethod: string) => void;
+  onConfirm: (paymentDate: string, paymentMethod: string, finalAmount: number, discount?: number, interest?: number, notes?: string) => void;
   accountDescription: string;
   accountAmount: number;
-  isLoading?: boolean;
+  isLoading: boolean;
 }
 
-export const PaymentConfirmationDialog = ({
+export const PaymentConfirmationDialog: React.FC<PaymentConfirmationDialogProps> = ({
   isOpen,
   onClose,
   onConfirm,
   accountDescription,
   accountAmount,
-  isLoading = false
-}: PaymentConfirmationDialogProps) => {
+  isLoading
+}) => {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [discount, setDiscount] = useState<number>(0);
+  const [interest, setInterest] = useState<number>(0);
+  const [notes, setNotes] = useState('');
+  const [finalAmount, setFinalAmount] = useState(accountAmount);
+
+  // Recalcular valor final quando desconto ou juros mudarem
+  useEffect(() => {
+    const discountAmount = (accountAmount * discount) / 100;
+    const interestAmount = (accountAmount * interest) / 100;
+    const newFinalAmount = accountAmount - discountAmount + interestAmount;
+    setFinalAmount(Math.max(0, newFinalAmount));
+  }, [accountAmount, discount, interest]);
 
   const handleConfirm = () => {
-    onConfirm(paymentDate, paymentMethod);
+    if (paymentDate && paymentMethod) {
+      onConfirm(paymentDate, paymentMethod, finalAmount, discount || undefined, interest || undefined, notes || undefined);
+      handleClose();
+    }
+  };
+
+  const handleClose = () => {
+    setPaymentDate(new Date().toISOString().split('T')[0]);
+    setPaymentMethod('');
+    setDiscount(0);
+    setInterest(0);
+    setNotes('');
+    setFinalAmount(accountAmount);
     onClose();
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[400px]">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Confirmar Pagamento
-          </DialogTitle>
+          <DialogTitle>Confirmar Pagamento</DialogTitle>
           <DialogDescription>
-            Confirme os detalhes do pagamento da conta
+            Confirme o pagamento da conta: <strong>{accountDescription}</strong>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <p className="font-medium text-sm text-gray-700">Conta:</p>
-            <p className="text-gray-900">{accountDescription}</p>
-            <p className="font-medium text-lg text-green-600 mt-1">
-              R$ {accountAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
+          {/* Valor Original */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <Label className="text-sm font-medium text-gray-600">Valor Original</Label>
+            <p className="text-lg font-bold text-gray-900">{formatCurrency(accountAmount)}</p>
           </div>
 
-          <div className="space-y-3">
+          {/* Data do Pagamento */}
+          <div>
+            <Label htmlFor="payment-date">Data do Pagamento</Label>
+            <Input
+              id="payment-date"
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Método de Pagamento */}
+          <div>
+            <Label htmlFor="payment-method">Método de Pagamento</Label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o método" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                <SelectItem value="transferencia">Transferência</SelectItem>
+                <SelectItem value="pix">PIX</SelectItem>
+                <SelectItem value="boleto">Boleto</SelectItem>
+                <SelectItem value="cheque">Cheque</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Desconto e Juros */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="paymentDate" className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                Data do Pagamento
-              </Label>
+              <Label htmlFor="discount">Desconto (%)</Label>
               <Input
-                id="paymentDate"
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-                className="mt-1"
+                id="discount"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={discount}
+                onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+                placeholder="0.00"
               />
+              {discount > 0 && (
+                <p className="text-xs text-green-600 mt-1">
+                  -{formatCurrency((accountAmount * discount) / 100)}
+                </p>
+              )}
             </div>
-
             <div>
-              <Label htmlFor="paymentMethod">Forma de Pagamento</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="cash">Dinheiro</SelectItem>
-                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                  <SelectItem value="debit_card">Cartão de Débito</SelectItem>
-                  <SelectItem value="bank_transfer">Transferência</SelectItem>
-                  <SelectItem value="check">Cheque</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="interest">Juros (%)</Label>
+              <Input
+                id="interest"
+                type="number"
+                min="0"
+                step="0.01"
+                value={interest}
+                onChange={(e) => setInterest(Number(e.target.value) || 0)}
+                placeholder="0.00"
+              />
+              {interest > 0 && (
+                <p className="text-xs text-red-600 mt-1">
+                  +{formatCurrency((accountAmount * interest) / 100)}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button 
-              onClick={handleConfirm} 
-              disabled={isLoading}
-              className="flex-1 bg-green-600 hover:bg-green-700"
-            >
-              {isLoading ? "Processando..." : "Confirmar Pagamento"}
-            </Button>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
+          {/* Valor Final */}
+          <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+            <Label className="text-sm font-medium text-blue-600">Valor Final a Pagar</Label>
+            <p className="text-xl font-bold text-blue-900">{formatCurrency(finalAmount)}</p>
+            {finalAmount !== accountAmount && (
+              <p className="text-xs text-blue-600">
+                {finalAmount > accountAmount ? 'Aumento' : 'Desconto'} de {formatCurrency(Math.abs(finalAmount - accountAmount))}
+              </p>
+            )}
+          </div>
+
+          {/* Observações */}
+          <div>
+            <Label htmlFor="notes">Observações (opcional)</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Adicione observações sobre o pagamento..."
+              rows={3}
+            />
           </div>
         </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleConfirm}
+            disabled={!paymentDate || !paymentMethod || isLoading}
+          >
+            {isLoading ? 'Confirmando...' : 'Confirmar Pagamento'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
