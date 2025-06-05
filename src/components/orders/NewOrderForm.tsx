@@ -505,7 +505,7 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
                   <Checkbox
                     id="cardFee"
                     checked={cardFeeEnabled}
-                    onCheckedChange={setCardFeeEnabled}
+                    onCheckedChange={(checked) => setCardFeeEnabled(checked === true)}
                   />
                   <label htmlFor="cardFee" className="text-sm font-medium text-orange-700">
                     Aplicar taxa de cartão
