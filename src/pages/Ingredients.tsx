@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +46,7 @@ interface DatabaseIngredient {
   updated_at: string;
 }
 
-interface Ingredient {
+interface DisplayIngredient {
   id: string;
   created_at: string;
   name: string;
@@ -59,6 +58,10 @@ interface Ingredient {
   supplier?: string;
   notes?: string;
   user_id: string;
+  brand: string;
+  package_quantity: number;
+  package_price: number;
+  unit_cost: number;
 }
 
 interface Category {
@@ -75,7 +78,7 @@ const Ingredients = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
-  const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
+  const [editingIngredient, setEditingIngredient] = useState<DisplayIngredient | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -97,7 +100,7 @@ const Ingredients = () => {
     enabled: !!user?.id,
   });
 
-  const ingredients: Ingredient[] = ingredientsRaw?.map(item => ({
+  const ingredients: DisplayIngredient[] = ingredientsRaw?.map(item => ({
     id: item.id,
     created_at: item.created_at,
     name: item.name,
@@ -108,7 +111,11 @@ const Ingredients = () => {
     category: item.ingredient_categories?.name || 'Sem categoria',
     supplier: item.supplier,
     notes: item.notes,
-    user_id: item.user_id
+    user_id: item.user_id,
+    brand: item.brand,
+    package_quantity: item.package_quantity,
+    package_price: item.package_price,
+    unit_cost: item.unit_cost
   })) || [];
 
   const { data: categories, isLoading: loadingCategories } = useQuery({
@@ -175,7 +182,7 @@ const Ingredients = () => {
   });
 
   const updateIngredientMutation = useMutation({
-    mutationFn: async (updatedIngredient: Ingredient) => {
+    mutationFn: async (updatedIngredient: DisplayIngredient) => {
       // Find category_id by name
       const category = categories?.find(c => c.name === updatedIngredient.category);
       
@@ -188,8 +195,8 @@ const Ingredients = () => {
         category_id: category?.id,
         supplier: updatedIngredient.supplier,
         brand: updatedIngredient.supplier || 'Sem marca',
-        package_quantity: 1,
-        package_price: updatedIngredient.cost
+        package_quantity: updatedIngredient.package_quantity,
+        package_price: updatedIngredient.package_price
       };
 
       const { data, error } = await supabase
@@ -239,7 +246,7 @@ const Ingredients = () => {
   const totalIngredients = ingredients?.length || 0;
   const totalCategories = categories?.length || 0;
 
-  const handleEdit = (ingredient: Ingredient) => {
+  const handleEdit = (ingredient: DisplayIngredient) => {
     setEditingIngredient(ingredient);
     setShowForm(true);
   };
@@ -451,15 +458,25 @@ const Ingredients = () => {
         open={showForm}
         onOpenChange={setShowForm}
         categories={categories || []}
-        ingredient={editingIngredient}
+        ingredient={editingIngredient ? {
+          name: editingIngredient.name,
+          category: editingIngredient.category,
+          unit: editingIngredient.unit,
+          brand: editingIngredient.brand,
+          supplier: editingIngredient.supplier,
+          package_quantity: editingIngredient.package_quantity,
+          package_price: editingIngredient.package_price,
+          unit_cost: editingIngredient.unit_cost,
+          image_url: editingIngredient.image_url
+        } : null}
         onSubmit={async (values) => {
           try {
             if (editingIngredient) {
               // Update existing ingredient
-              await updateIngredientMutation.mutateAsync({ ...editingIngredient, ...values });
+              await updateIngredientMutation.mutateAsync({ ...editingIngredient, ...values, cost: values.unit_cost || values.cost });
             } else {
               // Create new ingredient
-              await createIngredientMutation.mutateAsync(values);
+              await createIngredientMutation.mutateAsync({ ...values, cost: values.unit_cost || values.cost });
             }
           } catch (error) {
             console.error("Error creating/updating ingredient:", error);
