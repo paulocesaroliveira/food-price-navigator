@@ -11,35 +11,24 @@ import { Trash2, FileText } from "lucide-react";
 
 interface RecipeSelectorProps {
   recipes: Recipe[];
-  selectedRecipes: Array<{
+  selectedItems: Array<{
     recipeId: string;
     quantity: number;
     cost: number;
   }>;
-  onRecipeAdd: () => void;
-  onRecipeRemove: (index: number) => void;
-  onRecipeChange: (index: number, recipeId: string) => void;
-  onQuantityChange: (index: number, quantity: number) => void;
+  onItemChange: (index: number, field: string, value: any) => void;
+  onRemoveItem: (index: number) => void;
 }
 
 export const RecipeSelector = ({
   recipes,
-  selectedRecipes,
-  onRecipeAdd,
-  onRecipeRemove,
-  onRecipeChange,
-  onQuantityChange,
+  selectedItems,
+  onItemChange,
+  onRemoveItem,
 }: RecipeSelectorProps) => {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Receitas do Produto</h3>
-        <Button onClick={onRecipeAdd} variant="outline" size="sm">
-          + Adicionar Receita
-        </Button>
-      </div>
-
-      {selectedRecipes.length === 0 ? (
+      {selectedItems.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-8">
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
@@ -51,7 +40,7 @@ export const RecipeSelector = ({
         </Card>
       ) : (
         <div className="space-y-3">
-          {selectedRecipes.map((item, index) => {
+          {selectedItems.map((item, index) => {
             const recipe = recipes.find(r => r.id === item.recipeId);
             return (
               <Card key={index}>
@@ -75,7 +64,7 @@ export const RecipeSelector = ({
                       <Label className="text-sm text-muted-foreground">Receita</Label>
                       <Select
                         value={item.recipeId}
-                        onValueChange={(value) => onRecipeChange(index, value)}
+                        onValueChange={(value) => onItemChange(index, 'recipeId', value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione uma receita" />
@@ -101,7 +90,7 @@ export const RecipeSelector = ({
                         type="number"
                         min="1"
                         value={item.quantity}
-                        onChange={(e) => onQuantityChange(index, Number(e.target.value))}
+                        onChange={(e) => onItemChange(index, 'quantity', Number(e.target.value))}
                       />
                     </div>
 
@@ -116,7 +105,7 @@ export const RecipeSelector = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onRecipeRemove(index)}
+                        onClick={() => onRemoveItem(index)}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />

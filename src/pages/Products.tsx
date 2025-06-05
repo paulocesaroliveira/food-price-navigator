@@ -438,7 +438,6 @@ const Products = () => {
               categories={categories}
               onSubmit={isEditing ? handleUpdateProduct : handleCreateProduct}
               onCancel={() => setDialogOpen(false)}
-              onCategoriesChange={handleCategoriesChange}
             />
           )}
         </DialogContent>
@@ -457,7 +456,6 @@ const Products = () => {
               categories={categories}
               onSubmit={isEditing ? handleUpdateProduct : handleCreateProduct}
               onCancel={() => setSheetOpen(false)}
-              onCategoriesChange={handleCategoriesChange}
             />
           )}
         </SheetContent>

@@ -12,38 +12,36 @@ import { Badge } from "@/components/ui/badge";
 
 interface PackagingSelectorProps {
   packaging: Packaging[];
-  selectedPackaging: Array<{
+  selectedItems: Array<{
     packagingId: string;
     quantity: number;
     cost: number;
     isPrimary: boolean;
   }>;
-  onPackagingAdd: () => void;
-  onPackagingRemove: (index: number) => void;
-  onPackagingChange: (index: number, packagingId: string) => void;
-  onQuantityChange: (index: number, quantity: number) => void;
-  onPrimaryChange: (index: number) => void;
+  onItemChange: (index: number, field: string, value: any) => void;
+  onRemoveItem: (index: number) => void;
 }
 
 export const PackagingSelector = ({
   packaging,
-  selectedPackaging,
-  onPackagingAdd,
-  onPackagingRemove,
-  onPackagingChange,
-  onQuantityChange,
-  onPrimaryChange,
+  selectedItems,
+  onItemChange,
+  onRemoveItem,
 }: PackagingSelectorProps) => {
+  const handlePrimaryChange = (index: number) => {
+    // Primeiro, marca todos como não primários
+    selectedItems.forEach((_, i) => {
+      if (i !== index) {
+        onItemChange(i, 'isPrimary', false);
+      }
+    });
+    // Depois marca o selecionado como primário
+    onItemChange(index, 'isPrimary', true);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Embalagens</h3>
-        <Button onClick={onPackagingAdd} variant="outline" size="sm">
-          + Adicionar Embalagem
-        </Button>
-      </div>
-
-      {selectedPackaging.length === 0 ? (
+      {selectedItems.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-8">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
@@ -55,7 +53,7 @@ export const PackagingSelector = ({
         </Card>
       ) : (
         <div className="space-y-3">
-          {selectedPackaging.map((item, index) => {
+          {selectedItems.map((item, index) => {
             const pkg = packaging.find(p => p.id === item.packagingId);
             return (
               <Card key={index} className={item.isPrimary ? "ring-2 ring-primary" : ""}>
@@ -79,7 +77,7 @@ export const PackagingSelector = ({
                       <Label className="text-sm text-muted-foreground">Embalagem</Label>
                       <Select
                         value={item.packagingId}
-                        onValueChange={(value) => onPackagingChange(index, value)}
+                        onValueChange={(value) => onItemChange(index, 'packagingId', value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione uma embalagem" />
@@ -105,7 +103,7 @@ export const PackagingSelector = ({
                         type="number"
                         min="1"
                         value={item.quantity}
-                        onChange={(e) => onQuantityChange(index, Number(e.target.value))}
+                        onChange={(e) => onItemChange(index, 'quantity', Number(e.target.value))}
                       />
                     </div>
 
@@ -120,7 +118,7 @@ export const PackagingSelector = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onPrimaryChange(index)}
+                        onClick={() => handlePrimaryChange(index)}
                         className={item.isPrimary ? "text-yellow-600" : "text-muted-foreground"}
                       >
                         <Star className={`h-4 w-4 ${item.isPrimary ? "fill-current" : ""}`} />
@@ -131,9 +129,9 @@ export const PackagingSelector = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onPackagingRemove(index)}
+                        onClick={() => onRemoveItem(index)}
                         className="text-destructive hover:text-destructive"
-                        disabled={item.isPrimary && selectedPackaging.length === 1}
+                        disabled={item.isPrimary && selectedItems.length === 1}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
