@@ -1,16 +1,16 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Package, ImagePlus, Edit, Trash2, Loader2 } from "lucide-react";
+import { Search, Package, ImagePlus, Edit, Trash2, Loader2, DollarSign } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PackagingForm } from "@/components/packaging/PackagingForm";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 interface Packaging {
   id: string;
@@ -205,132 +205,182 @@ const PackagingPage = () => {
     }
   };
 
+  const totalPackaging = packagingList.length;
+  const totalValue = packagingList.reduce((sum, pkg) => sum + pkg.bulkPrice, 0);
+  const averageUnitCost = packagingList.length > 0 ? packagingList.reduce((sum, pkg) => sum + pkg.unitCost, 0) / packagingList.length : 0;
+
   return (
-    <div className="container mx-auto">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-poppins font-semibold">Embalagens</h1>
-            <p className="text-muted-foreground">Gerenciamento das embalagens cadastradas.</p>
-          </div>
+    <div className="space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Embalagens"
+        subtitle="Gerencie embalagens e controle custos unitários"
+        icon={Package}
+        gradient="bg-gradient-to-br from-purple-500 via-indigo-500 to-blue-500"
+        badges={[
+          { icon: Package, text: `${totalPackaging} embalagens` },
+          { icon: DollarSign, text: `Valor total: R$ ${totalValue.toFixed(2)}` }
+        ]}
+        actions={
           <Button
-            className="bg-food-coral hover:bg-food-amber text-white"
+            className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto"
             onClick={() => openPackagingDialog()}
           >
             <ImagePlus className="mr-2 h-4 w-4" />
             Nova Embalagem
           </Button>
-        </div>
+        }
+      />
 
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Filtros</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Embalagens</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por nome ou tipo..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
+            <div className="text-2xl font-bold">{totalPackaging}</div>
+            <p className="text-xs text-muted-foreground">
+              Embalagens cadastradas
+            </p>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Lista de Embalagens</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor Total em Estoque</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-food-coral" />
-                <span className="ml-2">Carregando embalagens...</span>
-              </div>
-            ) : filteredPackaging.length === 0 ? (
-              <div className="text-center py-12">
-                <Package className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-medium">Nenhuma embalagem encontrada</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {searchQuery ? "Nenhuma embalagem encontrada para sua busca." : "Comece adicionando sua primeira embalagem"}
-                </p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Embalagem</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Quantidade/Lote</TableHead>
-                    <TableHead>Preço/Lote</TableHead>
-                    <TableHead>Preço Unitário</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPackaging.map((packaging) => (
-                    <TableRow key={packaging.id}>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <div className="h-12 w-12 overflow-hidden rounded-md bg-muted">
-                            {packaging.imageUrl ? (
-                              <img 
-                                src={packaging.imageUrl} 
-                                alt={packaging.name} 
-                                className="h-full w-full object-cover" 
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
-                                <Package className="h-6 w-6" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{packaging.name}</span>
-                            {packaging.notes && (
-                              <span className="text-sm text-muted-foreground">{packaging.notes}</span>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{packaging.type}</TableCell>
-                      <TableCell>{packaging.bulkQuantity}</TableCell>
-                      <TableCell>R$ {packaging.bulkPrice.toFixed(2)}</TableCell>
-                      <TableCell>R$ {packaging.unitCost.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end items-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => openPackagingDialog(packaging)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-700"
-                            onClick={() => openDeleteDialog(packaging)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+            <div className="text-2xl font-bold">R$ {totalValue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              Valor total investido
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card className="sm:col-span-2 lg:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Custo Unitário Médio</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">R$ {averageUnitCost.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              Média dos custos unitários
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>Filtros</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome ou tipo..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>Lista de Embalagens</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-food-coral" />
+              <span className="ml-2">Carregando embalagens...</span>
+            </div>
+          ) : filteredPackaging.length === 0 ? (
+            <div className="text-center py-12">
+              <Package className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-medium">Nenhuma embalagem encontrada</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {searchQuery ? "Nenhuma embalagem encontrada para sua busca." : "Comece adicionando sua primeira embalagem"}
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Embalagem</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Quantidade/Lote</TableHead>
+                  <TableHead>Preço/Lote</TableHead>
+                  <TableHead>Preço Unitário</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPackaging.map((packaging) => (
+                  <TableRow key={packaging.id}>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <div className="h-12 w-12 overflow-hidden rounded-md bg-muted">
+                          {packaging.imageUrl ? (
+                            <img 
+                              src={packaging.imageUrl} 
+                              alt={packaging.name} 
+                              className="h-full w-full object-cover" 
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                              <Package className="h-6 w-6" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{packaging.name}</span>
+                          {packaging.notes && (
+                            <span className="text-sm text-muted-foreground">{packaging.notes}</span>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{packaging.type}</TableCell>
+                    <TableCell>{packaging.bulkQuantity}</TableCell>
+                    <TableCell>R$ {packaging.bulkPrice.toFixed(2)}</TableCell>
+                    <TableCell>R$ {packaging.unitCost.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openPackagingDialog(packaging)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-700"
+                          onClick={() => openDeleteDialog(packaging)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[700px]">

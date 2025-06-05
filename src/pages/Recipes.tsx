@@ -14,6 +14,7 @@ import { PaginationControls } from "@/components/ui/pagination-controls";
 import { usePagination } from "@/hooks/usePagination";
 import { useLoadingStates } from "@/hooks/useLoadingStates";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 interface Recipe {
   id: string;
@@ -206,22 +207,31 @@ const Recipes = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold">Receitas</h1>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <RecipeCategoryManager 
-            categories={categories}
-            onCategoriesChange={handleCategoriesChange}
-          />
-          <Button
-            onClick={() => setShowForm(true)}
-            className="bg-food-coral hover:bg-food-coral/90 text-white dark:bg-food-coralDark dark:hover:bg-food-coralDark/90 w-full sm:w-auto"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Receita
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Receitas"
+        subtitle="Gerencie suas receitas e calcule custos de produção"
+        icon={ChefHat}
+        gradient="bg-gradient-to-br from-orange-500 via-red-500 to-pink-500"
+        badges={[
+          { icon: ChefHat, text: `${recipes.length} receitas` },
+          { icon: DollarSign, text: `Custo médio: R$ ${recipes.length > 0 ? (recipes.reduce((sum, recipe) => sum + recipe.total_cost, 0) / recipes.length).toFixed(2) : '0,00'}` }
+        ]}
+        actions={
+          <>
+            <RecipeCategoryManager 
+              categories={categories}
+              onCategoriesChange={handleCategoriesChange}
+            />
+            <Button
+              onClick={() => setShowForm(true)}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Receita
+            </Button>
+          </>
+        }
+      />
 
       {/* Estatísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

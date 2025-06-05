@@ -6,7 +6,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search, Edit, Trash, Package, RefreshCw, Settings } from "lucide-react";
+import { PlusCircle, Search, Edit, Trash, Package, RefreshCw, Settings, DollarSign, ShoppingCart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -21,6 +21,7 @@ import {
 import { ProductForm } from "@/components/products/ProductForm";
 import { DeleteProductDialog } from "@/components/products/DeleteProductDialog";
 import { ProductCategoryManager } from "@/components/products/ProductCategoryManager";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { 
   getProductList, 
   createProduct, 
@@ -272,26 +273,81 @@ const Products = () => {
     setDeleteDialogOpen(true);
   };
 
+  const totalProducts = products.length;
+  const totalValue = products.reduce((sum, product) => sum + product.totalCost, 0);
+  const averageSellingPrice = products.length > 0 ? products.filter(p => p.sellingPrice > 0).reduce((sum, product) => sum + product.sellingPrice, 0) / products.filter(p => p.sellingPrice > 0).length : 0;
+
   const isLoading = isLoadingProducts || isLoadingRecipes || isLoadingPackaging || isLoadingCategories;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Produtos</h1>
-        <div className="flex gap-2">
-          <ProductCategoryManager 
-            categories={categories}
-            onCategoriesChange={handleCategoriesChange}
-          />
-          <Button variant="outline" onClick={handleRefreshData} className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Atualizar
-          </Button>
-          <Button className="gap-2" onClick={() => window.innerWidth >= 768 ? openCreateDialog() : openCreateSheet()}>
-            <PlusCircle className="h-4 w-4" />
-            Novo Produto
-          </Button>
-        </div>
+    <div className="space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Produtos"
+        subtitle="Gerencie produtos finais e defina preços de venda"
+        icon={ShoppingCart}
+        gradient="bg-gradient-to-br from-green-500 via-teal-500 to-cyan-500"
+        badges={[
+          { icon: ShoppingCart, text: `${totalProducts} produtos` },
+          { icon: DollarSign, text: `Valor total: R$ ${totalValue.toFixed(2)}` }
+        ]}
+        actions={
+          <>
+            <ProductCategoryManager 
+              categories={categories}
+              onCategoriesChange={handleCategoriesChange}
+            />
+            <Button variant="outline" onClick={handleRefreshData} className="bg-white/20 hover:bg-white/30 text-white border-white/30">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
+            <Button className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto" onClick={() => window.innerWidth >= 768 ? openCreateDialog() : openCreateSheet()}>
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Novo Produto
+            </Button>
+          </>
+        }
+      />
+
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalProducts}</div>
+            <p className="text-xs text-muted-foreground">
+              Produtos cadastrados
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Custo Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">R$ {totalValue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              Valor total de produção
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card className="sm:col-span-2 lg:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Preço Médio de Venda</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">R$ {averageSellingPrice.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              Preço médio dos produtos
+            </p>
+          </CardContent>
+        </Card>
       </div>
       
       <Card>

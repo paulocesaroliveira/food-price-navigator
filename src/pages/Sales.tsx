@@ -29,13 +29,15 @@ import {
   TrendingUp,
   DollarSign,
   Receipt,
-  Target
+  Target,
+  ShoppingBag
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/utils/calculations";
 import { getSales, createSale, deleteSale } from "@/services/salesService";
 import { getProductList } from "@/services/productService";
 import SalesForm from "@/components/sales/SalesForm";
 import { toast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 const Sales = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -88,7 +90,6 @@ const Sales = () => {
   const totalCost = Array.isArray(sales) ? sales.reduce((sum, sale) => sum + (sale.total_cost || 0), 0) : 0;
   const totalSales = Array.isArray(sales) ? sales.filter(sale => sale.status === 'completed').length : 0;
   const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
-
   const grossProfit = totalRevenue - totalCost;
 
   // Filter sales based on search term
@@ -104,20 +105,27 @@ const Sales = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-          Vendas
-        </h1>
-        <Button 
-          className="gap-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600" 
-          onClick={() => setShowForm(true)}
-        >
-          <PlusCircle className="h-4 w-4" />
-          Nova Venda
-        </Button>
-      </div>
+    <div className="space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Vendas"
+        subtitle="Gerencie vendas e acompanhe performance financeira"
+        icon={ShoppingBag}
+        gradient="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500"
+        badges={[
+          { icon: ShoppingBag, text: `${totalSales} vendas` },
+          { icon: DollarSign, text: `Receita: ${formatCurrency(totalRevenue)}` },
+          { icon: TrendingUp, text: `Lucro: ${formatCurrency(grossProfit)}` }
+        ]}
+        actions={
+          <Button 
+            className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto" 
+            onClick={() => setShowForm(true)}
+          >
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Nova Venda
+          </Button>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
