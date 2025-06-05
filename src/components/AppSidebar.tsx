@@ -15,7 +15,8 @@ import {
   TrendingUp, 
   Repeat, 
   Settings, 
-  RefreshCw 
+  RefreshCw,
+  Store 
 } from "lucide-react"
 
 import {
@@ -31,6 +32,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar"
 import { Link, useLocation } from "react-router-dom"
+import { useAuth } from "@/hooks/useAuth"
 
 // Menu items organizados por grupos
 const menuGroups = [
@@ -143,25 +145,28 @@ const menuGroups = [
 
 export function AppSidebar() {
   const location = useLocation()
+  const { user } = useAuth()
 
   return (
     <Sidebar className="border-r">
-      <SidebarHeader className="border-b">
+      <SidebarHeader className="border-b bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex items-center gap-3 px-4 py-4">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Package className="h-5 w-5 text-white" />
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+            <Store className="h-6 w-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">TastyHub</h1>
-            <p className="text-xs text-gray-500">Sistema de Gestão</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold text-gray-900 truncate">Loja Teste</h1>
+            <p className="text-xs text-gray-600 truncate" title={user?.email || ''}>
+              {user?.email || 'Usuário não logado'}
+            </p>
           </div>
         </div>
       </SidebarHeader>
       
-      <SidebarContent>
+      <SidebarContent className="bg-white">
         {menuGroups.map((group, groupIndex) => (
           <SidebarGroup key={groupIndex}>
-            <SidebarGroupLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <SidebarGroupLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -171,11 +176,11 @@ export function AppSidebar() {
                     <SidebarMenuButton 
                       asChild 
                       isActive={location.pathname === item.url}
-                      className="h-10"
+                      className="h-10 mx-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 data-[active=true]:bg-blue-600 data-[active=true]:text-white data-[active=true]:shadow-lg"
                     >
-                      <Link to={item.url} className="flex items-center gap-3">
-                        <item.icon className="h-4 w-4" />
-                        <span className="font-medium">{item.title}</span>
+                      <Link to={item.url} className="flex items-center gap-3 px-3">
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        <span className="font-medium truncate">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -186,9 +191,10 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
       
-      <SidebarFooter className="border-t">
+      <SidebarFooter className="border-t bg-gray-50">
         <div className="px-4 py-3 text-xs text-gray-500">
           <p>&copy; 2024 TastyHub</p>
+          <p className="text-[10px] text-gray-400 mt-1">Sistema de Gestão</p>
         </div>
       </SidebarFooter>
     </Sidebar>

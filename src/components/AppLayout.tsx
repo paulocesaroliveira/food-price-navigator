@@ -53,8 +53,8 @@ const AppLayout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
+        <div className="animate-spin rounded-full h-16 w-16 lg:h-32 lg:w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -65,28 +65,28 @@ const AppLayout = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar />
         <main className="flex-1 overflow-auto">
-          <header className="sticky top-0 z-10 bg-background border-b shadow-sm h-16">
-            <div className="h-full flex items-center justify-between px-4">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger className="text-foreground hover:text-primary transition-colors" />
+          <header className="sticky top-0 z-10 bg-white border-b shadow-sm h-14 lg:h-16">
+            <div className="h-full flex items-center justify-between px-3 lg:px-6">
+              <div className="flex items-center gap-3 lg:gap-4">
+                <SidebarTrigger className="text-foreground hover:text-primary transition-colors h-8 w-8 lg:h-10 lg:w-10" />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 lg:gap-2">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button 
                         variant="ghost" 
-                        size="icon" 
+                        size="sm"
                         onClick={() => toast({ 
                           title: "Sem notificações", 
                           description: "Você não tem novas notificações." 
                         })}
-                        className="text-foreground hover:text-primary hover:bg-accent transition-colors"
+                        className="text-foreground hover:text-primary hover:bg-accent transition-colors h-8 w-8 lg:h-10 lg:w-10 p-0"
                       >
-                        <Bell className="h-5 w-5" />
+                        <Bell className="h-4 w-4 lg:h-5 lg:w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -111,10 +111,10 @@ const AppLayout = () => {
                     <TooltipTrigger asChild>
                       <Button 
                         variant="ghost" 
-                        size="icon"
-                        className="text-foreground hover:text-primary hover:bg-accent transition-colors"
+                        size="sm"
+                        className="text-foreground hover:text-primary hover:bg-accent transition-colors h-8 w-8 lg:h-10 lg:w-10 p-0"
                       >
-                        <HelpCircle className="h-5 w-5" />
+                        <HelpCircle className="h-4 w-4 lg:h-5 lg:w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -127,29 +127,29 @@ const AppLayout = () => {
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="ghost" 
-                      size="icon" 
-                      className="rounded-full hover:bg-accent transition-colors"
+                      size="sm"
+                      className="rounded-full hover:bg-accent transition-colors h-8 w-8 lg:h-10 lg:w-10 p-0"
                     >
-                      <User className="h-5 w-5 text-foreground hover:text-primary" />
+                      <User className="h-4 w-4 lg:h-5 lg:w-5 text-foreground hover:text-primary" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="px-4 py-3 border-b">
-                      <p className="text-sm font-medium font-poppins">Seu Perfil</p>
-                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  <DropdownMenuContent align="end" className="w-48 lg:w-56">
+                    <div className="px-3 lg:px-4 py-2 lg:py-3 border-b">
+                      <p className="text-xs lg:text-sm font-medium font-poppins">Seu Perfil</p>
+                      <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                     </div>
                     <DropdownMenuItem 
-                      className="cursor-pointer"
+                      className="cursor-pointer text-xs lg:text-sm"
                       onClick={() => navigate("/settings")}
                     >
                       Configurações
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
-                      className="cursor-pointer text-red-600 focus:text-red-600"
+                      className="cursor-pointer text-red-600 focus:text-red-600 text-xs lg:text-sm"
                       onClick={handleLogout}
                     >
-                      <LogOut className="h-4 w-4 mr-2" />
+                      <LogOut className="h-3 w-3 lg:h-4 lg:w-4 mr-2" />
                       Sair
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -157,7 +157,7 @@ const AppLayout = () => {
               </div>
             </div>
           </header>
-          <div className="py-6 px-4 md:px-6 animate-fade-in">
+          <div className="p-3 sm:p-4 lg:p-6 animate-fade-in">
             <Outlet />
           </div>
         </main>
