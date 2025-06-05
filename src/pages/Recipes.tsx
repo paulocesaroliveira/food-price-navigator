@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -133,7 +132,6 @@ const Recipes = () => {
         }
       />
 
-      {/* Busca */}
       <div className="flex items-center space-x-2">
         <Search className="h-4 w-4 text-gray-400 shrink-0" />
         <Input
@@ -144,7 +142,6 @@ const Recipes = () => {
         />
       </div>
 
-      {/* Lista de Receitas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => (
@@ -243,14 +240,12 @@ const Recipes = () => {
         )}
       </div>
 
-      {/* Formulário de Receita */}
       {showForm && (
         <RecipeForm
-          recipe={editingRecipe}
-          categories={categories}
-          onClose={() => {
-            setShowForm(false);
-            setEditingRecipe(null);
+          open={showForm}
+          onOpenChange={(open) => {
+            setShowForm(open);
+            if (!open) setEditingRecipe(null);
           }}
           onSuccess={() => {
             setShowForm(false);
@@ -260,13 +255,10 @@ const Recipes = () => {
         />
       )}
 
-      {/* Dialog de Categorias */}
       {showCategoryDialog && (
         <RecipeCategoryDialog
+          open={showCategoryDialog}
           onClose={() => setShowCategoryDialog(false)}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['recipe-categories'] });
-          }}
         />
       )}
     </div>

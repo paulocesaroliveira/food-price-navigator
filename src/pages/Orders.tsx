@@ -298,8 +298,7 @@ const Orders = () => {
       {/* Formulário de Novo Pedido */}
       {showNewOrderForm && (
         <NewOrderForm
-          onClose={() => setShowNewOrderForm(false)}
-          onSuccess={() => {
+          onOrderCreated={() => {
             setShowNewOrderForm(false);
             fetchOrders();
             toast({
@@ -307,6 +306,7 @@ const Orders = () => {
               description: "Pedido criado com sucesso.",
             });
           }}
+          onCancel={() => setShowNewOrderForm(false)}
         />
       )}
     </div>
