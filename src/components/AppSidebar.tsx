@@ -1,3 +1,4 @@
+
 import { 
   Home, 
   Package2, 
@@ -15,7 +16,8 @@ import {
   Repeat, 
   Settings, 
   RefreshCw,
-  Store 
+  Store,
+  HelpCircle
 } from "lucide-react"
 
 import {
@@ -140,6 +142,11 @@ const menuGroups = [
         title: "Configurações",
         url: "/settings",
         icon: Settings,
+      },
+      {
+        title: "Ajuda",
+        url: "/help",
+        icon: HelpCircle,
       }
     ]
   }

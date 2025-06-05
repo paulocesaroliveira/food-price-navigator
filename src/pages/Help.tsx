@@ -1,350 +1,215 @@
 
-import React, { useState } from 'react';
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   HelpCircle, 
-  Search, 
-  ChefHat, 
-  Package2, 
-  ShoppingCart, 
-  Users, 
-  DollarSign,
-  Calculator,
-  FileText,
-  Settings,
-  Lightbulb,
+  MessageCircle, 
+  Mail, 
+  Phone, 
+  ExternalLink,
   BookOpen,
   Video,
-  MessageCircle,
-  ChevronDown,
-  ChevronRight
+  FileText,
+  Users,
+  Zap
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const Help = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [openSections, setOpenSections] = useState<string[]>([]);
-
-  const toggleSection = (sectionId: string) => {
-    setOpenSections(prev => 
-      prev.includes(sectionId) 
-        ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
-    );
-  };
-
   const helpSections = [
     {
-      id: 'ingredients',
-      title: 'Ingredientes',
-      icon: ChefHat,
-      color: 'bg-green-500',
-      faqs: [
-        {
-          question: 'Como cadastrar um novo ingrediente?',
-          answer: 'Vá para a página Ingredientes, clique em "Novo Ingrediente", preencha os dados como nome, preço, unidade de medida e salve.'
-        },
-        {
-          question: 'Como organizar ingredientes por categoria?',
-          answer: 'Use o botão "Gerenciar Categorias" para criar categorias personalizadas e organize seus ingredientes de forma mais eficiente.'
-        },
-        {
-          question: 'Como atualizar o preço de um ingrediente?',
-          answer: 'Clique no ingrediente desejado, selecione "Editar" e atualize o campo preço. O sistema recalculará automaticamente os custos das receitas.'
-        }
+      title: "Primeiros Passos",
+      icon: Zap,
+      color: "bg-blue-50 border-blue-200",
+      items: [
+        "Como configurar seu perfil e loja",
+        "Cadastrando seus primeiros ingredientes",
+        "Criando suas primeiras receitas",
+        "Configurando produtos e preços"
       ]
     },
     {
-      id: 'recipes',
-      title: 'Receitas',
+      title: "Gestão de Produtos",
       icon: BookOpen,
-      color: 'bg-orange-500',
-      faqs: [
-        {
-          question: 'Como criar uma nova receita?',
-          answer: 'Acesse a página Receitas, clique em "Nova Receita", adicione os ingredientes com suas quantidades e o sistema calculará o custo automaticamente.'
-        },
-        {
-          question: 'Como calcular o custo de produção?',
-          answer: 'O custo é calculado automaticamente com base nos ingredientes e suas quantidades. Você pode ver o custo total e por porção na visualização da receita.'
-        },
-        {
-          question: 'Posso duplicar uma receita existente?',
-          answer: 'Sim, você pode usar uma receita como base para criar uma nova, editando apenas os ingredientes que desejar alterar.'
-        }
+      color: "bg-green-50 border-green-200",
+      items: [
+        "Como calcular custos de receitas",
+        "Gerenciando ingredientes e fornecedores",
+        "Configurando embalagens",
+        "Precificação automática"
       ]
     },
     {
-      id: 'packaging',
-      title: 'Embalagens',
-      icon: Package2,
-      color: 'bg-blue-500',
-      faqs: [
-        {
-          question: 'Como cadastrar embalagens?',
-          answer: 'Vá para Embalagens, clique em "Nova Embalagem", informe o nome, custo unitário e outras especificações necessárias.'
-        },
-        {
-          question: 'Como calcular o custo da embalagem no produto?',
-          answer: 'O sistema automaticamente inclui o custo da embalagem no cálculo final do produto quando você associa uma embalagem a ele.'
-        }
-      ]
-    },
-    {
-      id: 'products',
-      title: 'Produtos',
-      icon: ShoppingCart,
-      color: 'bg-purple-500',
-      faqs: [
-        {
-          question: 'Como criar um produto completo?',
-          answer: 'Vá para Produtos, clique em "Novo Produto", selecione a receita base, adicione embalagem e defina margem de lucro. O preço será calculado automaticamente.'
-        },
-        {
-          question: 'Como definir preço de venda?',
-          answer: 'O sistema calcula automaticamente baseado no custo de produção + embalagem + margem de lucro. Você pode ajustar manualmente se necessário.'
-        },
-        {
-          question: 'Como organizar produtos por categoria?',
-          answer: 'Use o sistema de categorias para organizar seus produtos por tipo (bolos, doces, salgados, etc.).'
-        }
-      ]
-    },
-    {
-      id: 'customers',
-      title: 'Clientes',
+      title: "Vendas e Pedidos",
       icon: Users,
-      color: 'bg-cyan-500',
-      faqs: [
-        {
-          question: 'Como cadastrar clientes?',
-          answer: 'Acesse Clientes, clique em "Novo Cliente", preencha os dados pessoais e endereços de entrega.'
-        },
-        {
-          question: 'Posso ter múltiplos endereços por cliente?',
-          answer: 'Sim, cada cliente pode ter vários endereços cadastrados, facilitando entregas em locais diferentes.'
-        },
-        {
-          question: 'Como exportar lista de clientes?',
-          answer: 'Use o botão "Exportar CSV" na página de clientes para baixar uma planilha com todos os dados.'
-        }
+      color: "bg-purple-50 border-purple-200",
+      items: [
+        "Criando e gerenciando pedidos",
+        "Cadastro de clientes",
+        "Controle de entregas",
+        "Relatórios de vendas"
       ]
     },
     {
-      id: 'orders',
-      title: 'Pedidos',
+      title: "Financeiro",
       icon: FileText,
-      color: 'bg-indigo-500',
-      faqs: [
-        {
-          question: 'Como criar um novo pedido?',
-          answer: 'Vá para Pedidos, clique em "Novo Pedido", selecione o cliente, adicione produtos e quantidades, defina data de entrega.'
-        },
-        {
-          question: 'Como acompanhar status dos pedidos?',
-          answer: 'Cada pedido tem um status (Pendente, Confirmado, Entregue, Cancelado) que pode ser atualizado conforme o andamento.'
-        },
-        {
-          question: 'Posso editar um pedido após criação?',
-          answer: 'Sim, pedidos podem ser editados até serem marcados como entregues, permitindo ajustes de última hora.'
-        }
-      ]
-    },
-    {
-      id: 'sales',
-      title: 'Vendas',
-      icon: DollarSign,
-      color: 'bg-emerald-500',
-      faqs: [
-        {
-          question: 'Como registrar uma venda?',
-          answer: 'Acesse Vendas, clique em "Nova Venda", selecione produtos, quantidades, ponto de venda e método de pagamento.'
-        },
-        {
-          question: 'Como acompanhar minhas vendas?',
-          answer: 'O dashboard e a página de vendas mostram relatórios detalhados com faturamento, produtos mais vendidos e tendências.'
-        },
-        {
-          question: 'Posso definir diferentes pontos de venda?',
-          answer: 'Sim, você pode cadastrar diferentes pontos de venda para organizar melhor suas vendas (loja física, online, eventos, etc.).'
-        }
-      ]
-    },
-    {
-      id: 'pricing',
-      title: 'Precificação',
-      icon: Calculator,
-      color: 'bg-amber-500',
-      faqs: [
-        {
-          question: 'Como o sistema calcula preços?',
-          answer: 'O cálculo considera custo dos ingredientes + embalagem + mão de obra + margem de lucro para chegar ao preço final.'
-        },
-        {
-          question: 'Posso criar diferentes configurações de preço?',
-          answer: 'Sim, você pode criar múltiplas configurações de precificação para diferentes cenários (atacado, varejo, eventos).'
-        },
-        {
-          question: 'Como incluir custos adicionais?',
-          answer: 'Na configuração de precificação, você pode adicionar custos como energia, gás, mão de obra e outros gastos operacionais.'
-        }
+      color: "bg-orange-50 border-orange-200",
+      items: [
+        "Contas a pagar e receber",
+        "Fluxo de caixa",
+        "Controle de despesas",
+        "Relatórios financeiros"
       ]
     }
   ];
 
-  const filteredSections = helpSections.filter(section =>
-    section.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    section.faqs.some(faq => 
-      faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
-
-  const quickTips = [
+  const faqItems = [
     {
-      icon: Lightbulb,
-      title: 'Atualize custos regularmente',
-      description: 'Mantenha os preços dos ingredientes atualizados para ter custos precisos.'
+      question: "Como atualizar os custos dos ingredientes?",
+      answer: "Vá para a página 'Atualizar Custos' no menu lateral. Lá você pode atualizar os preços dos ingredientes e o sistema recalculará automaticamente os custos das receitas e produtos."
     },
     {
-      icon: Calculator,
-      title: 'Use a precificação automática',
-      description: 'Deixe o sistema calcular preços automaticamente para evitar prejuízos.'
+      question: "Como criar uma nova receita?",
+      answer: "Acesse 'Receitas' no menu, clique em 'Nova Receita' e preencha as informações. Você pode adicionar ingredientes base (custos únicos) e ingredientes por porção."
     },
     {
-      icon: FileText,
-      title: 'Organize por categorias',
-      description: 'Use categorias para organizar ingredientes, produtos e clientes.'
+      question: "Como funciona o cálculo de precificação?",
+      answer: "O sistema calcula automaticamente com base nos custos dos ingredientes, embalagens e aplica as margens de lucro que você configurar na página de Precificação."
     },
     {
-      icon: Settings,
-      title: 'Configure seu perfil',
-      description: 'Complete as configurações do sistema para melhor experiência.'
+      question: "Posso exportar relatórios?",
+      answer: "Sim! Na página de Relatórios você encontra diversas opções de relatórios que podem ser visualizados e exportados."
     }
   ];
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
-        title="Central de Ajuda"
-        subtitle="Encontre respostas para suas dúvidas e aprenda a usar todas as funcionalidades"
+        title="Ajuda e Suporte"
+        subtitle="Encontre respostas e aprenda a usar o TastyHub"
         icon={HelpCircle}
-        gradient="bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-500"
+        gradient="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500"
         badges={[
-          { icon: BookOpen, text: `${helpSections.length} seções` },
-          { icon: MessageCircle, text: `${helpSections.reduce((acc, section) => acc + section.faqs.length, 0)} perguntas` },
-          { icon: Video, text: 'Tutoriais disponíveis' }
+          { icon: BookOpen, text: "Documentação completa" },
+          { icon: Video, text: "Tutoriais em vídeo" }
         ]}
+        actions={
+          <Button 
+            className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 shadow-lg"
+            onClick={() => window.open('mailto:suporte@tastyhub.com')}
+          >
+            <Mail className="mr-2 h-4 w-4" />
+            Contatar Suporte
+          </Button>
+        }
       />
 
-      {/* Busca */}
-      <div className="flex items-center space-x-2">
-        <Search className="h-4 w-4 text-gray-400 shrink-0" />
-        <Input
-          placeholder="Buscar por funcionalidade ou pergunta..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full sm:max-w-lg input-focus"
-        />
+      {/* Seções de Ajuda */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {helpSections.map((section, index) => (
+          <Card key={index} className={`${section.color} hover:shadow-lg transition-shadow`}>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <section.icon className="h-6 w-6 text-blue-600" />
+                <CardTitle className="text-lg">{section.title}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {section.items.map((item, itemIndex) => (
+                  <li key={itemIndex} className="flex items-start gap-2 text-sm">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Dicas Rápidas */}
+      {/* FAQ */}
       <Card className="custom-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-amber-500" />
-            Dicas Rápidas
+          <CardTitle className="text-xl flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            Perguntas Frequentes
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickTips.map((tip, index) => (
-              <div key={index} className="p-4 rounded-xl bg-gradient-to-br from-muted/50 to-muted/20 border border-border">
-                <tip.icon className="h-6 w-6 text-primary mb-2" />
-                <h4 className="font-medium text-sm mb-1">{tip.title}</h4>
-                <p className="text-xs text-muted-foreground">{tip.description}</p>
+          <div className="space-y-6">
+            {faqItems.map((faq, index) => (
+              <div key={index} className="border-l-4 border-blue-200 pl-4">
+                <h3 className="font-medium text-gray-900 mb-2">{faq.question}</h3>
+                <p className="text-sm text-gray-600">{faq.answer}</p>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Seções de Ajuda */}
-      <div className="grid gap-4">
-        {filteredSections.map((section) => (
-          <Card key={section.id} className="custom-card">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${section.color} text-white`}>
-                  <section.icon className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <CardTitle className="text-lg">{section.title}</CardTitle>
-                  <Badge variant="outline" className="mt-1">
-                    {section.faqs.length} perguntas
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {section.faqs.map((faq, index) => (
-                <Collapsible key={index}>
-                  <CollapsibleTrigger 
-                    className="flex items-center justify-between w-full p-3 text-left rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
-                    onClick={() => toggleSection(`${section.id}-${index}`)}
-                  >
-                    <span className="font-medium text-sm">{faq.question}</span>
-                    {openSections.includes(`${section.id}-${index}`) ? (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="px-3 py-2">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {faq.answer}
-                    </p>
-                  </CollapsibleContent>
-                </Collapsible>
-              ))}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredSections.length === 0 && (
-        <Card className="custom-card">
-          <CardContent className="text-center py-12">
-            <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-medium">Nenhum resultado encontrado</h3>
-            <p className="text-muted-foreground">
-              Tente buscar com termos diferentes ou explore as seções disponíveis.
-            </p>
+      {/* Contatos de Suporte */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="text-center hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <Mail className="h-8 w-8 mx-auto mb-3 text-blue-600" />
+            <h3 className="font-medium mb-2">Email</h3>
+            <p className="text-sm text-gray-600 mb-3">suporte@tastyhub.com</p>
+            <Button variant="outline" size="sm">
+              <ExternalLink className="h-3 w-3 mr-1" />
+              Enviar Email
+            </Button>
           </CardContent>
         </Card>
-      )}
 
-      {/* Contato e Suporte */}
-      <Card className="custom-card bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
-        <CardContent className="text-center py-8">
-          <MessageCircle className="h-12 w-12 mx-auto mb-4 text-primary" />
-          <h3 className="text-lg font-semibold mb-2">Precisa de mais ajuda?</h3>
-          <p className="text-muted-foreground mb-4">
-            Não encontrou a resposta que procurava? Nossa equipe está aqui para ajudar!
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Badge variant="outline" className="px-4 py-2">
-              📧 suporte@tastyhub.com
-            </Badge>
-            <Badge variant="outline" className="px-4 py-2">
-              📱 WhatsApp: (11) 99999-9999
-            </Badge>
-            <Badge variant="outline" className="px-4 py-2">
-              🕒 Seg-Sex: 9h às 18h
-            </Badge>
+        <Card className="text-center hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <MessageCircle className="h-8 w-8 mx-auto mb-3 text-green-600" />
+            <h3 className="font-medium mb-2">Chat Online</h3>
+            <p className="text-sm text-gray-600 mb-3">Seg-Sex: 9h às 18h</p>
+            <Button variant="outline" size="sm">
+              <ExternalLink className="h-3 w-3 mr-1" />
+              Iniciar Chat
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="text-center hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <Phone className="h-8 w-8 mx-auto mb-3 text-purple-600" />
+            <h3 className="font-medium mb-2">Telefone</h3>
+            <p className="text-sm text-gray-600 mb-3">(11) 9999-9999</p>
+            <Button variant="outline" size="sm">
+              <ExternalLink className="h-3 w-3 mr-1" />
+              Ligar Agora
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recursos Adicionais */}
+      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <Video className="h-8 w-8 text-blue-600 flex-shrink-0 mt-1" />
+            <div className="flex-1">
+              <h3 className="font-medium text-gray-900 mb-2">Tutoriais em Vídeo</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Assista nossos tutoriais completos para aprender a usar todas as funcionalidades do TastyHub.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary">Ingredientes</Badge>
+                <Badge variant="secondary">Receitas</Badge>
+                <Badge variant="secondary">Pedidos</Badge>
+                <Badge variant="secondary">Relatórios</Badge>
+              </div>
+            </div>
+            <Button variant="outline">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Ver Tutoriais
+            </Button>
           </div>
         </CardContent>
       </Card>

@@ -121,13 +121,13 @@ const Ingredients = () => {
             <Button 
               variant="outline"
               onClick={() => setShowCategoryDialog(true)}
-              className="rounded-xl border-white/30 text-white hover:bg-white/20"
+              className="bg-white/20 border-white/30 text-white hover:bg-white/30 backdrop-blur-sm"
             >
               Gerenciar Categorias
             </Button>
             <Button 
               onClick={() => setShowForm(true)}
-              className="btn-gradient bg-white/20 text-white border-white/30 hover:bg-white/30"
+              className="bg-green-600 hover:bg-green-700 text-white border-0 shadow-lg"
             >
               <Plus className="mr-2 h-4 w-4" />
               Novo Ingrediente

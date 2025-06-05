@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Search, 
   Plus, 
@@ -148,7 +149,7 @@ const Orders = () => {
         ]}
         actions={
           <Button 
-            className="btn-gradient bg-white/20 text-white border-white/30 hover:bg-white/30"
+            className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg"
             onClick={() => setShowNewOrderForm(true)}
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -295,20 +296,25 @@ const Orders = () => {
         </CardContent>
       </Card>
 
-      {/* Formulário de Novo Pedido */}
-      {showNewOrderForm && (
-        <NewOrderForm
-          onOrderCreated={() => {
-            setShowNewOrderForm(false);
-            fetchOrders();
-            toast({
-              title: "Sucesso",
-              description: "Pedido criado com sucesso.",
-            });
-          }}
-          onCancel={() => setShowNewOrderForm(false)}
-        />
-      )}
+      {/* Dialog de Novo Pedido */}
+      <Dialog open={showNewOrderForm} onOpenChange={setShowNewOrderForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Criar Novo Pedido</DialogTitle>
+          </DialogHeader>
+          <NewOrderForm
+            onOrderCreated={() => {
+              setShowNewOrderForm(false);
+              fetchOrders();
+              toast({
+                title: "Sucesso",
+                description: "Pedido criado com sucesso.",
+              });
+            }}
+            onCancel={() => setShowNewOrderForm(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

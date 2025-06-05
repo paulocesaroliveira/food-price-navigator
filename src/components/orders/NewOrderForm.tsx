@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Form,
@@ -13,14 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, CreditCard } from "lucide-react";
 import { createOrder } from "@/services/orderService";
 import { getCustomerList } from "@/services/customerService";
 import { getProductList } from "@/services/productService";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { type Customer, type Product, type OrderItem } from "@/types";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/calculations";
@@ -52,6 +52,8 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
   const [orderItems, setOrderItems] = useState<OrderItemInput[]>([]);
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
+  const [cardFeeEnabled, setCardFeeEnabled] = useState<boolean>(false);
+  const [cardFeeRate, setCardFeeRate] = useState<number>(3.5);
   const [totalAmount, setTotalAmount] = useState<number>(0);
 
   const form = useForm({
@@ -86,11 +88,18 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
   useEffect(() => {
     const itemsTotal = orderItems.reduce((sum, item) => sum + item.total_price, 0);
     const costsTotal = additionalCosts.reduce((sum, cost) => sum + cost.value, 0);
-    const newTotal = itemsTotal + costsTotal;
+    const subtotal = itemsTotal + costsTotal;
+    
+    let cardFee = 0;
+    if (cardFeeEnabled && cardFeeRate > 0) {
+      cardFee = (subtotal * cardFeeRate) / 100;
+    }
+    
+    const newTotal = subtotal + cardFee;
     
     setTotalAmount(newTotal);
     form.setValue("total_amount", newTotal);
-  }, [orderItems, additionalCosts, form]);
+  }, [orderItems, additionalCosts, cardFeeEnabled, cardFeeRate, form]);
 
   const handleAddOrderItem = () => {
     setOrderItems([
@@ -170,7 +179,6 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
     };
 
     try {
-      // Since we've updated OrderItemInput to match the expected type, this should work now
       const createdOrder = await createOrder(payload, orderItems);
       toast({
         title: "Sucesso",
@@ -180,6 +188,8 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
       setScheduledDate(undefined);
       setOrderItems([]);
       setAdditionalCosts([]);
+      setCardFeeEnabled(false);
+      setCardFeeRate(3.5);
       setTotalAmount(0);
       onOrderCreated();
     } catch (error: any) {
@@ -194,6 +204,11 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
   const getProductById = (id: string) => {
     return products.find(product => product.id === id);
   };
+
+  const itemsTotal = orderItems.reduce((sum, item) => sum + item.total_price, 0);
+  const costsTotal = additionalCosts.reduce((sum, cost) => sum + cost.value, 0);
+  const subtotal = itemsTotal + costsTotal;
+  const cardFee = cardFeeEnabled ? (subtotal * cardFeeRate) / 100 : 0;
 
   return (
     <Form {...form}>
@@ -477,10 +492,90 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
           ))}
         </div>
 
-        <div className="bg-muted p-4 rounded-md">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Total do Pedido</h3>
-            <span className="text-2xl font-bold">{formatCurrency(totalAmount)}</span>
+        {/* Taxa de Cartão */}
+        <div className="space-y-4">
+          <Card className="border-dashed border-2 border-orange-200 bg-orange-50/50">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-orange-600" />
+                  <CardTitle className="text-lg text-orange-800">Taxa de Cartão</CardTitle>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="cardFee"
+                    checked={cardFeeEnabled}
+                    onCheckedChange={setCardFeeEnabled}
+                  />
+                  <label htmlFor="cardFee" className="text-sm font-medium text-orange-700">
+                    Aplicar taxa de cartão
+                  </label>
+                </div>
+              </div>
+            </CardHeader>
+            {cardFeeEnabled && (
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-12 gap-3">
+                  <div className="col-span-12 md:col-span-4">
+                    <FormLabel className="text-orange-700">Taxa (%)</FormLabel>
+                    <Input 
+                      type="number" 
+                      min="0"
+                      step="0.1"
+                      value={cardFeeRate}
+                      onChange={(e) => setCardFeeRate(parseFloat(e.target.value) || 0)}
+                      placeholder="Ex: 3.5"
+                      className="border-orange-200 focus:border-orange-400"
+                    />
+                  </div>
+                  <div className="col-span-12 md:col-span-4">
+                    <FormLabel className="text-orange-700">Valor da Taxa</FormLabel>
+                    <Input 
+                      type="text" 
+                      value={formatCurrency(cardFee)}
+                      disabled
+                      className="bg-orange-100 border-orange-200"
+                    />
+                  </div>
+                  <div className="col-span-12 md:col-span-4">
+                    <FormLabel className="text-orange-700">Subtotal</FormLabel>
+                    <Input 
+                      type="text" 
+                      value={formatCurrency(subtotal)}
+                      disabled
+                      className="bg-orange-100 border-orange-200"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        </div>
+
+        {/* Resumo do Pedido */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl border border-blue-200">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Subtotal dos produtos:</span>
+              <span className="font-medium">{formatCurrency(itemsTotal)}</span>
+            </div>
+            {costsTotal > 0 && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">Custos adicionais:</span>
+                <span className="font-medium">{formatCurrency(costsTotal)}</span>
+              </div>
+            )}
+            {cardFeeEnabled && cardFee > 0 && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">Taxa de cartão ({cardFeeRate}%):</span>
+                <span className="font-medium text-orange-600">{formatCurrency(cardFee)}</span>
+              </div>
+            )}
+            <hr className="border-gray-300" />
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-800">Total do Pedido</h3>
+              <span className="text-2xl font-bold text-blue-600">{formatCurrency(totalAmount)}</span>
+            </div>
           </div>
         </div>
 
