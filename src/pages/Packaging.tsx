@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -177,14 +176,16 @@ const Packaging = () => {
       {showForm && (
         <PackagingForm
           packaging={editingPackaging}
-          onClose={() => {
-            setShowForm(false);
-            setEditingPackaging(null);
-          }}
-          onSuccess={() => {
+          onSubmit={async (data) => {
+            // Handle form submission logic here
+            console.log('Form submitted:', data);
             setShowForm(false);
             setEditingPackaging(null);
             queryClient.invalidateQueries({ queryKey: ['packaging'] });
+          }}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingPackaging(null);
           }}
         />
       )}
@@ -192,12 +193,17 @@ const Packaging = () => {
       {/* Dialog de Confirmação de Exclusão */}
       {deletingPackaging && (
         <DeletePackagingDialog
-          packaging={deletingPackaging}
-          onClose={() => setDeletingPackaging(null)}
-          onSuccess={() => {
+          open={!!deletingPackaging}
+          onOpenChange={(open) => {
+            if (!open) setDeletingPackaging(null);
+          }}
+          onConfirm={() => {
+            // Handle delete logic here
+            console.log('Delete confirmed:', deletingPackaging);
             setDeletingPackaging(null);
             queryClient.invalidateQueries({ queryKey: ['packaging'] });
           }}
+          packagingName={deletingPackaging.name}
         />
       )}
     </div>

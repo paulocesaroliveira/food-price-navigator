@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,7 +23,7 @@ import { formatCurrency, formatDate } from "@/utils/calculations";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { NewOrderForm } from "@/components/orders/NewOrderForm";
+import NewOrderForm from "@/components/orders/NewOrderForm";
 
 interface Order {
   id: string;

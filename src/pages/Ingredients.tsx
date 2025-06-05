@@ -242,11 +242,11 @@ const Ingredients = () => {
       {/* Formulário de Ingrediente */}
       {showForm && (
         <IngredientForm
+          open={showForm}
           ingredient={editingIngredient}
-          categories={categories}
-          onClose={() => {
-            setShowForm(false);
-            setEditingIngredient(null);
+          onOpenChange={(open) => {
+            setShowForm(open);
+            if (!open) setEditingIngredient(null);
           }}
           onSuccess={() => {
             setShowForm(false);
@@ -259,9 +259,9 @@ const Ingredients = () => {
       {/* Dialog de Categorias */}
       {showCategoryDialog && (
         <CategoryDialog
-          type="ingredient"
-          onClose={() => setShowCategoryDialog(false)}
-          onSuccess={() => {
+          open={showCategoryDialog}
+          onOpenChange={setShowCategoryDialog}
+          onCategoriesChange={() => {
             queryClient.invalidateQueries({ queryKey: ['ingredient-categories'] });
           }}
         />

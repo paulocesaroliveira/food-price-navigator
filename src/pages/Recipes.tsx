@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, ChefHat, BookOpen, Edit, Trash2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { RecipeForm } from "@/components/recipes/RecipeForm";
+import RecipeForm from "@/components/recipes/RecipeForm";
 import { RecipeCategoryDialog } from "@/components/recipes/RecipeCategoryDialog";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/utils/calculations";
