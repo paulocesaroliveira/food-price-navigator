@@ -78,6 +78,54 @@ export const ProductForm = ({
   const watchedPackagingItems = form.watch("packagingItems");
   const watchedSellingPrice = form.watch("sellingPrice");
 
+  // Calculate individual item costs automatically
+  useEffect(() => {
+    const currentItems = form.getValues("items");
+    let hasChanges = false;
+
+    const updatedItems = currentItems.map(item => {
+      if (item.recipeId && item.quantity) {
+        const recipe = recipes.find(r => r.id === item.recipeId);
+        if (recipe) {
+          const newCost = recipe.unitCost * item.quantity;
+          if (item.cost !== newCost) {
+            hasChanges = true;
+            return { ...item, cost: newCost };
+          }
+        }
+      }
+      return item;
+    });
+
+    if (hasChanges) {
+      form.setValue("items", updatedItems);
+    }
+  }, [watchedItems, recipes, form]);
+
+  // Calculate packaging costs automatically
+  useEffect(() => {
+    const currentPackaging = form.getValues("packagingItems") || [];
+    let hasChanges = false;
+
+    const updatedPackaging = currentPackaging.map(item => {
+      if (item.packagingId && item.quantity) {
+        const pkg = packaging.find(p => p.id === item.packagingId);
+        if (pkg) {
+          const newCost = pkg.unitCost * item.quantity;
+          if (item.cost !== newCost) {
+            hasChanges = true;
+            return { ...item, cost: newCost };
+          }
+        }
+      }
+      return item;
+    });
+
+    if (hasChanges) {
+      form.setValue("packagingItems", updatedPackaging);
+    }
+  }, [watchedPackagingItems, packaging, form]);
+
   // Calculate total costs
   const totalRecipeCost = watchedItems?.reduce((sum, item) => sum + (item.cost || 0), 0) || 0;
   const totalPackagingCost = watchedPackagingItems?.reduce((sum, pkg) => sum + (pkg.cost || 0), 0) || 0;
@@ -106,6 +154,36 @@ export const ProductForm = ({
   const removePackaging = (index: number) => {
     const currentPackaging = form.getValues("packagingItems") || [];
     form.setValue("packagingItems", currentPackaging.filter((_, i) => i !== index));
+  };
+
+  const handleItemChange = (index: number, field: string, value: any) => {
+    const currentItems = form.getValues("items");
+    currentItems[index] = { ...currentItems[index], [field]: value };
+    
+    // Auto-calculate cost when recipe or quantity changes
+    if ((field === 'recipeId' || field === 'quantity') && currentItems[index].recipeId && currentItems[index].quantity) {
+      const recipe = recipes.find(r => r.id === currentItems[index].recipeId);
+      if (recipe) {
+        currentItems[index].cost = recipe.unitCost * currentItems[index].quantity;
+      }
+    }
+    
+    form.setValue("items", currentItems);
+  };
+
+  const handlePackagingChange = (index: number, field: string, value: any) => {
+    const currentPackaging = form.getValues("packagingItems") || [];
+    currentPackaging[index] = { ...currentPackaging[index], [field]: value };
+    
+    // Auto-calculate cost when packaging or quantity changes
+    if ((field === 'packagingId' || field === 'quantity') && currentPackaging[index].packagingId && currentPackaging[index].quantity) {
+      const pkg = packaging.find(p => p.id === currentPackaging[index].packagingId);
+      if (pkg) {
+        currentPackaging[index].cost = pkg.unitCost * currentPackaging[index].quantity;
+      }
+    }
+    
+    form.setValue("packagingItems", currentPackaging);
   };
 
   const handleFormSubmit = async (values: z.infer<typeof productSchema>) => {
@@ -193,11 +271,7 @@ export const ProductForm = ({
                 <RecipeSelector
                   recipes={recipes}
                   selectedItems={watchedItems || []}
-                  onItemChange={(index, field, value) => {
-                    const currentItems = form.getValues("items");
-                    currentItems[index] = { ...currentItems[index], [field]: value };
-                    form.setValue("items", currentItems);
-                  }}
+                  onItemChange={handleItemChange}
                   onRemoveItem={removeRecipe}
                 />
               </CardContent>
@@ -220,11 +294,7 @@ export const ProductForm = ({
                 <PackagingSelector
                   packaging={packaging}
                   selectedItems={watchedPackagingItems || []}
-                  onItemChange={(index, field, value) => {
-                    const currentPackaging = form.getValues("packagingItems") || [];
-                    currentPackaging[index] = { ...currentPackaging[index], [field]: value };
-                    form.setValue("packagingItems", currentPackaging);
-                  }}
+                  onItemChange={handlePackagingChange}
                   onRemoveItem={removePackaging}
                 />
               </CardContent>
