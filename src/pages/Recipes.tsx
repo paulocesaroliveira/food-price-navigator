@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, ChefHat, Package, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { RecipeForm } from "@/components/recipes/RecipeForm";
 import { RecipesGrid } from "@/components/recipes/RecipesGrid";
 import { RecipeCategoryDialog } from "@/components/recipes/RecipeCategoryDialog";
 import { formatCurrency } from "@/utils/calculations";
@@ -260,25 +260,7 @@ const Recipes = () => {
         renderListView()
       )}
 
-      {/* Formulários e Dialogs */}
-      {showForm && (
-        <RecipeForm
-          recipe={editingRecipe}
-          ingredients={ingredients}
-          categories={categories}
-          onSubmit={async (data) => {
-            console.log('Form submitted:', data);
-            setShowForm(false);
-            setEditingRecipe(null);
-            queryClient.invalidateQueries({ queryKey: ['recipes'] });
-          }}
-          onCancel={() => {
-            setShowForm(false);
-            setEditingRecipe(null);
-          }}
-        />
-      )}
-
+      {/* Dialog de Categoria */}
       {showCategoryDialog && (
         <RecipeCategoryDialog
           open={showCategoryDialog}

@@ -19,12 +19,12 @@ interface Product {
   name: string;
   selling_price?: number;
   profit_margin_percentage?: number;
-  notes?: string;
   image_url?: string;
   recipe_id?: string;
   packaging_id?: string;
   category_id?: string;
   created_at: string;
+  total_cost: number;
   recipe?: {
     id: string;
     name: string;
@@ -69,7 +69,14 @@ const Products = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      
+      // Ensure recipe is a single object, not an array
+      const processedData = (data || []).map(product => ({
+        ...product,
+        recipe: Array.isArray(product.recipe) ? product.recipe[0] : product.recipe
+      }));
+      
+      return processedData;
     }
   });
 
@@ -172,12 +179,6 @@ const Products = () => {
                       {profitMargin.toFixed(1)}%
                     </span>
                   </div>
-                  {product.notes && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Observações:</span>
-                      <p className="text-sm mt-1 line-clamp-2">{product.notes}</p>
-                    </div>
-                  )}
                 </div>
                 <div className="flex justify-end space-x-2 mt-4">
                   <Button
@@ -349,6 +350,9 @@ const Products = () => {
         <ProductCategoryDialog
           open={showCategoryDialog}
           onOpenChange={setShowCategoryDialog}
+          onCategoriesChange={() => {
+            queryClient.invalidateQueries({ queryKey: ['product-categories'] });
+          }}
         />
       )}
 

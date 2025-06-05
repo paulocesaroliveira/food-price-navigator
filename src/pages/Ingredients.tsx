@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,11 +16,12 @@ import { ViewToggle } from "@/components/shared/ViewToggle";
 interface Ingredient {
   id: string;
   name: string;
-  bulk_quantity: number;
-  bulk_price: number;
+  package_quantity: number;
+  package_price: number;
   unit_cost: number;
   unit: string;
-  notes?: string;
+  brand: string;
+  supplier?: string;
   image_url?: string;
   category_id?: string;
   category?: {
@@ -108,7 +110,7 @@ const Ingredients = () => {
 
   // Estatísticas
   const totalIngredients = ingredients.length;
-  const totalValue = ingredients.reduce((acc, ing) => acc + (ing.bulk_price || 0), 0);
+  const totalValue = ingredients.reduce((acc, ing) => acc + (ing.package_price || 0), 0);
 
   const handleEdit = (ingredient: Ingredient) => {
     setEditingIngredient(ingredient);
@@ -188,23 +190,17 @@ const Ingredients = () => {
             <CardContent className="pt-0">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Quantidade (bulk):</span>
-                  <span className="font-medium">{ingredient.bulk_quantity} {ingredient.unit}</span>
+                  <span className="text-muted-foreground">Quantidade (embalagem):</span>
+                  <span className="font-medium">{ingredient.package_quantity} {ingredient.unit}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Preço bulk:</span>
-                  <span className="font-medium text-green-600">{formatCurrency(ingredient.bulk_price)}</span>
+                  <span className="text-muted-foreground">Preço embalagem:</span>
+                  <span className="font-medium text-green-600">{formatCurrency(ingredient.package_price)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Custo unitário:</span>
                   <span className="font-medium text-blue-600">{formatCurrency(ingredient.unit_cost)}</span>
                 </div>
-                {ingredient.notes && (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Observações:</span>
-                    <p className="text-sm mt-1 line-clamp-2">{ingredient.notes}</p>
-                  </div>
-                )}
               </div>
               <div className="flex justify-end space-x-2 mt-4">
                 <Button
@@ -264,10 +260,10 @@ const Ingredients = () => {
                   )}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {ingredient.bulk_quantity} {ingredient.unit}
+                  {ingredient.package_quantity} {ingredient.unit}
                 </div>
                 <div className="text-sm font-medium text-green-600 min-w-0">
-                  {formatCurrency(ingredient.bulk_price)}
+                  {formatCurrency(ingredient.package_price)}
                 </div>
                 <div className="text-sm font-medium text-blue-600 min-w-0">
                   {formatCurrency(ingredient.unit_cost)}
@@ -348,16 +344,13 @@ const Ingredients = () => {
       {/* Formulários e Dialogs */}
       {showForm && (
         <IngredientForm
+          open={showForm}
+          onOpenChange={setShowForm}
           ingredient={editingIngredient}
-          onSubmit={async (data) => {
-            console.log('Form submitted:', data);
+          onSuccess={() => {
             setShowForm(false);
             setEditingIngredient(null);
             queryClient.invalidateQueries({ queryKey: ['ingredients'] });
-          }}
-          onCancel={() => {
-            setShowForm(false);
-            setEditingIngredient(null);
           }}
         />
       )}
@@ -366,6 +359,9 @@ const Ingredients = () => {
         <CategoryDialog
           open={showCategoryDialog}
           onOpenChange={setShowCategoryDialog}
+          onCategoriesChange={() => {
+            queryClient.invalidateQueries({ queryKey: ['ingredient-categories'] });
+          }}
         />
       )}
     </div>
