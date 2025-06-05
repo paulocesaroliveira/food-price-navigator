@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -458,34 +457,22 @@ const Ingredients = () => {
       <IngredientForm
         open={showForm}
         onOpenChange={setShowForm}
-        categories={categories || []}
         ingredient={editingIngredient ? {
           id: editingIngredient.id,
           name: editingIngredient.name,
-          image: editingIngredient.image_url,
-          categoryId: categories?.find(c => c.name === editingIngredient.category)?.id || '',
-          unit: editingIngredient.unit as 'g' | 'ml',
+          category_id: categories?.find(c => c.name === editingIngredient.category)?.id || '',
+          unit: editingIngredient.unit,
           brand: editingIngredient.brand,
           supplier: editingIngredient.supplier,
-          packageQuantity: editingIngredient.package_quantity,
-          packagePrice: editingIngredient.package_price,
-          unitCost: editingIngredient.unit_cost
+          package_quantity: editingIngredient.package_quantity,
+          package_price: editingIngredient.package_price,
+          unit_cost: editingIngredient.unit_cost,
+          image_url: editingIngredient.image_url
         } : null}
-        onSubmit={async (values) => {
-          try {
-            if (editingIngredient) {
-              // Update existing ingredient
-              await updateIngredientMutation.mutateAsync({ ...editingIngredient, ...values, cost: values.unitCost || values.cost });
-            } else {
-              // Create new ingredient
-              await createIngredientMutation.mutateAsync({ ...values, cost: values.unitCost || values.cost });
-            }
-          } catch (error) {
-            console.error("Error creating/updating ingredient:", error);
-          } finally {
-            setEditingIngredient(null);
-            setShowForm(false);
-          }
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['ingredients', user?.id] });
+          setEditingIngredient(null);
+          setShowForm(false);
         }}
       />
 
