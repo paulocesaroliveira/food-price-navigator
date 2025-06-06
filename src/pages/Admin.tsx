@@ -10,22 +10,22 @@ import {
   Users, 
   Settings, 
   BarChart3,
-  Database,
   Activity,
   UserCheck,
   DollarSign,
-  Trash2,
   Edit,
-  Plus,
-  Search
+  Search,
+  Eye
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/utils/calculations";
-import { toast } from "@/hooks/use-toast";
+import UserDetailsModal from "@/components/admin/UserDetailsModal";
 
 const Admin = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   // Buscar estatísticas gerais do sistema
   const { data: systemStats } = useQuery({
@@ -52,16 +52,10 @@ const Admin = () => {
       
       const totalRevenue = totalSales?.reduce((sum, sale) => sum + (sale.total_amount || 0), 0) || 0;
 
-      // Total de produtos no sistema
-      const { count: totalProducts } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true });
-
       return {
         totalUsers: totalUsers || 0,
         activeUsers: activeUsers || 0,
-        totalRevenue,
-        totalProducts: totalProducts || 0
+        totalRevenue
       };
     }
   });
@@ -107,33 +101,57 @@ const Admin = () => {
     }
   });
 
+  // Buscar estatísticas detalhadas do usuário selecionado
+  const { data: userStats } = useQuery({
+    queryKey: ['user-detailed-stats', selectedUser?.id],
+    queryFn: async () => {
+      if (!selectedUser?.id) return null;
+
+      const userId = selectedUser.id;
+
+      // Buscar todas as estatísticas em paralelo
+      const [
+        { count: totalIngredients },
+        { count: totalRecipes },
+        { count: totalPackaging },
+        { count: totalProducts },
+        { count: totalOrders },
+        { count: totalSales },
+        { count: totalResales },
+        { count: totalCustomers }
+      ] = await Promise.all([
+        supabase.from('ingredients').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('recipes').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('packaging').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('sales').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('resale_transactions').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('customers').select('*', { count: 'exact', head: true }).eq('user_id', userId)
+      ]);
+
+      return {
+        totalIngredients: totalIngredients || 0,
+        totalRecipes: totalRecipes || 0,
+        totalPackaging: totalPackaging || 0,
+        totalProducts: totalProducts || 0,
+        totalOrders: totalOrders || 0,
+        totalSales: totalSales || 0,
+        totalResales: totalResales || 0,
+        totalCustomers: totalCustomers || 0
+      };
+    },
+    enabled: !!selectedUser?.id
+  });
+
   const filteredUsers = users?.filter(user =>
     user.store_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.id?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      if (error) throw error;
-
-      toast({
-        title: "Usuário excluído",
-        description: "O usuário foi removido com sucesso.",
-      });
-
-      refetchUsers();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao excluir usuário",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+  const handleUserDetails = (user: any) => {
+    setSelectedUser(user);
+    setIsDetailsModalOpen(true);
   };
 
   return (
@@ -158,7 +176,7 @@ const Admin = () => {
       />
 
       {/* Estatísticas do Sistema */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-blue-50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
@@ -201,21 +219,6 @@ const Admin = () => {
               {formatCurrency(systemStats?.totalRevenue || 0)}
             </p>
             <p className="text-sm text-gray-500">Receita Total</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-orange-50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="rounded-xl p-3 bg-gradient-to-r from-orange-500 to-orange-600">
-                <Database className="h-6 w-6 text-white" />
-              </div>
-              <Badge variant="secondary">Sistema</Badge>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">
-              {systemStats?.totalProducts || 0}
-            </p>
-            <p className="text-sm text-gray-500">Produtos Cadastrados</p>
           </CardContent>
         </Card>
       </div>
@@ -278,21 +281,15 @@ const Admin = () => {
                           </p>
                         </div>
                         
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline">
-                            <Edit className="h-3 w-3 mr-1" />
-                            Editar
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Excluir
-                          </Button>
-                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleUserDetails(user)}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          Detalhes
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -304,24 +301,7 @@ const Admin = () => {
       </Card>
 
       {/* Ações Administrativas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="rounded-xl p-3 bg-gradient-to-r from-blue-500 to-blue-600">
-                <Database className="h-6 w-6 text-white" />
-              </div>
-              <h3 className="font-semibold text-gray-900">Backup do Sistema</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Gerar backup completo de todos os dados do sistema
-            </p>
-            <Button className="w-full">
-              Gerar Backup
-            </Button>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-center gap-4 mb-4">
@@ -356,6 +336,18 @@ const Admin = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Detalhes do Usuário */}
+      <UserDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setSelectedUser(null);
+        }}
+        user={selectedUser}
+        userStats={userStats}
+        userProfile={selectedUser}
+      />
     </div>
   );
 };

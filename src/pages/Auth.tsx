@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Mail, Lock, User, Building2, ArrowLeft, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Building2, ArrowLeft, CheckCircle, Phone } from "lucide-react";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -19,7 +19,8 @@ const Auth = () => {
     password: "",
     confirmPassword: "",
     companyName: "",
-    fullName: ""
+    fullName: "",
+    phone: ""
   });
   const navigate = useNavigate();
 
@@ -32,6 +33,22 @@ const Auth = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '');
+    
+    if (value.length <= 2) {
+      value = `(${value}`;
+    } else if (value.length <= 7) {
+      value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+    } else if (value.length <= 11) {
+      value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
+    } else {
+      value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7, 11)}`;
+    }
+    
+    setFormData({ ...formData, phone: value });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +85,7 @@ const Auth = () => {
             data: {
               company_name: formData.companyName,
               full_name: formData.fullName,
+              phone: formData.phone,
             }
           }
         });
@@ -98,7 +116,8 @@ const Auth = () => {
       password: "",
       confirmPassword: "",
       companyName: "",
-      fullName: ""
+      fullName: "",
+      phone: ""
     });
   };
 
@@ -195,6 +214,23 @@ const Auth = () => {
                             value={formData.companyName}
                             onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                             className="pl-10 h-12"
+                            required={!isLogin}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefone</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                          <Input
+                            id="phone"
+                            type="tel"
+                            placeholder="(11) 99999-9999"
+                            value={formData.phone}
+                            onChange={handlePhoneChange}
+                            className="pl-10 h-12"
+                            maxLength={15}
                             required={!isLogin}
                           />
                         </div>
