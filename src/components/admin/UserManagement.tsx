@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Search, MoreHorizontal, Eye, Shield, User } from "lucide-react";
+import { Search, MoreHorizontal, Eye, User } from "lucide-react";
 import UserDetailsModal from "./UserDetailsModal";
 
 interface UserData {
@@ -44,6 +44,12 @@ interface UserStats {
   totalCustomers: number;
 }
 
+interface AuthUser {
+  id: string;
+  email?: string;
+  created_at: string;
+}
+
 const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
@@ -64,12 +70,13 @@ const UserManagement: React.FC = () => {
 
       // Buscar emails dos usuários (apenas admins podem ver)
       const userIds = profiles.map(p => p.id);
-      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      const { data: authUsersResponse } = await supabase.auth.admin.listUsers();
+      const authUsers: AuthUser[] = authUsersResponse?.users || [];
       
       // Combinar dados e calcular estatísticas básicas
       const usersWithStats = await Promise.all(
         profiles.map(async (profile) => {
-          const authUser = authUsers?.users.find(u => u.id === profile.id);
+          const authUser = authUsers.find((u: AuthUser) => u.id === profile.id);
           
           // Contar vendas, produtos e pedidos básicos
           const [salesResult, productsResult, ordersResult] = await Promise.all([
