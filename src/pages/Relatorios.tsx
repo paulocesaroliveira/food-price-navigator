@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,7 +158,7 @@ const Relatorios = () => {
 
   // Query para contas a pagar
   const { data: accountsPayable } = useQuery({
-    queryKey: ['accountsPayable'],
+    queryKey: ['accountsPayable', startDate, endDate],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
@@ -168,14 +167,16 @@ const Relatorios = () => {
         .from('accounts_payable')
         .select('amount, status, due_date, expense_categories(name)')
         .eq('user_id', user.id)
-        .eq('status', 'pending');
+        .gte('due_date', startDate)
+        .lte('due_date', endDate);
       
       if (error) throw error;
       
-      const totalPending = data?.reduce((sum, account) => sum + Number(account.amount), 0) || 0;
-      const overdue = data?.filter(account => new Date(account.due_date) < new Date()).length || 0;
+      const totalPending = data?.filter(account => account.status === 'pending').reduce((sum, account) => sum + Number(account.amount), 0) || 0;
+      const overdue = data?.filter(account => new Date(account.due_date) < new Date() && account.status === 'pending').length || 0;
+      const totalCount = data?.filter(account => account.status === 'pending').length || 0;
       
-      return { totalPending, overdue, count: data?.length || 0 };
+      return { totalPending, overdue, count: totalCount };
     }
   });
 
@@ -322,7 +323,7 @@ const Relatorios = () => {
               {formatCurrency(accountsPayable?.totalPending || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {accountsPayable?.overdue || 0} em atraso de {accountsPayable?.count || 0} total
+              {accountsPayable?.overdue || 0} em atraso de {accountsPayable?.count || 0} no período
             </p>
           </CardContent>
         </Card>
