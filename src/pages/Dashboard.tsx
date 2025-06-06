@@ -11,6 +11,7 @@ import QuickActions from "@/components/dashboard/QuickActions";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -21,8 +22,10 @@ import {
   Package, 
   ShoppingCart,
   Target,
-  Activity
+  Activity,
+  Calendar
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Dashboard = () => {
   const [filters, setFilters] = useState<DashboardFilters>({
@@ -44,22 +47,12 @@ const Dashboard = () => {
     queryFn: () => getSalesData(filters),
   });
 
-  // Buscar dados reais para os cards de performance
+  // Buscar dados reais para os cards de performance (sem Performance Geral)
   const { data: realTimeData } = useQuery({
     queryKey: ['dashboard-realtime'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
-
-      // Performance geral (baseada nas vendas dos últimos 30 dias)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const { data: sales } = await supabase
-        .from('sales')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('sale_date', thirtyDaysAgo.toISOString().split('T')[0]);
 
       // Clientes ativos (clientes com pedidos nos últimos 7 dias)
       const sevenDaysAgo = new Date();
@@ -87,11 +80,9 @@ const Dashboard = () => {
         .eq('user_id', user.id)
         .gte('created_at', firstDayOfMonth.toISOString());
 
-      const performance = sales && sales.length > 0 ? Math.min(85 + (sales.length * 2), 100) : 65;
       const uniqueCustomers = activeCustomers ? new Set(activeCustomers.map(o => o.customer_id)).size : 0;
 
       return {
-        performance,
         activeCustomers: uniqueCustomers,
         availableProducts: productCount || 0,
         monthlyOrders: monthlyOrders || 0
@@ -128,11 +119,19 @@ const Dashboard = () => {
               { icon: Target, text: "Insights Precisos" }
             ]}
             actions={
-              <DashboardHeader
-                filters={filters}
-                onPeriodChange={handlePeriodChange}
-                onCustomDateChange={handleCustomDateChange}
-              />
+              <div className="flex flex-wrap gap-3 items-center">
+                <DashboardHeader
+                  filters={filters}
+                  onPeriodChange={handlePeriodChange}
+                  onCustomDateChange={handleCustomDateChange}
+                />
+                <Button variant="default" size="sm" asChild className="bg-white text-blue-600 hover:bg-blue-50 border border-blue-200">
+                  <Link to="/relatorios">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Relatórios
+                  </Link>
+                </Button>
+              </div>
             }
           />
 
@@ -171,30 +170,15 @@ const Dashboard = () => {
             <QuickActions />
           </div>
 
-          {/* Performance Metrics - DADOS REAIS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mt-4 sm:mt-6">
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-emerald-50 group">
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="rounded-xl p-2 bg-gradient-to-r from-emerald-500 to-emerald-600 group-hover:scale-110 transition-transform duration-300">
-                    <Activity className="h-4 w-4 text-white" />
-                  </div>
-                  <Badge variant="outline" className="text-xs bg-white border-emerald-200 text-emerald-700">Meta</Badge>
-                </div>
-                <p className="text-lg font-bold text-gray-900">
-                  {realTimeData?.performance || 0}%
-                </p>
-                <p className="text-xs text-gray-500">Performance Geral</p>
-              </CardContent>
-            </Card>
-
+          {/* Performance Metrics - DADOS REAIS (sem Performance Geral) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
             <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-cyan-50 group">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="rounded-xl p-2 bg-gradient-to-r from-cyan-500 to-cyan-600 group-hover:scale-110 transition-transform duration-300">
                     <Users className="h-4 w-4 text-white" />
                   </div>
-                  <Badge variant="outline" className="text-xs bg-white border-cyan-200 text-cyan-700">Hoje</Badge>
+                  <Badge variant="outline" className="text-xs bg-white border-cyan-200 text-cyan-700">7 dias</Badge>
                 </div>
                 <p className="text-lg font-bold text-gray-900">
                   {realTimeData?.activeCustomers || 0}
