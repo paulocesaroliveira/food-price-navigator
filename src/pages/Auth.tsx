@@ -121,7 +121,7 @@ const Auth = () => {
         
         toast({
           title: "Login realizado!",
-          description: "Bem-vindo de volta ao FoodPrice.",
+          description: "Bem-vindo de volta ao TastyHub.",
         });
       }
     } catch (error: any) {
@@ -151,7 +151,7 @@ const Auth = () => {
           
           <div className="flex items-center justify-center space-x-2 mb-4">
             <ChefHat className="h-10 w-10 text-food-coral" />
-            <span className="text-3xl font-bold text-food-textlight">FoodPrice</span>
+            <span className="text-3xl font-bold text-food-textlight">TastyHub</span>
           </div>
           <p className="text-food-secondaryLight">
             {isSignUp ? "Crie sua conta e comece seu teste gratuito" : "Entre na sua conta"}

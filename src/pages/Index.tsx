@@ -91,7 +91,7 @@ const Index = () => {
     {
       name: "Maria Silva",
       business: "Doces da Maria",
-      comment: "Aumentei minha margem de lucro em 40% após começar a usar o FoodPrice!",
+      comment: "Aumentei minha margem de lucro em 40% após começar a usar o TastyHub!",
       rating: 5
     },
     {
@@ -116,7 +116,7 @@ const Index = () => {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
               <ChefHat className="h-8 w-8 text-food-coral" />
-              <span className="text-2xl font-bold text-food-textlight">FoodPrice</span>
+              <span className="text-2xl font-bold text-food-textlight">TastyHub</span>
             </div>
             <Button 
               onClick={() => window.location.href = '/auth'}
@@ -224,7 +224,7 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <h2 className="text-4xl font-bold text-food-textlight mb-6">
-                Por que escolher o FoodPrice?
+                Por que escolher o TastyHub?
               </h2>
               <div className="space-y-6">
                 {[
@@ -331,13 +331,13 @@ const Index = () => {
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-6">
             <ChefHat className="h-8 w-8 text-food-coral" />
-            <span className="text-2xl font-bold">FoodPrice</span>
+            <span className="text-2xl font-bold">TastyHub</span>
           </div>
           <p className="text-gray-400 mb-4">
             O sistema mais completo para precificação de alimentos
           </p>
           <p className="text-gray-500 text-sm">
-            © 2024 FoodPrice. Todos os direitos reservados.
+            © 2024 TastyHub. Todos os direitos reservados.
           </p>
         </div>
       </footer>
