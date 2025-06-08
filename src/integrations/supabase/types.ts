@@ -1387,6 +1387,7 @@ export type Database = {
           is_active: boolean
           name: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1394,6 +1395,7 @@ export type Database = {
           is_active?: boolean
           name: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1401,6 +1403,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1591,9 +1594,17 @@ export type Database = {
           product_ids: string[]
         }[]
       }
+      track_failed_login: {
+        Args: { user_email: string }
+        Returns: undefined
+      }
       update_overdue_accounts: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      validate_password_strength: {
+        Args: { password: string }
+        Returns: boolean
       }
     }
     Enums: {
