@@ -30,7 +30,7 @@ import AdminRoute from "./components/AdminRoute";
 import { SecurityProvider } from "./components/SecurityProvider";
 import { CSRFProvider } from "./components/security/CSRFProtection";
 import { EnhancedSecurityHeaders } from "./components/security/EnhancedSecurityHeaders";
-import ErrorBoundary from "./components/ErrorBoundary";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import PerformanceMonitor from "./components/PerformanceMonitor";
 
 const queryClient = new QueryClient({
