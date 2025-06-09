@@ -4,7 +4,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { HelmetProvider } from 'react-helmet-async';
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -46,55 +45,53 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <ErrorBoundary>
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <CSRFProvider>
-              <SecurityProvider>
-                <EnhancedSecurityHeaders />
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route element={<ProtectedRoute />}>
-                      <Route element={<AppLayout />}>
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/ingredients" element={<Ingredients />} />
-                        <Route path="/recipes" element={<Recipes />} />
-                        <Route path="/products" element={<Products />} />
-                        <Route path="/packaging" element={<Packaging />} />
-                        <Route path="/orders" element={<Orders />} />
-                        <Route path="/sales" element={<Sales />} />
-                        <Route path="/customers" element={<Customers />} />
-                        <Route path="/pricing" element={<Pricing />} />
-                        <Route path="/cost-update" element={<CostUpdate />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/help" element={<Help />} />
-                        <Route path="/accounts-payable" element={<AccountsPayable />} />
-                        <Route path="/resale" element={<Resale />} />
-                        <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
-                        <Route path="/relatorios" element={<Relatorios />} />
-                        <Route 
-                          path="/admin" 
-                          element={
-                            <AdminRoute>
-                              <Admin />
-                            </AdminRoute>
-                          } 
-                        />
-                      </Route>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <CSRFProvider>
+            <SecurityProvider>
+              <EnhancedSecurityHeaders />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route element={<ProtectedRoute />}>
+                    <Route element={<AppLayout />}>
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/ingredients" element={<Ingredients />} />
+                      <Route path="/recipes" element={<Recipes />} />
+                      <Route path="/products" element={<Products />} />
+                      <Route path="/packaging" element={<Packaging />} />
+                      <Route path="/orders" element={<Orders />} />
+                      <Route path="/sales" element={<Sales />} />
+                      <Route path="/customers" element={<Customers />} />
+                      <Route path="/pricing" element={<Pricing />} />
+                      <Route path="/cost-update" element={<CostUpdate />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/help" element={<Help />} />
+                      <Route path="/accounts-payable" element={<AccountsPayable />} />
+                      <Route path="/resale" element={<Resale />} />
+                      <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
+                      <Route path="/relatorios" element={<Relatorios />} />
+                      <Route 
+                        path="/admin" 
+                        element={
+                          <AdminRoute>
+                            <Admin />
+                          </AdminRoute>
+                        } 
+                      />
                     </Route>
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-                <Toaster />
-                <Sonner />
-                <PerformanceMonitor />
-              </SecurityProvider>
-            </CSRFProvider>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </HelmetProvider>
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+              <Toaster />
+              <Sonner />
+              <PerformanceMonitor />
+            </SecurityProvider>
+          </CSRFProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }
