@@ -27,6 +27,7 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
+import AppLayout from "./components/AppLayout";
 import { SecurityProvider } from "./components/SecurityProvider";
 import { CSRFProvider } from "./components/security/CSRFProtection";
 import { EnhancedSecurityHeaders } from "./components/security/EnhancedSecurityHeaders";
@@ -56,30 +57,32 @@ function App() {
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route element={<ProtectedRoute />}>
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/ingredients" element={<Ingredients />} />
-                      <Route path="/recipes" element={<Recipes />} />
-                      <Route path="/products" element={<Products />} />
-                      <Route path="/packaging" element={<Packaging />} />
-                      <Route path="/orders" element={<Orders />} />
-                      <Route path="/sales" element={<Sales />} />
-                      <Route path="/customers" element={<Customers />} />
-                      <Route path="/pricing" element={<Pricing />} />
-                      <Route path="/cost-update" element={<CostUpdate />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/help" element={<Help />} />
-                      <Route path="/accounts-payable" element={<AccountsPayable />} />
-                      <Route path="/resale" element={<Resale />} />
-                      <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
-                      <Route path="/relatorios" element={<Relatorios />} />
-                      <Route 
-                        path="/admin" 
-                        element={
-                          <AdminRoute>
-                            <Admin />
-                          </AdminRoute>
-                        } 
-                      />
+                      <Route element={<AppLayout />}>
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/ingredients" element={<Ingredients />} />
+                        <Route path="/recipes" element={<Recipes />} />
+                        <Route path="/products" element={<Products />} />
+                        <Route path="/packaging" element={<Packaging />} />
+                        <Route path="/orders" element={<Orders />} />
+                        <Route path="/sales" element={<Sales />} />
+                        <Route path="/customers" element={<Customers />} />
+                        <Route path="/pricing" element={<Pricing />} />
+                        <Route path="/cost-update" element={<CostUpdate />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/help" element={<Help />} />
+                        <Route path="/accounts-payable" element={<AccountsPayable />} />
+                        <Route path="/resale" element={<Resale />} />
+                        <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
+                        <Route path="/relatorios" element={<Relatorios />} />
+                        <Route 
+                          path="/admin" 
+                          element={
+                            <AdminRoute>
+                              <Admin />
+                            </AdminRoute>
+                          } 
+                        />
+                      </Route>
                     </Route>
                     <Route path="*" element={<NotFound />} />
                   </Routes>

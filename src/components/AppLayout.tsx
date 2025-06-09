@@ -112,6 +112,7 @@ const AppLayout = () => {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        onClick={() => navigate("/help")}
                         className="text-foreground hover:text-primary hover:bg-accent transition-colors h-8 w-8 lg:h-10 lg:w-10 p-0"
                       >
                         <HelpCircle className="h-4 w-4 lg:h-5 lg:w-5" />
