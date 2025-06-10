@@ -8,6 +8,7 @@ import { Search, Plus, ChefHat, Package, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RecipesGrid } from "@/components/recipes/RecipesGrid";
 import { RecipeCategoryDialog } from "@/components/recipes/RecipeCategoryDialog";
+import RecipeForm from "@/components/recipes/RecipeForm";
 import { formatCurrency } from "@/utils/calculations";
 import { toast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -131,6 +132,12 @@ const Recipes = () => {
     } finally {
       setDeletingRecipeId(null);
     }
+  };
+
+  const handleFormSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    setShowForm(false);
+    setEditingRecipe(null);
   };
 
   const renderListView = () => (
@@ -259,6 +266,16 @@ const Recipes = () => {
       ) : (
         renderListView()
       )}
+
+      {/* Formulário de Receita */}
+      <RecipeForm
+        open={showForm}
+        onOpenChange={setShowForm}
+        onSuccess={handleFormSuccess}
+        categories={categories}
+        ingredients={ingredients}
+        editingRecipe={editingRecipe}
+      />
 
       {/* Dialog de Categoria */}
       {showCategoryDialog && (
