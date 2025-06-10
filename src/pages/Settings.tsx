@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Settings as SettingsIcon, Save, User, Bell, Security, Palette } from "lucide-react";
+import { Settings as SettingsIcon, Save, User, Bell, Shield, Palette } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -74,7 +73,7 @@ const Settings = () => {
             <span className="hidden sm:inline">Notificações</span>
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
-            <Security className="h-4 w-4" />
+            <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">Segurança</span>
           </TabsTrigger>
           <TabsTrigger value="appearance" className="flex items-center gap-2">
@@ -226,7 +225,7 @@ const Settings = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Security className="h-5 w-5" />
+                <Shield className="h-5 w-5" />
                 Configurações de Segurança
               </CardTitle>
             </CardHeader>
