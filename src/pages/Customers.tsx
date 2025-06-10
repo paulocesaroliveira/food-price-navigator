@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, Users, MapPin, Phone } from "lucide-react";
@@ -219,5 +220,3 @@ const Customers = () => {
 };
 
 export default Customers;
-
-}
