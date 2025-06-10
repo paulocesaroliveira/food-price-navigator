@@ -66,7 +66,11 @@ const Customers = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Clientes" />
+      <PageHeader 
+        title="Clientes" 
+        icon={Users}
+        gradient="bg-gradient-to-r from-blue-600 to-purple-600"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
@@ -137,7 +141,6 @@ const Customers = () => {
             <CustomerForm
               onCancel={() => setIsCustomerDialogOpen(false)}
               customer={selectedCustomer}
-              mode={isEditMode ? 'edit' : 'create'}
             />
           </DialogContent>
         </Dialog>
@@ -216,3 +219,5 @@ const Customers = () => {
 };
 
 export default Customers;
+
+}

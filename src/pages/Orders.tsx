@@ -101,7 +101,11 @@ const Orders = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Pedidos" />
+      <PageHeader 
+        title="Pedidos" 
+        icon={Package}
+        gradient="bg-gradient-to-r from-orange-600 to-red-600"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
@@ -240,7 +244,6 @@ const Orders = () => {
             <OrderDetails
               order={selectedOrder}
               onClose={() => setSelectedOrder(null)}
-              onUpdate={refetchOrders}
             />
           </DialogContent>
         </Dialog>
@@ -250,3 +253,5 @@ const Orders = () => {
 };
 
 export default Orders;
+
+}

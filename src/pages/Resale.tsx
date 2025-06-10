@@ -1,12 +1,11 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { getResellers, getResaleTransactions } from "@/services/resaleService";
+import { resaleService } from "@/services/resaleService";
 import ResaleTransactionForm from "@/components/resale/ResaleTransactionForm";
 import { PageHeader } from "@/components/shared/PageHeader";
 
@@ -16,12 +15,12 @@ const Resale = () => {
 
   const { data: resellers = [], isLoading: isLoadingResellers } = useQuery({
     queryKey: ['resellers'],
-    queryFn: getResellers,
+    queryFn: resaleService.getResellers,
   });
 
   const { data: transactions = [], isLoading: isLoadingTransactions, refetch: refetchTransactions } = useQuery({
     queryKey: ['resale-transactions'],
-    queryFn: getResaleTransactions,
+    queryFn: resaleService.getTransactions,
   });
 
   const handleTransactionSuccess = () => {
@@ -60,7 +59,11 @@ const Resale = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Revenda" />
+      <PageHeader 
+        title="Revenda" 
+        icon={ShoppingCart}
+        gradient="bg-gradient-to-r from-purple-600 to-pink-600"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
@@ -107,7 +110,6 @@ const Resale = () => {
             <ResaleTransactionForm
               resellers={safeResellers}
               onSuccess={handleTransactionSuccess}
-              onCancel={() => setIsTransactionDialogOpen(false)}
             />
           </DialogContent>
         </Dialog>

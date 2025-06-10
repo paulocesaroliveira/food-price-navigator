@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { DateRange } from "react-day-picker";
 import { addDays, format, startOfMonth, endOfMonth } from "date-fns";
 import { pt } from "date-fns/locale";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { useToast } from "@/hooks/use-toast";
 import { getSales } from "@/services/salesService";
 import { getAccountsPayable } from "@/services/accountsPayableService";
@@ -90,10 +89,6 @@ const FluxoCaixa = () => {
   const sortedTransactions = Array.from(dailyTransactions.values())
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const handleDateChange = (newDateRange: DateRange | undefined) => {
-    setDateRange(newDateRange);
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -104,7 +99,11 @@ const FluxoCaixa = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Fluxo de Caixa" />
+      <PageHeader 
+        title="Fluxo de Caixa" 
+        icon={DollarSign}
+        gradient="bg-gradient-to-r from-emerald-600 to-cyan-600"
+      />
 
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <DateRangePicker

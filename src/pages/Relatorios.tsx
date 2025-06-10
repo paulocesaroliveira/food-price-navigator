@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,7 +70,11 @@ const Relatorios = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Relatórios" />
+      <PageHeader 
+        title="Relatórios" 
+        icon={BarChart3}
+        gradient="bg-gradient-to-r from-indigo-600 to-purple-600"
+      />
 
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="text-sm text-muted-foreground">

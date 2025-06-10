@@ -8,9 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { searchProducts, getProductCategories } from "@/services/productService";
-import ProductForm from "@/components/products/ProductForm";
+import { ProductForm } from "@/components/products/ProductForm";
 import { PageHeader } from "@/components/shared/PageHeader";
-import ProductCategoryManager from "@/components/products/ProductCategoryManager";
+import { ProductCategoryManager } from "@/components/products/ProductCategoryManager";
 
 const Products = () => {
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
@@ -22,7 +22,7 @@ const Products = () => {
 
   const { data: products = [], isLoading: isLoadingProducts, refetch: refetchProducts } = useQuery({
     queryKey: ['products'],
-    queryFn: () => searchProducts({}),
+    queryFn: () => searchProducts(),
   });
 
   const { data: categories = [], refetch: refetchCategories } = useQuery({
@@ -80,7 +80,11 @@ const Products = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Produtos" />
+      <PageHeader 
+        title="Produtos" 
+        icon={Package}
+        gradient="bg-gradient-to-r from-green-600 to-blue-600"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
