@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, DollarSign, TrendingUp, TrendingDown, PlusCircle, MinusCircle } from "lucide-react";
@@ -9,9 +8,9 @@ import { addDays, format, startOfMonth, endOfMonth } from "date-fns";
 import { pt } from "date-fns/locale";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { useToast } from "@/hooks/use-toast";
-import { fetchSales } from "@/services/salesService";
-import { fetchAccountsPayable } from "@/services/accountsPayableService";
-import PageHeader from "@/components/shared/PageHeader";
+import { getSales } from "@/services/salesService";
+import { getAccountsPayable } from "@/services/accountsPayableService";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 const FluxoCaixa = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -23,12 +22,12 @@ const FluxoCaixa = () => {
 
   const { data: sales = [], isLoading: isLoadingSales } = useQuery({
     queryKey: ['sales', dateRange],
-    queryFn: () => fetchSales(),
+    queryFn: () => getSales(),
   });
 
   const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery({
     queryKey: ['accounts-payable', dateRange],
-    queryFn: () => fetchAccountsPayable(),
+    queryFn: () => getAccountsPayable(),
   });
 
   const formatCurrency = (value: number) => {
@@ -91,6 +90,10 @@ const FluxoCaixa = () => {
   const sortedTransactions = Array.from(dailyTransactions.values())
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  const handleDateChange = (newDateRange: DateRange | undefined) => {
+    setDateRange(newDateRange);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -101,15 +104,12 @@ const FluxoCaixa = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Fluxo de Caixa"
-        description="Acompanhe entradas e saídas do seu negócio"
-      />
+      <PageHeader title="Fluxo de Caixa" />
 
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <DateRangePicker
           date={dateRange}
-          onDateChange={setDateRange}
+          onDateChange={handleDateChange}
           className="w-full sm:w-auto"
         />
       </div>

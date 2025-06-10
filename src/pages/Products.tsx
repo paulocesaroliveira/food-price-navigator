@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, Filter, Package } from "lucide-react";
@@ -9,9 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { searchProducts, getProductCategories } from "@/services/productService";
-import { ProductForm } from "@/components/products/ProductForm";
+import ProductForm from "@/components/products/ProductForm";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { ProductCategoryManager } from "@/components/products/ProductCategoryManager";
+import ProductCategoryManager from "@/components/products/ProductCategoryManager";
 
 const Products = () => {
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
@@ -23,7 +22,7 @@ const Products = () => {
 
   const { data: products = [], isLoading: isLoadingProducts, refetch: refetchProducts } = useQuery({
     queryKey: ['products'],
-    queryFn: () => searchProducts(),
+    queryFn: () => searchProducts({}),
   });
 
   const { data: categories = [], refetch: refetchCategories } = useQuery({
@@ -61,15 +60,15 @@ const Products = () => {
   const filteredProducts = safeProducts.filter(product => {
     const matchesSearch = !searchTerm || 
       product.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !categoryFilter || product.category_id === categoryFilter;
+    const matchesCategory = !categoryFilter || product.categoryId === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
   const totalProducts = safeProducts.length;
   const averageCost = safeProducts.length > 0 
-    ? safeProducts.reduce((sum, product) => sum + Number(product.total_cost || 0), 0) / safeProducts.length 
+    ? safeProducts.reduce((sum, product) => sum + Number(product.totalCost || 0), 0) / safeProducts.length 
     : 0;
-  const totalValue = safeProducts.reduce((sum, product) => sum + Number(product.selling_price || 0), 0);
+  const totalValue = safeProducts.reduce((sum, product) => sum + Number(product.sellingPrice || 0), 0);
 
   if (isLoadingProducts) {
     return (
@@ -81,10 +80,7 @@ const Products = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Produtos"
-        description="Gerencie seus produtos e preços"
-      />
+      <PageHeader title="Produtos" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
@@ -144,7 +140,7 @@ const Products = () => {
         </div>
         
         <div className="flex gap-2">
-          <ProductCategoryManager onCategoryChange={refetchCategories} />
+          <ProductCategoryManager onCategoriesChange={refetchCategories} />
           <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
             setIsProductDialogOpen(open);
             if (!open) {
@@ -166,7 +162,7 @@ const Products = () => {
                 categories={safeCategories}
                 onCancel={() => setIsProductDialogOpen(false)}
                 product={selectedProduct}
-                isEditMode={isEditMode}
+                mode={isEditMode ? 'edit' : 'create'}
               />
             </DialogContent>
           </Dialog>
@@ -185,7 +181,7 @@ const Products = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredProducts.map((product) => {
-                const category = safeCategories.find(c => c.id === product.category_id);
+                const category = safeCategories.find(c => c.id === product.categoryId);
                 return (
                   <div 
                     key={product.id} 
@@ -199,12 +195,12 @@ const Products = () => {
                       )}
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Custo:</span>
-                        <span className="font-medium">{formatCurrency(Number(product.total_cost || 0))}</span>
+                        <span className="font-medium">{formatCurrency(Number(product.totalCost || 0))}</span>
                       </div>
-                      {product.selling_price && (
+                      {product.sellingPrice && (
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-muted-foreground">Preço:</span>
-                          <span className="font-medium text-green-600">{formatCurrency(Number(product.selling_price))}</span>
+                          <span className="font-medium text-green-600">{formatCurrency(Number(product.sellingPrice))}</span>
                         </div>
                       )}
                     </div>

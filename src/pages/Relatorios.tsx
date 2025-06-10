@@ -71,10 +71,7 @@ const Relatorios = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Relatórios"
-        description="Análises e insights do seu negócio"
-      />
+      <PageHeader title="Relatórios" />
 
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="text-sm text-muted-foreground">

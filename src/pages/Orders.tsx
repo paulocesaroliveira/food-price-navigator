@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, Filter, Calendar, Package } from "lucide-react";
@@ -9,11 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { fetchOrders } from "@/services/orderService";
-import { fetchCustomers } from "@/services/customerService";
+import { getOrders } from "@/services/orderService";
+import { getCustomers } from "@/services/customerService";
 import OrderForm from "@/components/orders/OrderForm";
 import OrderDetails from "@/components/orders/OrderDetails";
-import PageHeader from "@/components/shared/PageHeader";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 const Orders = () => {
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
@@ -24,12 +23,12 @@ const Orders = () => {
 
   const { data: orders = [], isLoading: isLoadingOrders, refetch: refetchOrders } = useQuery({
     queryKey: ['orders'],
-    queryFn: fetchOrders,
+    queryFn: getOrders,
   });
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers'],
-    queryFn: fetchCustomers,
+    queryFn: getCustomers,
   });
 
   const handleOrderSuccess = () => {
@@ -76,18 +75,21 @@ const Orders = () => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const filteredOrders = orders.filter(order => {
-    const customer = customers.find(c => c.id === order.customer_id);
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const safeCustomers = Array.isArray(customers) ? customers : [];
+
+  const filteredOrders = safeOrders.filter(order => {
+    const customer = safeCustomers.find(c => c.id === order.customer_id);
     const matchesSearch = !searchTerm || 
-      order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const totalOrders = orders.length;
-  const pendingOrders = orders.filter(o => o.status === 'pending').length;
-  const totalValue = orders.reduce((sum, order) => sum + Number(order.total_amount), 0);
+  const totalOrders = safeOrders.length;
+  const pendingOrders = safeOrders.filter(o => o.status === 'pending').length;
+  const totalValue = safeOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
 
   if (isLoadingOrders) {
     return (
@@ -99,10 +101,7 @@ const Orders = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Pedidos"
-        description="Gerencie todos os seus pedidos e acompanhe o status"
-      />
+      <PageHeader title="Pedidos" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
@@ -175,7 +174,6 @@ const Orders = () => {
               <DialogTitle>Novo Pedido</DialogTitle>
             </DialogHeader>
             <OrderForm
-              customers={customers}
               onSuccess={handleOrderSuccess}
               onCancel={() => setIsOrderDialogOpen(false)}
             />
@@ -190,12 +188,12 @@ const Orders = () => {
         <CardContent>
           {filteredOrders.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {orders.length === 0 ? "Nenhum pedido registrado ainda." : "Nenhum pedido encontrado com os filtros aplicados."}
+              {safeOrders.length === 0 ? "Nenhum pedido registrado ainda." : "Nenhum pedido encontrado com os filtros aplicados."}
             </div>
           ) : (
             <div className="space-y-4">
               {filteredOrders.map((order) => {
-                const customer = customers.find(c => c.id === order.customer_id);
+                const customer = safeCustomers.find(c => c.id === order.customer_id);
                 return (
                   <div 
                     key={order.id} 
@@ -241,7 +239,6 @@ const Orders = () => {
             </DialogHeader>
             <OrderDetails
               order={selectedOrder}
-              customer={customers.find(c => c.id === selectedOrder.customer_id)}
               onClose={() => setSelectedOrder(null)}
               onUpdate={refetchOrders}
             />

@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { fetchResellers, fetchResaleTransactions } from "@/services/resaleService";
+import { getResellers, getResaleTransactions } from "@/services/resaleService";
 import ResaleTransactionForm from "@/components/resale/ResaleTransactionForm";
-import PageHeader from "@/components/shared/PageHeader";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 const Resale = () => {
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
@@ -16,12 +16,12 @@ const Resale = () => {
 
   const { data: resellers = [], isLoading: isLoadingResellers } = useQuery({
     queryKey: ['resellers'],
-    queryFn: fetchResellers,
+    queryFn: getResellers,
   });
 
   const { data: transactions = [], isLoading: isLoadingTransactions, refetch: refetchTransactions } = useQuery({
     queryKey: ['resale-transactions'],
-    queryFn: fetchResaleTransactions,
+    queryFn: getResaleTransactions,
   });
 
   const handleTransactionSuccess = () => {
@@ -52,15 +52,15 @@ const Resale = () => {
     );
   }
 
-  const totalSales = transactions.reduce((sum, transaction) => sum + Number(transaction.total_amount), 0);
-  const totalCommissions = transactions.reduce((sum, transaction) => sum + Number(transaction.commission_amount), 0);
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const safeResellers = Array.isArray(resellers) ? resellers : [];
+
+  const totalSales = safeTransactions.reduce((sum, transaction) => sum + Number(transaction.total_amount), 0);
+  const totalCommissions = safeTransactions.reduce((sum, transaction) => sum + Number(transaction.commission_amount), 0);
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Revenda"
-        description="Gerencie suas transações de revenda e comissões"
-      />
+      <PageHeader title="Revenda" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
@@ -86,7 +86,7 @@ const Resale = () => {
             <CardTitle className="text-sm font-medium">Revendedores Ativos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resellers.filter(r => r.status === 'active').length}</div>
+            <div className="text-2xl font-bold">{safeResellers.filter(r => r.status === 'active').length}</div>
           </CardContent>
         </Card>
       </div>
@@ -105,7 +105,7 @@ const Resale = () => {
               <DialogTitle>Nova Transação de Revenda</DialogTitle>
             </DialogHeader>
             <ResaleTransactionForm
-              resellers={resellers}
+              resellers={safeResellers}
               onSuccess={handleTransactionSuccess}
               onCancel={() => setIsTransactionDialogOpen(false)}
             />
@@ -118,17 +118,17 @@ const Resale = () => {
           <CardTitle>Histórico de Transações</CardTitle>
         </CardHeader>
         <CardContent>
-          {transactions.length === 0 ? (
+          {safeTransactions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Nenhuma transação registrada ainda.
             </div>
           ) : (
             <div className="space-y-4">
-              {transactions.map((transaction) => (
+              {safeTransactions.map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="space-y-1">
                     <div className="font-medium">
-                      {resellers.find(r => r.id === transaction.reseller_id)?.name || 'Revendedor não encontrado'}
+                      {safeResellers.find(r => r.id === transaction.reseller_id)?.name || 'Revendedor não encontrado'}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {formatDate(transaction.transaction_date)} • Status: {transaction.status}

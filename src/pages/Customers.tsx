@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, Users, MapPin, Phone } from "lucide-react";
@@ -8,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getCustomers } from "@/services/customerService";
-import { CustomerForm } from "@/components/customers/CustomerForm";
-import { CustomerDetails } from "@/components/customers/CustomerDetails";
+import CustomerForm from "@/components/customers/CustomerForm";
+import CustomerDetails from "@/components/customers/CustomerDetails";
 import { PageHeader } from "@/components/shared/PageHeader";
 
 const Customers = () => {
@@ -67,10 +66,7 @@ const Customers = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Clientes"
-        description="Gerencie sua base de clientes"
-      />
+      <PageHeader title="Clientes" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
@@ -141,7 +137,7 @@ const Customers = () => {
             <CustomerForm
               onCancel={() => setIsCustomerDialogOpen(false)}
               customer={selectedCustomer}
-              isEditMode={isEditMode}
+              mode={isEditMode ? 'edit' : 'create'}
             />
           </DialogContent>
         </Dialog>
