@@ -22,7 +22,7 @@ const Products = () => {
 
   const { data: products = [], isLoading: isLoadingProducts, refetch: refetchProducts } = useQuery({
     queryKey: ['products'],
-    queryFn: () => searchProducts(),
+    queryFn: () => searchProducts({}),
   });
 
   const { data: categories = [], refetch: refetchCategories } = useQuery({
@@ -144,7 +144,10 @@ const Products = () => {
         </div>
         
         <div className="flex gap-2">
-          <ProductCategoryManager onCategoriesChange={refetchCategories} />
+          <ProductCategoryManager 
+            categories={safeCategories}
+            onCategoriesChange={refetchCategories} 
+          />
           <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
             setIsProductDialogOpen(open);
             if (!open) {
@@ -166,7 +169,9 @@ const Products = () => {
                 categories={safeCategories}
                 onCancel={() => setIsProductDialogOpen(false)}
                 product={selectedProduct}
-                mode={isEditMode ? 'edit' : 'create'}
+                onSubmit={handleProductSuccess}
+                recipes={[]}
+                packaging={[]}
               />
             </DialogContent>
           </Dialog>

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Calendar, DollarSign, TrendingUp, TrendingDown, PlusCircle, MinusCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DateRange } from "react-day-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { addDays, format, startOfMonth, endOfMonth } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -12,20 +12,18 @@ import { getAccountsPayable } from "@/services/accountsPayableService";
 import { PageHeader } from "@/components/shared/PageHeader";
 
 const FluxoCaixa = () => {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
-  });
+  const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
+  const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
   
   const { toast } = useToast();
 
   const { data: sales = [], isLoading: isLoadingSales } = useQuery({
-    queryKey: ['sales', dateRange],
+    queryKey: ['sales', startDate, endDate],
     queryFn: () => getSales(),
   });
 
   const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery({
-    queryKey: ['accounts-payable', dateRange],
+    queryKey: ['accounts-payable', startDate, endDate],
     queryFn: () => getAccountsPayable(),
   });
 
@@ -40,19 +38,22 @@ const FluxoCaixa = () => {
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: pt });
   };
 
+  const handleDateChange = (start: Date, end: Date) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
+
   const isLoading = isLoadingSales || isLoadingExpenses;
 
   // Filtrar dados por período selecionado
   const filteredSales = sales.filter(sale => {
     const saleDate = new Date(sale.sale_date);
-    if (!dateRange?.from || !dateRange?.to) return true;
-    return saleDate >= dateRange.from && saleDate <= dateRange.to;
+    return saleDate >= startDate && saleDate <= endDate;
   });
 
   const filteredExpenses = expenses.filter(expense => {
     const expenseDate = new Date(expense.due_date);
-    if (!dateRange?.from || !dateRange?.to) return true;
-    return expenseDate >= dateRange.from && expenseDate <= dateRange.to;
+    return expenseDate >= startDate && expenseDate <= endDate;
   });
 
   // Calcular totais
@@ -107,7 +108,8 @@ const FluxoCaixa = () => {
 
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <DateRangePicker
-          date={dateRange}
+          startDate={startDate}
+          endDate={endDate}
           onDateChange={handleDateChange}
           className="w-full sm:w-auto"
         />

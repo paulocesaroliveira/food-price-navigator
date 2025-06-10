@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, Filter, Calendar, Package } from "lucide-react";
@@ -245,6 +244,8 @@ const Orders = () => {
             <OrderDetails
               order={selectedOrder}
               onClose={() => setSelectedOrder(null)}
+              onEdit={() => {}}
+              onStatusUpdate={() => {}}
             />
           </DialogContent>
         </Dialog>

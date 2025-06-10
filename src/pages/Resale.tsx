@@ -110,6 +110,8 @@ const Resale = () => {
             <ResaleTransactionForm
               resellers={safeResellers}
               onSuccess={handleTransactionSuccess}
+              open={isTransactionDialogOpen}
+              onOpenChange={setIsTransactionDialogOpen}
             />
           </DialogContent>
         </Dialog>

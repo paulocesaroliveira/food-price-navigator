@@ -140,6 +140,7 @@ const Customers = () => {
               <DialogTitle>{isEditMode ? 'Editar' : 'Novo'} Cliente</DialogTitle>
             </DialogHeader>
             <CustomerForm
+              onSave={handleCustomerSuccess}
               onCancel={() => setIsCustomerDialogOpen(false)}
               customer={selectedCustomer}
             />
