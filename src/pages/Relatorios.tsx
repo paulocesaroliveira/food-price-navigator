@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, BarChart3, Users, Package } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
+import { PageHeader } from "@/components/shared/PageHeader";
 import FinanceiroTab from "@/components/relatorios/FinanceiroTab";
 import VendasTab from "@/components/relatorios/VendasTab";
 import ProdutosTab from "@/components/relatorios/ProdutosTab";

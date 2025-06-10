@@ -8,10 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { fetchProducts, fetchProductCategories } from "@/services/productService";
-import ProductForm from "@/components/products/ProductForm";
-import PageHeader from "@/components/shared/PageHeader";
-import ProductCategoryManager from "@/components/products/ProductCategoryManager";
+import { searchProducts, getProductCategories } from "@/services/productService";
+import { ProductForm } from "@/components/products/ProductForm";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { ProductCategoryManager } from "@/components/products/ProductCategoryManager";
 
 const Products = () => {
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
@@ -23,12 +23,12 @@ const Products = () => {
 
   const { data: products = [], isLoading: isLoadingProducts, refetch: refetchProducts } = useQuery({
     queryKey: ['products'],
-    queryFn: fetchProducts,
+    queryFn: () => searchProducts(),
   });
 
   const { data: categories = [], refetch: refetchCategories } = useQuery({
     queryKey: ['product-categories'],
-    queryFn: fetchProductCategories,
+    queryFn: getProductCategories,
   });
 
   const handleProductSuccess = () => {
@@ -55,18 +55,21 @@ const Products = () => {
     }).format(value);
   };
 
-  const filteredProducts = products.filter(product => {
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
+
+  const filteredProducts = safeProducts.filter(product => {
     const matchesSearch = !searchTerm || 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      product.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !categoryFilter || product.category_id === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
-  const totalProducts = products.length;
-  const averageCost = products.length > 0 
-    ? products.reduce((sum, product) => sum + Number(product.total_cost || 0), 0) / products.length 
+  const totalProducts = safeProducts.length;
+  const averageCost = safeProducts.length > 0 
+    ? safeProducts.reduce((sum, product) => sum + Number(product.total_cost || 0), 0) / safeProducts.length 
     : 0;
-  const totalValue = products.reduce((sum, product) => sum + Number(product.selling_price || 0), 0);
+  const totalValue = safeProducts.reduce((sum, product) => sum + Number(product.selling_price || 0), 0);
 
   if (isLoadingProducts) {
     return (
@@ -131,7 +134,7 @@ const Products = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Todas as categorias</SelectItem>
-              {categories.map((category) => (
+              {safeCategories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
                 </SelectItem>
@@ -160,8 +163,7 @@ const Products = () => {
                 <DialogTitle>{isEditMode ? 'Editar' : 'Novo'} Produto</DialogTitle>
               </DialogHeader>
               <ProductForm
-                categories={categories}
-                onSuccess={handleProductSuccess}
+                categories={safeCategories}
                 onCancel={() => setIsProductDialogOpen(false)}
                 product={selectedProduct}
                 isEditMode={isEditMode}
@@ -178,12 +180,12 @@ const Products = () => {
         <CardContent>
           {filteredProducts.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {products.length === 0 ? "Nenhum produto cadastrado ainda." : "Nenhum produto encontrado com os filtros aplicados."}
+              {totalProducts === 0 ? "Nenhum produto cadastrado ainda." : "Nenhum produto encontrado com os filtros aplicados."}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredProducts.map((product) => {
-                const category = categories.find(c => c.id === product.category_id);
+                const category = safeCategories.find(c => c.id === product.category_id);
                 return (
                   <div 
                     key={product.id} 

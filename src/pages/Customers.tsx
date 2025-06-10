@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { fetchCustomers } from "@/services/customerService";
-import CustomerForm from "@/components/customers/CustomerForm";
-import CustomerDetails from "@/components/customers/CustomerDetails";
-import PageHeader from "@/components/shared/PageHeader";
+import { getCustomers } from "@/services/customerService";
+import { CustomerForm } from "@/components/customers/CustomerForm";
+import { CustomerDetails } from "@/components/customers/CustomerDetails";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 const Customers = () => {
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
@@ -21,7 +21,7 @@ const Customers = () => {
 
   const { data: customers = [], isLoading: isLoadingCustomers, refetch: refetchCustomers } = useQuery({
     queryKey: ['customers'],
-    queryFn: fetchCustomers,
+    queryFn: getCustomers,
   });
 
   const handleCustomerSuccess = () => {
@@ -46,16 +46,16 @@ const Customers = () => {
     setIsEditMode(false);
   };
 
-  const filteredCustomers = customers.filter(customer => 
+  const filteredCustomers = Array.isArray(customers) ? customers.filter(customer => 
     !searchTerm || 
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.phone?.includes(searchTerm)
-  );
+  ) : [];
 
-  const totalCustomers = customers.length;
-  const customersWithEmail = customers.filter(c => c.email).length;
-  const customersWithPhone = customers.filter(c => c.phone).length;
+  const totalCustomers = Array.isArray(customers) ? customers.length : 0;
+  const customersWithEmail = Array.isArray(customers) ? customers.filter(c => c.email).length : 0;
+  const customersWithPhone = Array.isArray(customers) ? customers.filter(c => c.phone).length : 0;
 
   if (isLoadingCustomers) {
     return (
@@ -139,7 +139,6 @@ const Customers = () => {
               <DialogTitle>{isEditMode ? 'Editar' : 'Novo'} Cliente</DialogTitle>
             </DialogHeader>
             <CustomerForm
-              onSuccess={handleCustomerSuccess}
               onCancel={() => setIsCustomerDialogOpen(false)}
               customer={selectedCustomer}
               isEditMode={isEditMode}
@@ -155,7 +154,7 @@ const Customers = () => {
         <CardContent>
           {filteredCustomers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {customers.length === 0 ? "Nenhum cliente cadastrado ainda." : "Nenhum cliente encontrado com os filtros aplicados."}
+              {totalCustomers === 0 ? "Nenhum cliente cadastrado ainda." : "Nenhum cliente encontrado com os filtros aplicados."}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
