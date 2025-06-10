@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, Filter, Calendar, Package } from "lucide-react";
@@ -42,26 +43,17 @@ const Orders = () => {
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'pending': return 'default';
-      case 'confirmed': return 'secondary';
-      case 'in_production': return 'outline';
-      case 'ready': return 'default';
-      case 'delivered': return 'default';
-      case 'cancelled': return 'destructive';
+      case 'Novo': return 'default';
+      case 'Em preparo': return 'secondary';
+      case 'Pronto': return 'outline';
+      case 'Finalizado': return 'default';
+      case 'Cancelado': return 'destructive';
       default: return 'default';
     }
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Pendente';
-      case 'confirmed': return 'Confirmado';
-      case 'in_production': return 'Em Produção';
-      case 'ready': return 'Pronto';
-      case 'delivered': return 'Entregue';
-      case 'cancelled': return 'Cancelado';
-      default: return status;
-    }
+    return status;
   };
 
   const formatCurrency = (value: number) => {
@@ -88,7 +80,7 @@ const Orders = () => {
   });
 
   const totalOrders = safeOrders.length;
-  const pendingOrders = safeOrders.filter(o => o.status === 'pending').length;
+  const pendingOrders = safeOrders.filter(o => o.status === 'Novo').length;
   const totalValue = safeOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
 
   if (isLoadingOrders) {
@@ -156,12 +148,11 @@ const Orders = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Todos os status</SelectItem>
-              <SelectItem value="pending">Pendente</SelectItem>
-              <SelectItem value="confirmed">Confirmado</SelectItem>
-              <SelectItem value="in_production">Em Produção</SelectItem>
-              <SelectItem value="ready">Pronto</SelectItem>
-              <SelectItem value="delivered">Entregue</SelectItem>
-              <SelectItem value="cancelled">Cancelado</SelectItem>
+              <SelectItem value="Novo">Novo</SelectItem>
+              <SelectItem value="Em preparo">Em preparo</SelectItem>
+              <SelectItem value="Pronto">Pronto</SelectItem>
+              <SelectItem value="Finalizado">Finalizado</SelectItem>
+              <SelectItem value="Cancelado">Cancelado</SelectItem>
             </SelectContent>
           </Select>
         </div>

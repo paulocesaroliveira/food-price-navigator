@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, Filter, Package } from "lucide-react";
@@ -22,7 +23,7 @@ const Products = () => {
 
   const { data: products = [], isLoading: isLoadingProducts, refetch: refetchProducts } = useQuery({
     queryKey: ['products'],
-    queryFn: () => searchProducts({}),
+    queryFn: () => searchProducts(""),
   });
 
   const { data: categories = [], refetch: refetchCategories } = useQuery({
