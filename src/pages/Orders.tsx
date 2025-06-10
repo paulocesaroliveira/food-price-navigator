@@ -52,10 +52,6 @@ const Orders = () => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    return status;
-  };
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -199,7 +195,7 @@ const Orders = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{order.order_number}</span>
                         <Badge variant={getStatusBadgeVariant(order.status)}>
-                          {getStatusLabel(order.status)}
+                          {order.status}
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
