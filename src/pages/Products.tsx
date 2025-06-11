@@ -29,7 +29,7 @@ interface Category {
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -113,7 +113,7 @@ const Products = () => {
   const filteredProducts = products.filter(product => {
     const matchesSearch = !searchTerm || 
       product.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !categoryFilter || product.category_id === categoryFilter;
+    const matchesCategory = categoryFilter === "all" || product.category_id === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
@@ -198,7 +198,7 @@ const Products = () => {
               <SelectValue placeholder="Filtrar por categoria" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as categorias</SelectItem>
+              <SelectItem value="all">Todas as categorias</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}

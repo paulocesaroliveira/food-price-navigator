@@ -33,7 +33,7 @@ interface Customer {
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const { toast } = useToast();
 
   const { data: orders = [], isLoading: isLoadingOrders } = useQuery({
@@ -100,7 +100,7 @@ const Orders = () => {
     const matchesSearch = !searchTerm || 
       order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !statusFilter || order.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -179,7 +179,7 @@ const Orders = () => {
               <SelectValue placeholder="Filtrar por status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os status</SelectItem>
+              <SelectItem value="all">Todos os status</SelectItem>
               <SelectItem value="Novo">Novo</SelectItem>
               <SelectItem value="Em preparo">Em preparo</SelectItem>
               <SelectItem value="Pronto">Pronto</SelectItem>
