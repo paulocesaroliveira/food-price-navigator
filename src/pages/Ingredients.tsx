@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Utensils, Edit, Trash2 } from "lucide-react";
@@ -116,6 +115,11 @@ const Ingredients = () => {
     queryClient.invalidateQueries({ queryKey: ['ingredients'] });
     setIsDialogOpen(false);
     setSelectedIngredient(null);
+  };
+
+  const handleCategoriesChange = () => {
+    queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+    queryClient.invalidateQueries({ queryKey: ['ingredientCategories'] });
   };
 
   const totalIngredients = ingredients.length;
@@ -265,6 +269,7 @@ const Ingredients = () => {
       <CategoryDialog
         open={isCategoryDialogOpen}
         onOpenChange={setIsCategoryDialogOpen}
+        onCategoriesChange={handleCategoriesChange}
       />
     </div>
   );
