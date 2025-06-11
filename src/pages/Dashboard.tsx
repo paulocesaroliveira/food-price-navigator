@@ -1,225 +1,149 @@
 
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getDashboardStats, getRecentOrders, getSalesData, DashboardFilters } from "@/services/dashboard";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import DashboardStats from "@/components/dashboard/DashboardStats";
-import SalesChart from "@/components/dashboard/SalesChart";
-import StatusOverview from "@/components/dashboard/StatusOverview";
-import RecentOrders from "@/components/dashboard/RecentOrders";
-import QuickActions from "@/components/dashboard/QuickActions";
-import { PageHeader } from "@/components/shared/PageHeader";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import SEOHead from "@/components/SEOHead";
-import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { 
-  BarChart3, 
-  TrendingUp, 
-  DollarSign, 
-  Users, 
   Package, 
-  ShoppingCart,
-  Target,
-  Activity,
-  Calendar
+  Utensils, 
+  ShoppingCart, 
+  BarChart3,
+  Plus,
+  TrendingUp,
+  Users,
+  DollarSign
 } from "lucide-react";
-import { Link } from "react-router-dom";
 
 const Dashboard = () => {
-  const [filters, setFilters] = useState<DashboardFilters>({
-    period: 'week'
-  });
+  const navigate = useNavigate();
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['dashboard-stats', filters],
-    queryFn: () => getDashboardStats(filters),
-  });
-
-  const { data: recentOrders, isLoading: ordersLoading } = useQuery({
-    queryKey: ['recent-orders'],
-    queryFn: getRecentOrders,
-  });
-
-  const { data: salesData, isLoading: salesLoading } = useQuery({
-    queryKey: ['sales-data', filters],
-    queryFn: () => getSalesData(filters),
-  });
-
-  // Buscar dados reais para os cards de performance (sem Performance Geral)
-  const { data: realTimeData } = useQuery({
-    queryKey: ['dashboard-realtime'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      // Clientes ativos (clientes com pedidos nos últimos 7 dias)
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
-      const { data: activeCustomers } = await supabase
-        .from('orders')
-        .select('customer_id')
-        .eq('user_id', user.id)
-        .gte('created_at', sevenDaysAgo.toISOString());
-
-      // Produtos disponíveis
-      const { count: productCount } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      // Pedidos processados no mês
-      const firstDayOfMonth = new Date();
-      firstDayOfMonth.setDate(1);
-      
-      const { count: monthlyOrders } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', firstDayOfMonth.toISOString());
-
-      const uniqueCustomers = activeCustomers ? new Set(activeCustomers.map(o => o.customer_id)).size : 0;
-
-      return {
-        activeCustomers: uniqueCustomers,
-        availableProducts: productCount || 0,
-        monthlyOrders: monthlyOrders || 0
-      };
+  const quickActions = [
+    {
+      title: "Produtos",
+      description: "Gerencie seus produtos",
+      icon: Package,
+      action: () => navigate("/products"),
+      color: "text-blue-600"
+    },
+    {
+      title: "Ingredientes", 
+      description: "Controle ingredientes",
+      icon: Utensils,
+      action: () => navigate("/ingredients"),
+      color: "text-green-600"
+    },
+    {
+      title: "Pedidos",
+      description: "Gerencie pedidos",
+      icon: ShoppingCart,
+      action: () => navigate("/orders"),
+      color: "text-orange-600"
+    },
+    {
+      title: "Relatórios",
+      description: "Veja relatórios",
+      icon: BarChart3,
+      action: () => navigate("/relatorios"),
+      color: "text-purple-600"
     }
-  });
+  ];
 
-  const handlePeriodChange = (period: DashboardFilters['period']) => {
-    setFilters(prev => ({ ...prev, period }));
-  };
-
-  const handleCustomDateChange = (field: 'startDate' | 'endDate', value: string) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
-  };
+  const stats = [
+    {
+      title: "Total de Produtos",
+      value: "0",
+      icon: Package,
+      change: "+0%"
+    },
+    {
+      title: "Pedidos Hoje",
+      value: "0",
+      icon: ShoppingCart,
+      change: "+0%"
+    },
+    {
+      title: "Receita",
+      value: "R$ 0,00",
+      icon: DollarSign,
+      change: "+0%"
+    },
+    {
+      title: "Clientes",
+      value: "0",
+      icon: Users,
+      change: "+0%"
+    }
+  ];
 
   return (
-    <>
-      <SEOHead 
-        title="Dashboard - TastyHub"
-        description="Visão geral completa do seu negócio com estatísticas, vendas e relatórios em tempo real"
-        keywords="dashboard, estatísticas, vendas, relatórios, negócio"
-      />
-      
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        <div className="container-responsive py-4 sm:py-6 lg:py-8 spacing-responsive">
-          {/* Header */}
-          <PageHeader
-            title="Dashboard"
-            subtitle="Visão geral completa do seu negócio"
-            icon={BarChart3}
-            gradient="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700"
-            badges={[
-              { icon: TrendingUp, text: "Análise em Tempo Real" },
-              { icon: Target, text: "Insights Precisos" }
-            ]}
-            actions={
-              <div className="flex flex-wrap gap-3 items-center">
-                <DashboardHeader
-                  filters={filters}
-                  onPeriodChange={handlePeriodChange}
-                  onCustomDateChange={handleCustomDateChange}
-                />
-                <Button variant="default" size="sm" asChild className="bg-white text-blue-600 hover:bg-blue-50 border border-blue-200">
-                  <Link to="/relatorios">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Relatórios
-                  </Link>
-                </Button>
-              </div>
-            }
-          />
-
-          {/* Stats Cards */}
-          <DashboardStats
-            stats={stats}
-            filters={filters}
-            isLoading={statsLoading}
-          />
-
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
-            {/* Sales Chart - Takes 2 columns */}
-            <div className="lg:col-span-2">
-              <SalesChart
-                salesData={salesData}
-                isLoading={salesLoading}
-              />
-            </div>
-
-            {/* Status Overview */}
-            <div className="lg:col-span-1">
-              <StatusOverview />
-            </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600">Bem-vindo ao TastyHub</p>
           </div>
-
-          {/* Secondary Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {/* Recent Orders */}
-            <RecentOrders
-              orders={recentOrders || []}
-              isLoading={ordersLoading}
-            />
-
-            {/* Quick Actions */}
-            <QuickActions />
-          </div>
-
-          {/* Performance Metrics - DADOS REAIS (sem Performance Geral) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-cyan-50 group">
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="rounded-xl p-2 bg-gradient-to-r from-cyan-500 to-cyan-600 group-hover:scale-110 transition-transform duration-300">
-                    <Users className="h-4 w-4 text-white" />
-                  </div>
-                  <Badge variant="outline" className="text-xs bg-white border-cyan-200 text-cyan-700">7 dias</Badge>
-                </div>
-                <p className="text-lg font-bold text-gray-900">
-                  {realTimeData?.activeCustomers || 0}
-                </p>
-                <p className="text-xs text-gray-500">Clientes Ativos</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-rose-50 group">
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="rounded-xl p-2 bg-gradient-to-r from-rose-500 to-rose-600 group-hover:scale-110 transition-transform duration-300">
-                    <Package className="h-4 w-4 text-white" />
-                  </div>
-                  <Badge variant="outline" className="text-xs bg-white border-rose-200 text-rose-700">Estoque</Badge>
-                </div>
-                <p className="text-lg font-bold text-gray-900">
-                  {realTimeData?.availableProducts || 0}
-                </p>
-                <p className="text-xs text-gray-500">Produtos Disponíveis</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-violet-50 group">
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="rounded-xl p-2 bg-gradient-to-r from-violet-500 to-violet-600 group-hover:scale-110 transition-transform duration-300">
-                    <ShoppingCart className="h-4 w-4 text-white" />
-                  </div>
-                  <Badge variant="outline" className="text-xs bg-white border-violet-200 text-violet-700">Mês</Badge>
-                </div>
-                <p className="text-lg font-bold text-gray-900">
-                  {realTimeData?.monthlyOrders || 0}
-                </p>
-                <p className="text-xs text-gray-500">Pedidos Processados</p>
-              </CardContent>
-            </Card>
-          </div>
+          <Button onClick={() => navigate("/auth")} variant="outline">
+            Login
+          </Button>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {stats.map((stat, index) => (
+            <Card key={index}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {stat.title}
+                </CardTitle>
+                <stat.icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground flex items-center">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  {stat.change} em relação ao mês passado
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {quickActions.map((action, index) => (
+            <Card key={index} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={action.action}>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <action.icon className={`h-6 w-6 ${action.color}`} />
+                  <span>{action.title}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">{action.description}</p>
+                <div className="mt-4">
+                  <Button size="sm" className="w-full">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Acessar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Atividade Recente</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-gray-500">
+              <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>Nenhuma atividade recente</p>
+              <p className="text-sm">Comece criando seus primeiros produtos!</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </>
+    </div>
   );
 };
 

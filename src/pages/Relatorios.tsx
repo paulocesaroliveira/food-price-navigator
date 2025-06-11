@@ -1,102 +1,73 @@
 
-import React, { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, BarChart3 } from "lucide-react";
-import { PageHeader } from "@/components/shared/PageHeader";
-import FinanceiroTab from "@/components/relatorios/FinanceiroTab";
-import VendasTab from "@/components/relatorios/VendasTab";
-import { useToast } from "@/hooks/use-toast";
+import { BarChart3, Download } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Relatorios = () => {
-  const [activeTab, setActiveTab] = useState("financeiro");
-  const { toast } = useToast();
-
-  const handleExportReport = (type: string) => {
-    toast({
-      title: "Exportando relatório",
-      description: `O relatório ${type} será gerado em instantes.`,
-    });
-    
-    setTimeout(() => {
-      toast({
-        title: "Relatório gerado",
-        description: "O relatório foi gerado com sucesso e está sendo baixado.",
-      });
-    }, 2000);
-  };
-
-  const reports = [
-    {
-      id: "financeiro",
-      title: "Financeiro",
-      icon: BarChart3,
-      description: "Receitas, comissões e análise financeira",
-      component: FinanceiroTab
-    },
-    {
-      id: "vendas",
-      title: "Vendas",
-      icon: BarChart3,
-      description: "Performance de vendas e produtos",
-      component: VendasTab
-    }
-  ];
+  const navigate = useNavigate();
 
   return (
-    <div className="space-y-6">
-      <PageHeader 
-        title="Relatórios" 
-        icon={BarChart3}
-        gradient="bg-gradient-to-r from-indigo-600 to-purple-600"
-      />
-
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="text-sm text-muted-foreground">
-          Selecione o tipo de relatório que deseja visualizar
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Relatórios</h1>
+            <p className="text-gray-600">Análise de performance e dados</p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => navigate("/dashboard")} variant="outline">
+              Voltar
+            </Button>
+            <Button>
+              <Download className="h-4 w-4 mr-2" />
+              Exportar
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => handleExportReport(activeTab)} className="gap-2">
-          <Download className="h-4 w-4" />
-          Exportar Relatório
-        </Button>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Relatório Financeiro
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-4">Receitas, custos e análise financeira</p>
+              <Button className="w-full">Ver Relatório</Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Relatório de Vendas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-4">Performance de vendas e produtos</p>
+              <Button className="w-full">Ver Relatório</Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dados Recentes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground">
+              <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>Nenhum dado disponível ainda.</p>
+              <p className="text-sm">Comece fazendo vendas para gerar relatórios!</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          {reports.map((report) => {
-            const Icon = report.icon;
-            return (
-              <TabsTrigger key={report.id} value={report.id} className="flex items-center gap-2">
-                <Icon className="h-4 w-4" />
-                <span>{report.title}</span>
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-
-        {reports.map((report) => {
-          const Component = report.component;
-          return (
-            <TabsContent key={report.id} value={report.id} className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <report.icon className="h-5 w-5" />
-                    Relatório {report.title}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {report.description}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <Component />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          );
-        })}
-      </Tabs>
     </div>
   );
 };
