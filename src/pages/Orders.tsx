@@ -1,45 +1,77 @@
 
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Filter, Calendar, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getOrders } from "@/services/orderService";
-import { getCustomers } from "@/services/customerService";
-import OrderForm from "@/components/orders/OrderForm";
-import OrderDetails from "@/components/orders/OrderDetails";
+import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/shared/PageHeader";
 
+interface Order {
+  id: string;
+  order_number: string;
+  status: string;
+  total_amount: number;
+  scheduled_date?: string;
+  scheduled_time?: string;
+  created_at: string;
+  customer_id: string;
+  customer?: {
+    id: string;
+    name: string;
+  };
+}
+
+interface Customer {
+  id: string;
+  name: string;
+}
+
 const Orders = () => {
-  const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const { toast } = useToast();
 
-  const { data: orders = [], isLoading: isLoadingOrders, refetch: refetchOrders } = useQuery({
+  const { data: orders = [], isLoading: isLoadingOrders } = useQuery({
     queryKey: ['orders'],
-    queryFn: getOrders,
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          customer:customers(id, name)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    }
   });
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers'],
-    queryFn: getCustomers,
-  });
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
 
-  const handleOrderSuccess = () => {
-    setIsOrderDialogOpen(false);
-    refetchOrders();
-    toast({
-      title: "Pedido criado",
-      description: "O pedido foi criado com sucesso.",
-    });
-  };
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -63,11 +95,8 @@ const Orders = () => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const safeOrders = Array.isArray(orders) ? orders : [];
-  const safeCustomers = Array.isArray(customers) ? customers : [];
-
-  const filteredOrders = safeOrders.filter(order => {
-    const customer = safeCustomers.find(c => c.id === order.customer_id);
+  const filteredOrders = orders.filter(order => {
+    const customer = customers.find((c: Customer) => c.id === order.customer_id);
     const matchesSearch = !searchTerm || 
       order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer?.name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -75,9 +104,9 @@ const Orders = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const totalOrders = safeOrders.length;
-  const pendingOrders = safeOrders.filter(o => o.status === 'Novo').length;
-  const totalValue = safeOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter(o => o.status === 'Novo').length;
+  const totalValue = orders.reduce((sum, order) => sum + Number(order.total_amount), 0);
 
   if (isLoadingOrders) {
     return (
@@ -91,8 +120,15 @@ const Orders = () => {
     <div className="space-y-6">
       <PageHeader 
         title="Pedidos" 
+        subtitle="Gerencie seus pedidos e entregas"
         icon={Package}
         gradient="bg-gradient-to-r from-orange-600 to-red-600"
+        actions={
+          <Button className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Pedido
+          </Button>
+        }
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -152,24 +188,6 @@ const Orders = () => {
             </SelectContent>
           </Select>
         </div>
-        
-        <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Pedido
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Novo Pedido</DialogTitle>
-            </DialogHeader>
-            <OrderForm
-              onSuccess={handleOrderSuccess}
-              onCancel={() => setIsOrderDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
       </div>
 
       <Card>
@@ -179,17 +197,16 @@ const Orders = () => {
         <CardContent>
           {filteredOrders.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {safeOrders.length === 0 ? "Nenhum pedido registrado ainda." : "Nenhum pedido encontrado com os filtros aplicados."}
+              {orders.length === 0 ? "Nenhum pedido registrado ainda." : "Nenhum pedido encontrado com os filtros aplicados."}
             </div>
           ) : (
             <div className="space-y-4">
               {filteredOrders.map((order) => {
-                const customer = safeCustomers.find(c => c.id === order.customer_id);
+                const customer = customers.find((c: Customer) => c.id === order.customer_id);
                 return (
                   <div 
                     key={order.id} 
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                    onClick={() => setSelectedOrder(order)}
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -221,22 +238,6 @@ const Orders = () => {
           )}
         </CardContent>
       </Card>
-
-      {selectedOrder && (
-        <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Detalhes do Pedido</DialogTitle>
-            </DialogHeader>
-            <OrderDetails
-              order={selectedOrder}
-              onClose={() => setSelectedOrder(null)}
-              onEdit={() => {}}
-              onStatusUpdate={() => {}}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 };
