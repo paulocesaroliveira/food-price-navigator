@@ -8,9 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Plus, Calculator, Settings, DollarSign, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { ProductSelector } from "@/components/pricing/ProductSelector";
-import { PricingCalculator } from "@/components/pricing/PricingCalculator";
-import { PricingConfigsList } from "@/components/pricing/PricingConfigsList";
+import ProductSelector from "@/components/pricing/ProductSelector";
+import PricingCalculator from "@/components/pricing/PricingCalculator";
+import PricingConfigsList from "@/components/pricing/PricingConfigsList";
 import { DynamicPricingForm } from "@/components/pricing/DynamicPricingForm";
 import { formatCurrency } from "@/utils/calculations";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -79,6 +79,10 @@ const Pricing = () => {
     setSelectedProduct(product);
   };
 
+  const handlePricingChange = (sellingPrice: number, marginPercentage: number) => {
+    console.log('Pricing changed:', { sellingPrice, marginPercentage });
+  };
+
   const avgMargin = configurations.length > 0 
     ? configurations.reduce((acc, config) => acc + (config.actual_margin || 0), 0) / configurations.length 
     : 0;
@@ -129,7 +133,12 @@ const Pricing = () => {
             </Card>
 
             {selectedProduct && (
-              <PricingCalculator product={selectedProduct} />
+              <PricingCalculator 
+                product={selectedProduct}
+                onSave={async (config) => {
+                  console.log('Saving configuration:', config);
+                }}
+              />
             )}
           </div>
         </TabsContent>
@@ -145,16 +154,28 @@ const Pricing = () => {
             />
           </div>
           
-          <PricingConfigsList searchTerm={searchTerm} />
+          <PricingConfigsList 
+            configs={configurations}
+            onView={(id) => console.log('View config:', id)}
+            onEdit={(id) => console.log('Edit config:', id)}
+            onDuplicate={(id) => console.log('Duplicate config:', id)}
+            onDelete={(id) => console.log('Delete config:', id)}
+          />
         </TabsContent>
 
         <TabsContent value="dynamic" className="space-y-6">
-          <DynamicPricingForm />
+          <DynamicPricingForm 
+            totalCost={selectedProduct?.total_cost || 0}
+            onPricingChange={handlePricingChange}
+          />
         </TabsContent>
       </Tabs>
 
       {showDynamicForm && (
-        <DynamicPricingForm />
+        <DynamicPricingForm 
+          totalCost={selectedProduct?.total_cost || 0}
+          onPricingChange={handlePricingChange}
+        />
       )}
     </div>
   );

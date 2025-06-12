@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Package, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import IngredientForm from "@/components/ingredients/IngredientForm";
+import { IngredientForm } from "@/components/ingredients/IngredientForm";
 import { CategoryDialog } from "@/components/ingredients/CategoryDialog";
 import { formatCurrency } from "@/utils/calculations";
 import { toast } from "@/hooks/use-toast";
@@ -257,8 +256,7 @@ const Ingredients = () => {
         open={showForm}
         onOpenChange={setShowForm}
         onSuccess={handleFormSuccess}
-        categories={categories}
-        editingIngredient={editingIngredient}
+        ingredient={editingIngredient}
       />
 
       {/* Dialog de Categoria */}

@@ -11,6 +11,7 @@ import { Customer } from "@/types";
 const Customers = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const { data: customers = [], isLoading, error, refetch } = useQuery({
     queryKey: ['customers'],
@@ -27,6 +28,10 @@ const Customers = () => {
     setShowForm(true);
   };
 
+  const handleViewCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+  };
+
   const handleDeleteCustomer = (id: string) => {
     if (confirm("Tem certeza que deseja excluir este cliente?")) {
       // deleteCustomer(id); // Implementar a função deleteCustomer
@@ -37,6 +42,25 @@ const Customers = () => {
     refetch();
     setShowForm(false);
   };
+
+  const handleCloseDetails = () => {
+    setSelectedCustomer(null);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingCustomer(null);
+  };
+
+  if (selectedCustomer) {
+    return (
+      <CustomerDetails
+        customer={selectedCustomer}
+        onEdit={() => handleEditCustomer(selectedCustomer)}
+        onClose={handleCloseDetails}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -62,22 +86,39 @@ const Customers = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {customers.map((customer) => (
-            <CustomerDetails
+            <div
               key={customer.id}
-              customer={customer}
-              onEdit={() => handleEditCustomer(customer)}
-            />
+              className="p-4 border rounded-lg cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleViewCustomer(customer)}
+            >
+              <h3 className="font-medium">{customer.name}</h3>
+              <p className="text-sm text-gray-500">{customer.email}</p>
+              <p className="text-sm text-gray-500">{customer.phone}</p>
+              <div className="mt-2 flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditCustomer(customer);
+                  }}
+                >
+                  Editar
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       )}
 
       {/* Modal do formulário */}
-      <CustomerForm
-        open={showForm}
-        onOpenChange={setShowForm}
-        onSubmit={handleFormSubmit}
-        editingCustomer={editingCustomer}
-      />
+      {showForm && (
+        <CustomerForm
+          customer={editingCustomer}
+          onSave={handleFormSubmit}
+          onCancel={handleCloseForm}
+        />
+      )}
     </div>
   );
 };
