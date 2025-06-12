@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Settings } from "lucide-react";
@@ -8,7 +9,7 @@ import { AccountsPayableTable } from "@/components/accounts-payable/AccountsPaya
 import { AccountPayableFormModal } from "@/components/accounts-payable/AccountPayableFormModal";
 import { PaymentConfirmationDialog } from "@/components/accounts-payable/PaymentConfirmationDialog";
 import { PaymentReverseDialog } from "@/components/accounts-payable/PaymentReverseDialog";
-import { ExpenseCategoryManager } from "@/components/accounts-payable/ExpenseCategoryManager";
+import ExpenseCategoryManager from "@/components/accounts-payable/ExpenseCategoryManager";
 import type { AccountPayable, AccountsPayableFilterData } from "@/types/accountsPayable";
 
 const AccountsPayable = () => {
@@ -184,11 +185,12 @@ const AccountsPayable = () => {
       />
 
       {/* Modal de gerenciamento de categorias */}
-      <ExpenseCategoryManager
-        open={showCategoryManager}
-        onOpenChange={setShowCategoryManager}
-        onCategoriesChange={handleCategoriesChange}
-      />
+      {showCategoryManager && (
+        <ExpenseCategoryManager
+          categories={categories}
+          onCategoriesChange={handleCategoriesChange}
+        />
+      )}
     </div>
   );
 };

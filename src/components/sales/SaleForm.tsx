@@ -15,6 +15,7 @@ import { getDiscountCategories } from '@/services/discountCategoryService';
 import { createSale } from '@/services/salesService';
 import { formatCurrency } from '@/utils/calculations';
 import { Product, Sale } from '@/types';
+import { CreateSaleRequest } from '@/types/sales';
 import { toast } from '@/hooks/use-toast';
 
 interface SaleItem {
@@ -154,19 +155,13 @@ const SaleForm: React.FC<SaleFormProps> = ({ onSubmit, onCancel }) => {
     setIsSubmitting(true);
 
     try {
-      const saleData = {
+      const saleData: CreateSaleRequest = {
+        sale_date: new Date().toISOString().split('T')[0],
         ...formData,
-        total_amount: totalAmount,
-        total_cost: totalCost,
-        gross_profit: grossProfit,
-        net_profit: netProfit,
         items: saleItems.map(item => ({
           product_id: item.id,
           quantity: item.quantity,
-          unit_price: item.unitPrice,
-          total_price: item.totalPrice,
-          unit_cost: item.unitCost,
-          total_cost: item.totalCost
+          unit_price: item.unitPrice
         }))
       };
 

@@ -29,7 +29,8 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    color: '#E76F51'
+    color: '#E76F51',
+    user_id: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,7 +50,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
       }
     }
     
-    setFormData({ name: '', description: '', color: '#E76F51' });
+    setFormData({ name: '', description: '', color: '#E76F51', user_id: '' });
   };
 
   const handleEdit = (category: ExpenseCategory) => {
@@ -57,7 +58,8 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
     setFormData({
       name: category.name,
       description: category.description || '',
-      color: category.color || '#E76F51'
+      color: category.color || '#E76F51',
+      user_id: category.user_id
     });
   };
 
@@ -71,7 +73,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
   };
 
   const resetForm = () => {
-    setFormData({ name: '', description: '', color: '#E76F51' });
+    setFormData({ name: '', description: '', color: '#E76F51', user_id: '' });
     setEditingCategory(null);
   };
 

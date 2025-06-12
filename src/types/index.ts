@@ -1,3 +1,4 @@
+
 export interface Customer {
   id: string;
   name: string;
@@ -75,6 +76,37 @@ export interface Recipe {
   };
   image?: string;
   image_url?: string;
+  notes?: string;
+  baseIngredients?: RecipeIngredient[];
+  portionIngredients?: RecipeIngredient[];
+}
+
+export interface RecipeIngredient {
+  id: string;
+  recipe_id: string;
+  ingredient_id: string;
+  quantity: number;
+  cost: number;
+  created_at: string;
+}
+
+export interface Ingredient {
+  id: string;
+  name: string;
+  unit_cost: number;
+  bulk_quantity: number;
+  bulk_price: number;
+  category_id?: string;
+  category?: Category;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  user_id: string;
+  created_at: string;
 }
 
 export interface Packaging {
@@ -190,4 +222,51 @@ export interface PricingResult {
   priceWithTaxes: number;
   priceWithCommission: number;
   minimumRecommendedPrice: number;
+}
+
+export interface Sale {
+  id: string;
+  sale_number: string;
+  sale_date: string;
+  total_amount: number;
+  total_cost: number;
+  gross_profit: number;
+  net_profit: number;
+  discount_amount?: number;
+  discount_category_id?: string;
+  sale_point_id?: string;
+  notes?: string;
+  status: 'completed' | 'cancelled' | 'pending';
+  created_at: string;
+  updated_at: string;
+  sale_items?: SaleItem[];
+  sale_expenses?: SaleExpense[];
+}
+
+export interface SaleItem {
+  id: string;
+  sale_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  unit_cost: number;
+  total_cost: number;
+  created_at: string;
+  product?: {
+    id: string;
+    name: string;
+    total_cost: number;
+  };
+}
+
+export interface SaleExpense {
+  id: string;
+  sale_id: string;
+  name: string;
+  amount: number;
+  type: 'expense' | 'tax' | 'fee';
+  description?: string;
+  category_id?: string;
+  created_at: string;
 }
