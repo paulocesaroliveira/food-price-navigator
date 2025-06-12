@@ -1,372 +1,299 @@
-import React, { useState, useEffect } from "react";
-import { Product, PricingConfiguration, AdditionalCost, PricingResult } from "@/types";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import AdditionalCostsEditor from "./AdditionalCostsEditor";
-import { ShoppingBag, PercentIcon, Calculator, Tag, Save, TrendingUp, Wallet, HelpCircle } from "lucide-react";
-import { formatCurrency, formatPercentage } from "@/utils/calculations";
-import { calculatePricingResults } from "@/services/pricingService";
-import { v4 as uuidv4 } from "uuid";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+import React, { useState, useEffect } from 'react';
+import { Product, PricingConfiguration, AdditionalCost, PricingResult } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { formatCurrency, formatPercentage } from '@/utils/calculations';
+import { calculatePricingResults } from '@/services/pricingService';
+import AdditionalCostsEditor from './AdditionalCostsEditor';
 
 interface PricingFormProps {
   product: Product;
-  onSave: (config: Omit<PricingConfiguration, "id" | "created_at" | "updated_at">) => Promise<void>;
-  config?: PricingConfiguration;
+  onSave: (data: any) => void;
   isLoading?: boolean;
+  existingConfig?: PricingConfiguration | null;
 }
 
 const PricingForm: React.FC<PricingFormProps> = ({
   product,
   onSave,
-  config,
-  isLoading = false
+  isLoading = false,
+  existingConfig
 }) => {
-  const [name, setName] = useState(config?.name || `Precificação - ${product.name}`);
-  const [baseCost, setBaseCost] = useState(config?.base_cost || product.totalCost);
-  const [packagingCost, setPackagingCost] = useState(config?.packaging_cost || product.packagingCost);
-  const [wastagePercentage, setWastagePercentage] = useState(config?.wastage_percentage || 5);
-  const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>(
-    config?.additionalCosts || []
-  );
-  const [marginPercentage, setMarginPercentage] = useState(config?.margin_percentage || 30);
-  const [platformFeePercentage, setPlatformFeePercentage] = useState(config?.platform_fee_percentage || 0);
-  const [taxPercentage, setTaxPercentage] = useState(config?.tax_percentage || 0);
-  
-  const [pricingResults, setPricingResults] = useState<PricingResult | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    name: existingConfig?.name || `Precificação ${product.name}`,
+    product_id: product.id,
+    user_id: '',
+    base_cost: existingConfig?.base_cost || product.total_cost || 0,
+    packaging_cost: existingConfig?.packaging_cost || product.packaging_cost || 0,
+    wastage_percentage: existingConfig?.wastage_percentage || 5,
+    additionalCosts: existingConfig?.additionalCosts || [] as AdditionalCost[],
+    margin_percentage: existingConfig?.margin_percentage || 30,
+    platform_fee_percentage: existingConfig?.platform_fee_percentage || 0,
+    tax_percentage: existingConfig?.tax_percentage || 0,
+    labor_cost: existingConfig?.labor_cost || 0,
+    overhead_cost: existingConfig?.overhead_cost || 0,
+    marketing_cost: existingConfig?.marketing_cost || 0,
+    delivery_cost: existingConfig?.delivery_cost || 0,
+    other_costs: existingConfig?.other_costs || 0,
+    target_margin_percentage: existingConfig?.target_margin_percentage || 30,
+    minimum_price: existingConfig?.minimum_price || 0,
+    maximum_price: existingConfig?.maximum_price || 0,
+    competitor_price: existingConfig?.competitor_price || 0,
+    notes: existingConfig?.notes || ''
+  });
 
-  // Calculate pricing results whenever inputs change
+  const [results, setResults] = useState<PricingResult | null>(null);
+
   useEffect(() => {
-    const results = calculatePricingResults(
-      baseCost,
-      packagingCost,
-      wastagePercentage,
-      additionalCosts,
-      marginPercentage,
-      platformFeePercentage,
-      taxPercentage
-    );
-    
-    setPricingResults(results);
+    calculateResults();
   }, [
-    baseCost,
-    packagingCost,
-    wastagePercentage,
-    additionalCosts,
-    marginPercentage,
-    platformFeePercentage,
-    taxPercentage
+    formData.base_cost,
+    formData.packaging_cost,
+    formData.wastage_percentage,
+    formData.additionalCosts,
+    formData.margin_percentage,
+    formData.platform_fee_percentage,
+    formData.tax_percentage
   ]);
 
-  const handleSave = async () => {
-    if (!pricingResults) return;
+  const calculateResults = () => {
+    const calculatedResults = calculatePricingResults(
+      formData.base_cost,
+      formData.packaging_cost,
+      formData.wastage_percentage,
+      formData.additionalCosts,
+      formData.margin_percentage,
+      formData.platform_fee_percentage,
+      formData.tax_percentage
+    );
+    setResults(calculatedResults);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     
-    setIsSaving(true);
-    
-    try {
-      const configToSave: Omit<PricingConfiguration, "id" | "created_at" | "updated_at"> = {
-        name,
-        product_id: product.id,
-        base_cost: baseCost,
-        packaging_cost: packagingCost,
-        wastage_percentage: wastagePercentage,
-        additionalCosts,
-        margin_percentage: marginPercentage,
-        platform_fee_percentage: platformFeePercentage,
-        tax_percentage: taxPercentage,
-        total_unit_cost: pricingResults.unitCost,
-        ideal_price: pricingResults.sellingPrice,
-        final_price: pricingResults.priceWithTaxes,
-        unit_profit: pricingResults.unitProfit,
-        actual_margin: pricingResults.appliedMarkup,
-        labor_cost: 0,
-        overhead_cost: 0,
-        marketing_cost: 0,
-        delivery_cost: 0,
-        other_costs: 0,
-        target_margin_percentage: marginPercentage,
-        minimum_price: 0,
-        maximum_price: 0,
-        competitor_price: 0,
-        notes: ""
-      };
-      
-      await onSave(configToSave);
-    } finally {
-      setIsSaving(false);
-    }
+    if (!results) return;
+
+    const dataToSave = {
+      ...formData,
+      id: existingConfig?.id,
+      user_id: '', // Will be set by the service
+      total_unit_cost: results.unitCost,
+      ideal_price: results.sellingPrice,
+      final_price: results.priceWithTaxes,
+      unit_profit: results.unitProfit,
+      actual_margin: results.margin
+    };
+
+    onSave(dataToSave);
+  };
+
+  const handleInputChange = (field: string, value: number | string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAdditionalCostsChange = (costs: AdditionalCost[]) => {
+    setFormData(prev => ({ ...prev, additionalCosts: costs }));
   };
 
   return (
-    <div className="grid md:grid-cols-2 gap-6">
-      <Card className="border rounded-xl shadow-soft bg-food-white">
-        <CardHeader className="bg-gradient-to-r from-food-vanilla to-food-cream">
-          <CardTitle className="flex items-center gap-2 text-xl font-poppins">
-            <ShoppingBag className="h-5 w-5 text-food-coral" />
-            {product.name}
-          </CardTitle>
-          <CardDescription>Configuração de precificação</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5 pt-5">
-          <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Custos Base */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              💰 Custos Base
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="config-name" className="font-medium font-poppins text-food-dark">
-                Nome da precificação
-              </Label>
+              <Label htmlFor="name">Nome da Configuração</Label>
               <Input
-                id="config-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Precificação padrão"
-                className="mt-1 border-food-vanilla focus-visible:ring-food-coral"
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                required
               />
             </div>
-            
-            <div className="p-4 bg-food-vanilla/30 rounded-xl space-y-4">
-              <h3 className="font-poppins font-medium text-food-dark flex items-center">
-                <Wallet className="w-4 h-4 mr-2 text-food-coral" />
-                Custos Base
-              </h3>
-              
-              <div>
-                <Label htmlFor="base-cost" className="text-sm flex items-center">
-                  Custo base
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger className="ml-1 cursor-help">
-                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="w-[200px] text-xs">
-                          Custo total da receita sem incluir embalagem
-                          ou despesas adicionais.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="base-cost"
-                    type="number"
-                    value={baseCost}
-                    onChange={(e) => setBaseCost(parseFloat(e.target.value) || 0)}
-                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
-                  />
-                  <span className="absolute left-2.5 top-[9px] text-muted-foreground">R$</span>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="packaging-cost" className="text-sm">Custo da embalagem</Label>
-                <div className="relative">
-                  <Input
-                    id="packaging-cost"
-                    type="number"
-                    value={packagingCost}
-                    onChange={(e) => setPackagingCost(parseFloat(e.target.value) || 0)}
-                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
-                  />
-                  <span className="absolute left-2.5 top-[9px] text-muted-foreground">R$</span>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="wastage" className="text-sm flex items-center">
-                  Porcentagem de perda
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger className="ml-1 cursor-help">
-                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="w-[200px] text-xs">
-                          Percentual de perda, quebra ou desperdício 
-                          durante a produção.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="wastage"
-                    type="number"
-                    value={wastagePercentage}
-                    onChange={(e) => setWastagePercentage(parseFloat(e.target.value) || 0)}
-                    min="0"
-                    max="100"
-                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
-                  />
-                  <PercentIcon className="absolute left-2.5 top-[9px] h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
+
+            <div>
+              <Label htmlFor="base_cost">Custo Base do Produto</Label>
+              <Input
+                id="base_cost"
+                type="number"
+                step="0.01"
+                value={formData.base_cost}
+                onChange={(e) => handleInputChange('base_cost', parseFloat(e.target.value) || 0)}
+                required
+              />
             </div>
-            
-            <Separator className="bg-food-vanilla" />
-            
+
+            <div>
+              <Label htmlFor="packaging_cost">Custo de Embalagem</Label>
+              <Input
+                id="packaging_cost"
+                type="number"
+                step="0.01"
+                value={formData.packaging_cost}
+                onChange={(e) => handleInputChange('packaging_cost', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="wastage_percentage">Percentual de Desperdício (%)</Label>
+              <Input
+                id="wastage_percentage"
+                type="number"
+                step="0.1"
+                value={formData.wastage_percentage}
+                onChange={(e) => handleInputChange('wastage_percentage', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+
             <AdditionalCostsEditor
-              costs={additionalCosts}
-              onChange={setAdditionalCosts}
+              costs={formData.additionalCosts}
+              onChange={handleAdditionalCostsChange}
             />
-            
-            <Separator className="bg-food-vanilla" />
-            
-            <div className="p-4 bg-food-vanilla/30 rounded-xl space-y-4">
-              <h3 className="font-poppins font-medium text-food-dark flex items-center">
-                <TrendingUp className="w-4 h-4 mr-2 text-food-coral" />
-                Margem e Taxas
-              </h3>
-              
-              <div>
-                <Label htmlFor="margin" className="text-sm flex items-center">
-                  Margem de lucro desejada
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger className="ml-1 cursor-help">
-                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="w-[200px] text-xs">
-                          Percentual de lucro desejado sobre o custo total.
-                          Recomendado: mínimo de 30%.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="margin"
-                    type="number"
-                    value={marginPercentage}
-                    onChange={(e) => setMarginPercentage(parseFloat(e.target.value) || 0)}
-                    min="0"
-                    max="100"
-                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
-                  />
-                  <PercentIcon className="absolute left-2.5 top-[9px] h-4 w-4 text-muted-foreground" />
+          </CardContent>
+        </Card>
+
+        {/* Parâmetros de Venda */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              📈 Parâmetros de Venda
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="margin_percentage">Margem de Lucro (%)</Label>
+              <Input
+                id="margin_percentage"
+                type="number"
+                step="0.1"
+                value={formData.margin_percentage}
+                onChange={(e) => handleInputChange('margin_percentage', parseFloat(e.target.value) || 0)}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="platform_fee_percentage">Taxa da Plataforma (%)</Label>
+              <Input
+                id="platform_fee_percentage"
+                type="number"
+                step="0.1"
+                value={formData.platform_fee_percentage}
+                onChange={(e) => handleInputChange('platform_fee_percentage', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="tax_percentage">Impostos (%)</Label>
+              <Input
+                id="tax_percentage"
+                type="number"
+                step="0.1"
+                value={formData.tax_percentage}
+                onChange={(e) => handleInputChange('tax_percentage', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="notes">Observações</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Observações sobre esta precificação..."
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Resultados */}
+      {results && (
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-800">
+              🎯 Resultados da Precificação
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-white rounded-lg border">
+                <div className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(results.unitCost)}
                 </div>
+                <div className="text-sm text-gray-600">Custo Unitário</div>
               </div>
-              
-              <div>
-                <Label htmlFor="platform-fee" className="text-sm">Comissão de plataforma</Label>
-                <div className="relative">
-                  <Input
-                    id="platform-fee"
-                    type="number"
-                    value={platformFeePercentage}
-                    onChange={(e) => setPlatformFeePercentage(parseFloat(e.target.value) || 0)}
-                    min="0"
-                    max="100"
-                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
-                  />
-                  <PercentIcon className="absolute left-2.5 top-[9px] h-4 w-4 text-muted-foreground" />
+
+              <div className="text-center p-4 bg-white rounded-lg border">
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(results.sellingPrice)}
                 </div>
+                <div className="text-sm text-gray-600">Preço de Venda</div>
               </div>
-              
-              <div>
-                <Label htmlFor="tax" className="text-sm">Impostos</Label>
-                <div className="relative">
-                  <Input
-                    id="tax"
-                    type="number"
-                    value={taxPercentage}
-                    onChange={(e) => setTaxPercentage(parseFloat(e.target.value) || 0)}
-                    min="0"
-                    max="100"
-                    className="pl-7 mt-1 border-food-vanilla focus-visible:ring-food-coral"
-                  />
-                  <PercentIcon className="absolute left-2.5 top-[9px] h-4 w-4 text-muted-foreground" />
+
+              <div className="text-center p-4 bg-white rounded-lg border">
+                <div className="text-2xl font-bold text-purple-600">
+                  {formatCurrency(results.priceWithCommission)}
                 </div>
+                <div className="text-sm text-gray-600">Com Comissão</div>
+              </div>
+
+              <div className="text-center p-4 bg-white rounded-lg border">
+                <div className="text-2xl font-bold text-orange-600">
+                  {formatCurrency(results.priceWithTaxes)}
+                </div>
+                <div className="text-sm text-gray-600">Preço Final</div>
+              </div>
+
+              <div className="text-center p-4 bg-white rounded-lg border">
+                <div className="text-2xl font-bold text-green-700">
+                  {formatCurrency(results.unitProfit)}
+                </div>
+                <div className="text-sm text-gray-600">Lucro Unitário</div>
+              </div>
+
+              <div className="text-center p-4 bg-white rounded-lg border">
+                <div className="text-2xl font-bold text-blue-700">
+                  {formatPercentage(results.appliedMarkup)}
+                </div>
+                <div className="text-sm text-gray-600">Markup Aplicado</div>
+              </div>
+
+              <div className="text-center p-4 bg-white rounded-lg border">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {formatCurrency(results.minimumRecommendedPrice)}
+                </div>
+                <div className="text-sm text-gray-600">Preço Mínimo</div>
+              </div>
+
+              <div className="text-center p-4 bg-white rounded-lg border">
+                <Badge variant="secondary" className="text-lg">
+                  {formatPercentage(results.appliedMarkup)} markup
+                </Badge>
+                <div className="text-sm text-gray-600">Rendimento</div>
               </div>
             </div>
-          </div>
-        </CardContent>
-        <CardFooter className="bg-food-vanilla/30 rounded-b-xl">
-          <Button
-            className="w-full gap-2 bg-food-coral hover:bg-food-amber text-white transition-colors"
-            onClick={handleSave}
-            disabled={isLoading || isSaving}
-          >
-            <Save className="h-4 w-4" />
-            {isSaving ? "Salvando..." : "Salvar Precificação"}
-          </Button>
-        </CardFooter>
-      </Card>
-      
-      <Card className="border rounded-xl shadow-soft bg-gradient-to-br from-food-white to-food-cream/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl font-poppins">
-            <Calculator className="h-5 w-5 text-food-coral" />
-            Resultado da Precificação
-          </CardTitle>
-          <CardDescription>
-            Baseado nos parâmetros informados
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {pricingResults && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-food-vanilla/30 p-4 rounded-xl shadow-soft">
-                  <div className="text-sm text-muted-foreground mb-1">Custo total unitário</div>
-                  <div className="text-2xl font-semibold font-poppins">{formatCurrency(pricingResults.unitCost)}</div>
-                </div>
-                
-                <div className="bg-food-green/20 border border-food-green/30 p-4 rounded-xl shadow-soft">
-                  <div className="text-sm text-green-700 mb-1 flex items-center gap-1">
-                    <Tag className="h-4 w-4" />
-                    Preço ideal com margem
-                  </div>
-                  <div className="text-3xl font-semibold font-poppins text-green-800">{formatCurrency(pricingResults.sellingPrice)}</div>
-                </div>
-                
-                <div className="bg-food-vanilla/30 p-4 rounded-xl shadow-soft">
-                  <div className="text-sm text-muted-foreground mb-1">Preço com comissão</div>
-                  <div className="text-2xl font-semibold font-poppins">{formatCurrency(pricingResults.priceWithCommission)}</div>
-                </div>
-                
-                <div className="bg-food-amber/20 border border-food-amber/30 p-4 rounded-xl shadow-soft">
-                  <div className="text-sm text-amber-700 mb-1">Preço final (com impostos)</div>
-                  <div className="text-2xl font-semibold font-poppins text-amber-800">{formatCurrency(pricingResults.priceWithTaxes)}</div>
-                </div>
-                
-                <div className="bg-food-green/10 p-4 rounded-xl shadow-soft">
-                  <div className="text-sm text-muted-foreground mb-1">Lucro por unidade</div>
-                  <div className="text-2xl font-semibold font-poppins text-green-600">{formatCurrency(pricingResults.unitProfit)}</div>
-                </div>
-                
-                <div className={`p-4 rounded-xl shadow-soft ${
-                  pricingResults.appliedMarkup > 30 
-                    ? 'bg-food-green/20 border border-food-green/30' 
-                    : pricingResults.appliedMarkup < 15
-                      ? 'bg-food-red/20 border border-food-red/30'
-                      : 'bg-food-vanilla border border-food-vanilla/50'
-                }`}>
-                  <div className="text-sm text-muted-foreground mb-1">Markup aplicado</div>
-                  <div className="text-2xl font-semibold font-poppins">{formatPercentage(pricingResults.appliedMarkup)}</div>
-                </div>
-              </div>
-              
-              <div className="bg-food-amber/20 border border-food-amber/20 p-4 rounded-xl shadow-soft">
-                <div className="text-sm text-amber-700 mb-1">Preço mínimo recomendado</div>
-                <div className="text-xl font-semibold font-poppins text-amber-800">
-                  {formatCurrency(pricingResults.minimumRecommendedPrice)}
-                </div>
-                <p className="text-xs text-amber-600 mt-1">
-                  Baseado em uma margem mínima de 20%
-                </p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex justify-end gap-4">
+        <Button type="submit" disabled={isLoading || !results} className="min-w-32">
+          {isLoading ? 'Salvando...' : existingConfig ? 'Atualizar' : 'Salvar'} Precificação
+        </Button>
+      </div>
+    </form>
   );
 };
 

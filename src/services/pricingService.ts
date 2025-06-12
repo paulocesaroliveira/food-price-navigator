@@ -1,5 +1,5 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { PricingConfiguration, PricingResult, AdditionalCost } from '@/types';
 import {
   calculateTotalProductionCost,
@@ -60,6 +60,32 @@ export const getPricingConfigurations = async (): Promise<PricingConfiguration[]
   }
 };
 
+export const getPricingConfigs = async (productId?: string): Promise<PricingConfiguration[]> => {
+  try {
+    let query = supabase
+      .from('pricing_configs')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (productId) {
+      query = query.eq('product_id', productId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return (data || []).map(item => ({
+      ...item,
+      user_id: item.user_id || '',
+      additionalCosts: []
+    }));
+  } catch (error) {
+    console.error('Error fetching pricing configurations:', error);
+    return [];
+  }
+};
+
 export const createPricingConfiguration = async (config: Omit<PricingConfiguration, 'id' | 'created_at' | 'updated_at'>): Promise<PricingConfiguration | null> => {
   try {
     const { additionalCosts, ...configData } = config;
@@ -92,6 +118,10 @@ export const createPricingConfiguration = async (config: Omit<PricingConfigurati
     console.error('Error creating pricing configuration:', error);
     return null;
   }
+};
+
+export const createPricingConfig = async (config: any): Promise<PricingConfiguration | null> => {
+  return createPricingConfiguration(config);
 };
 
 export const updatePricingConfiguration = async (id: string, config: Omit<PricingConfiguration, 'id' | 'created_at' | 'updated_at'>): Promise<PricingConfiguration | null> => {
@@ -136,6 +166,10 @@ export const updatePricingConfiguration = async (id: string, config: Omit<Pricin
     console.error('Error updating pricing configuration:', error);
     return null;
   }
+};
+
+export const updatePricingConfig = async (id: string, config: any): Promise<PricingConfiguration | null> => {
+  return updatePricingConfiguration(id, config);
 };
 
 export const deletePricingConfiguration = async (id: string): Promise<boolean> => {

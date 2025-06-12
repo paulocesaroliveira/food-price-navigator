@@ -1,5 +1,5 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { AccountPayable, CreateAccountPayable, ExpenseCategory } from '@/types/accountsPayable';
 import { toast } from '@/hooks/use-toast';
 
@@ -151,6 +151,79 @@ export const markAsPaid = async (id: string, paymentDate: string, paymentMethod:
   }
 };
 
+export const reversePayment = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('accounts_payable')
+      .update({
+        status: 'pending',
+        payment_date: null,
+        payment_method: null
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: "Pagamento revertido com sucesso!"
+    });
+    return true;
+  } catch (error: any) {
+    console.error('Error reversing payment:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível reverter o pagamento",
+      variant: "destructive"
+    });
+    return false;
+  }
+};
+
+export const createRecurringAccounts = async (
+  account: CreateAccountPayable,
+  installments: number,
+  startDate: string
+): Promise<boolean> => {
+  try {
+    const accounts = [];
+    const baseDate = new Date(startDate);
+    
+    for (let i = 0; i < installments; i++) {
+      const dueDate = new Date(baseDate);
+      dueDate.setMonth(dueDate.getMonth() + i);
+      
+      accounts.push({
+        ...account,
+        description: `${account.description} (${i + 1}/${installments})`,
+        due_date: dueDate.toISOString().split('T')[0],
+        amount: account.amount / installments,
+        user_id: (await supabase.auth.getUser()).data.user?.id
+      });
+    }
+
+    const { error } = await supabase
+      .from('accounts_payable')
+      .insert(accounts);
+
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: `${installments} contas recorrentes criadas com sucesso!`
+    });
+    return true;
+  } catch (error: any) {
+    console.error('Error creating recurring accounts:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível criar as contas recorrentes",
+      variant: "destructive"
+    });
+    return false;
+  }
+};
+
 export const getExpenseCategories = async (): Promise<ExpenseCategory[]> => {
   try {
     const { data, error } = await supabase
@@ -164,5 +237,81 @@ export const getExpenseCategories = async (): Promise<ExpenseCategory[]> => {
   } catch (error: any) {
     console.error('Error fetching expense categories:', error);
     return [];
+  }
+};
+
+export const createExpenseCategory = async (category: Omit<ExpenseCategory, 'id' | 'created_at' | 'updated_at'>): Promise<ExpenseCategory | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('expense_categories')
+      .insert([{ ...category, user_id: (await supabase.auth.getUser()).data.user?.id }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: "Categoria criada com sucesso!"
+    });
+    return data;
+  } catch (error: any) {
+    console.error('Error creating expense category:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível criar a categoria",
+      variant: "destructive"
+    });
+    return null;
+  }
+};
+
+export const updateExpenseCategory = async (id: string, category: Partial<ExpenseCategory>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('expense_categories')
+      .update(category)
+      .eq('id', id);
+
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: "Categoria atualizada com sucesso!"
+    });
+    return true;
+  } catch (error: any) {
+    console.error('Error updating expense category:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível atualizar a categoria",
+      variant: "destructive"
+    });
+    return false;
+  }
+};
+
+export const deleteExpenseCategory = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('expense_categories')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: "Categoria excluída com sucesso!"
+    });
+    return true;
+  } catch (error: any) {
+    console.error('Error deleting expense category:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível excluir a categoria",
+      variant: "destructive"
+    });
+    return false;
   }
 };

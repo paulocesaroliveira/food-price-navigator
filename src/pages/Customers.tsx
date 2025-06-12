@@ -1,9 +1,10 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
-import { CustomerForm } from "@/components/customers/CustomerForm";
-import { CustomerDetails } from "@/components/customers/CustomerDetails";
+import CustomerForm from "@/components/customers/CustomerForm";
+import CustomerDetails from "@/components/customers/CustomerDetails";
 import { getCustomerList } from "@/services/customerService";
 import { Customer } from "@/types";
 
