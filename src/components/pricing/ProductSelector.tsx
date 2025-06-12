@@ -1,176 +1,193 @@
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Product } from "@/types";
-import { getProductList } from "@/services/productService";
-import { getPricingConfigs } from "@/services/pricingService";
+import { Search, Package, Calculator } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/utils/calculations";
-import { Package2, Calculator, TrendingUp, DollarSign } from "lucide-react";
+import type { Product, ProductCategory } from "@/types";
 
 interface ProductSelectorProps {
+  products: Product[];
+  categories: ProductCategory[];
   onProductSelect: (product: Product) => void;
-  selectedProduct?: Product | null;
+  selectedProduct?: Product;
 }
 
-const ProductSelector: React.FC<ProductSelectorProps> = ({
-  onProductSelect,
-  selectedProduct
-}) => {
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: getProductList
+const ProductSelector = ({ products, categories, onProductSelect, selectedProduct }: ProductSelectorProps) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || product.category_id === selectedCategory;
+    return matchesSearch && matchesCategory;
   });
 
-  const { data: allPricingConfigs = [] } = useQuery({
-    queryKey: ["all-pricing-configs"],
-    queryFn: () => getPricingConfigs()
-  });
-
-  // Função para obter a última configuração de preço de um produto
-  const getLatestPricingConfig = (productId: string) => {
-    const productConfigs = allPricingConfigs.filter(config => config.product_id === productId);
-    if (productConfigs.length === 0) return null;
-    
-    // Retorna a configuração mais recente
-    return productConfigs.sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )[0];
+  const getMargin = (product: Product) => {
+    const cost = product.total_cost || 0;
+    const price = product.selling_price || 0;
+    if (price === 0) return 0;
+    return ((price - cost) / price) * 100;
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package2 className="h-5 w-5" />
-            Selecionar Produto
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Carregando produtos...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (products.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package2 className="h-5 w-5" />
-            Selecionar Produto
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Package2 className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground mt-2">
-              Nenhum produto encontrado
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Cadastre produtos primeiro para começar a precificar
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const getMarginColor = (margin: number) => {
+    if (margin >= 30) return "text-green-600";
+    if (margin >= 15) return "text-yellow-600";
+    return "text-red-600";
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Package2 className="h-5 w-5 text-food-coral" />
-          Selecionar Produto para Precificar
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-4">
-          {products.map((product) => {
-            const latestPricing = getLatestPricingConfig(product.id);
-            const isSelected = selectedProduct?.id === product.id;
-            
-            return (
-              <Card
-                key={product.id}
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Selecionar Produto
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar produtos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredProducts.map((product) => (
+              <Card 
+                key={product.id} 
                 className={`cursor-pointer transition-all hover:shadow-md ${
-                  isSelected 
-                    ? 'ring-2 ring-food-coral border-food-coral bg-food-coral/5' 
-                    : 'border hover:border-food-coral/50'
+                  selectedProduct?.id === product.id ? 'ring-2 ring-blue-500' : ''
                 }`}
                 onClick={() => onProductSelect(product)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                       {product.imageUrl ? (
-                        <img
-                          src={product.imageUrl}
+                        <img 
+                          src={product.imageUrl} 
                           alt={product.name}
-                          className="w-12 h-12 rounded-lg object-cover"
+                          className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-lg bg-food-vanilla/50 flex items-center justify-center">
-                          <Package2 className="h-6 w-6 text-food-coral" />
-                        </div>
+                        <Package className="h-6 w-6 text-gray-400" />
                       )}
-                      
-                      <div className="flex-1">
-                        <h3 className="font-medium text-food-dark">{product.name}</h3>
-                        <div className="flex items-center gap-4 mt-1">
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <DollarSign className="h-3 w-3" />
-                            Custo: {formatCurrency(product.totalCost)}
-                          </div>
-                          
-                          {latestPricing && (
-                            <>
-                              <div className="flex items-center gap-1 text-sm text-green-600">
-                                <TrendingUp className="h-3 w-3" />
-                                Margem: {formatPercentage(latestPricing.actual_margin)}
-                              </div>
-                              <div className="flex items-center gap-1 text-sm text-food-dark font-medium">
-                                <Calculator className="h-3 w-3" />
-                                Venda: {formatCurrency(latestPricing.ideal_price)}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      {latestPricing ? (
-                        <Badge variant="secondary" className="bg-food-green/20 text-food-green border-food-green/30">
-                          Precificado
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-food-amber text-food-amber">
-                          Não precificado
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium truncate">{product.name}</h3>
+                      
+                      <div className="space-y-1 mt-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Custo:</span>
+                          <span>{formatCurrency(product.total_cost || 0)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Preço:</span>
+                          <span className="font-medium">
+                            {formatCurrency(product.selling_price || 0)}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Margem:</span>
+                          <span className={`font-medium ${getMarginColor(getMargin(product))}`}>
+                            {formatPercentage(getMargin(product))}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {product.category && (
+                        <Badge variant="secondary" className="mt-2 text-xs">
+                          {product.category.name}
                         </Badge>
                       )}
-                      
-                      <Button
-                        size="sm"
-                        className="bg-food-coral hover:bg-food-amber text-white"
-                      >
-                        Precificar
-                      </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+            ))}
+          </div>
+
+          {filteredProducts.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum produto encontrado</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {selectedProduct && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              Produto Selecionado
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                {selectedProduct.imageUrl ? (
+                  <img 
+                    src={selectedProduct.imageUrl} 
+                    alt={selectedProduct.name}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <Package className="h-8 w-8 text-gray-400" />
+                )}
+              </div>
+              
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">{selectedProduct.name}</h3>
+                <div className="grid grid-cols-3 gap-4 mt-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Custo Total</p>
+                    <p className="font-medium">{formatCurrency(selectedProduct.total_cost || 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Preço de Venda</p>
+                    <p className="font-medium">{formatCurrency(selectedProduct.selling_price || 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Margem</p>
+                    <p className={`font-medium ${getMarginColor(getMargin(selectedProduct))}`}>
+                      {formatPercentage(getMargin(selectedProduct))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 

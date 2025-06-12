@@ -29,6 +29,11 @@ import { toast } from "@/hooks/use-toast";
 interface SaleFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (sale: any) => void;
+  editingSale: Sale | null;
+  isLoading: boolean;
 }
 
 interface SaleItemInput {
@@ -45,7 +50,13 @@ interface SaleExpenseInput {
   description?: string;
 }
 
-const SaleForm: React.FC<SaleFormProps> = ({ onSuccess, onCancel }) => {
+const SaleForm: React.FC<SaleFormProps> = ({ 
+  isOpen, 
+  onOpenChange, 
+  onSubmit, 
+  editingSale = null,
+  isLoading = false 
+}) => {
   const [formData, setFormData] = useState({
     sale_date: format(new Date(), "yyyy-MM-dd"),
     discount_amount: 0,
@@ -59,6 +70,10 @@ const SaleForm: React.FC<SaleFormProps> = ({ onSuccess, onCancel }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newSalePointName, setNewSalePointName] = useState("");
   const [showNewSalePointInput, setShowNewSalePointInput] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
@@ -212,7 +227,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ onSuccess, onCancel }) => {
         description: "Venda criada com sucesso!"
       });
       
-      onSuccess();
+      onSubmit(salePayload);
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -223,6 +238,98 @@ const SaleForm: React.FC<SaleFormProps> = ({ onSuccess, onCancel }) => {
       setIsSubmitting(false);
     }
   };
+
+  const addProduct = (product: Product) => {
+    const existingIndex = selectedProducts.findIndex(p => p.id === product.id);
+    
+    if (existingIndex >= 0) {
+      const updated = [...selectedProducts];
+      updated[existingIndex].quantity += 1;
+      updated[existingIndex].totalPrice = updated[existingIndex].quantity * updated[existingIndex].unitPrice;
+      setSelectedProducts(updated);
+    } else {
+      const unitPrice = product.selling_price || 0;
+      const unitCost = product.total_cost || 0;
+      const totalPrice = unitPrice;
+      const totalCost = unitCost;
+      
+      setSelectedProducts(prev => [...prev, {
+        id: product.id,
+        name: product.name,
+        quantity: 1,
+        unitPrice,
+        totalPrice,
+        unitCost,
+        totalCost,
+        product
+      }]);
+    }
+  };
+
+  const ProductSelector = () => (
+    <div className="space-y-4">
+      <div className="flex gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar produtos..."
+            value={productSearch}
+            onChange={(e) => setProductSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                {category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto">
+        {filteredProducts.map((product) => (
+          <Card 
+            key={product.id} 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => addProduct(product)}
+          >
+            <CardContent className="p-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <Package className="h-6 w-6 text-gray-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium truncate">{product.name}</h4>
+                  <p className="text-sm text-green-600 font-medium">
+                    {formatCurrency(product.selling_price || 0)}
+                  </p>
+                  {product.category && (
+                    <Badge variant="secondary" className="text-xs mt-1">
+                      {product.category.name}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredProducts.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>Nenhum produto encontrado</p>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

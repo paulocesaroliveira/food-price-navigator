@@ -1,27 +1,20 @@
 
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { PlusCircle, Edit, Trash2, Save, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Edit, Trash2, Tag } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getExpenseCategories, createExpenseCategory, updateExpenseCategory, deleteExpenseCategory } from "@/services/accountsPayableService";
 import { toast } from "@/hooks/use-toast";
+import type { ExpenseCategory } from "@/types/accountsPayable";
 
 interface ExpenseCategoryManagerProps {
   open: boolean;
@@ -29,172 +22,116 @@ interface ExpenseCategoryManagerProps {
   onCategoriesChange: () => void;
 }
 
-export const ExpenseCategoryManager = ({ 
-  open, 
-  onOpenChange, 
-  onCategoriesChange 
+const PRESET_COLORS = [
+  "#E76F51", "#F4A261", "#E9C46A", "#2A9D8F", "#264653",
+  "#E63946", "#F77F00", "#FCBF49", "#003049", "#669BBC"
+];
+
+export const ExpenseCategoryManager = ({
+  open,
+  onOpenChange,
+  onCategoriesChange
 }: ExpenseCategoryManagerProps) => {
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryDescription, setNewCategoryDescription] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [editingDescription, setEditingDescription] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<ExpenseCategory | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    color: PRESET_COLORS[0]
+  });
+
   const queryClient = useQueryClient();
 
-  const { data: categories = [], refetch } = useQuery({
+  const { data: categories = [], isLoading } = useQuery({
     queryKey: ['expense-categories'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      const { data, error } = await supabase
-        .from('expense_categories')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('name');
-      
-      if (error) throw error;
-      return data || [];
-    }
+    queryFn: getExpenseCategories,
+    enabled: open
   });
 
   const createMutation = useMutation({
-    mutationFn: async ({ name, description }: { name: string; description?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      const { data, error } = await supabase
-        .from('expense_categories')
-        .insert({ 
-          name,
-          description,
-          user_id: user.id
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
+    mutationFn: createExpenseCategory,
     onSuccess: () => {
-      setNewCategoryName("");
-      setNewCategoryDescription("");
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['expense-categories'] });
       onCategoriesChange();
-      toast({
-        title: "Categoria criada",
-        description: "Nova categoria foi criada com sucesso",
-      });
+      resetForm();
+      toast({ title: "Categoria criada com sucesso!" });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        title: "Erro",
-        description: `Não foi possível criar a categoria: ${error.message}`,
-        variant: "destructive",
+        title: "Erro ao criar categoria",
+        description: error.message,
+        variant: "destructive"
       });
     }
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, name, description }: { id: string; name: string; description?: string }) => {
-      const { data, error } = await supabase
-        .from('expense_categories')
-        .update({ name, description })
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
+    mutationFn: ({ id, data }: { id: string; data: Partial<ExpenseCategory> }) =>
+      updateExpenseCategory(id, data),
     onSuccess: () => {
-      setEditingId(null);
-      setEditingName("");
-      setEditingDescription("");
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['expense-categories'] });
       onCategoriesChange();
-      toast({
-        title: "Categoria atualizada",
-        description: "Categoria foi atualizada com sucesso",
-      });
+      resetForm();
+      toast({ title: "Categoria atualizada com sucesso!" });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        title: "Erro",
-        description: `Não foi possível atualizar a categoria: ${error.message}`,
-        variant: "destructive",
+        title: "Erro ao atualizar categoria",
+        description: error.message,
+        variant: "destructive"
       });
     }
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      // Verificar se há contas usando esta categoria
-      const { data: accounts, error: checkError } = await supabase
-        .from('accounts_payable')
-        .select('id')
-        .eq('category_id', id)
-        .limit(1);
-      
-      if (checkError) throw checkError;
-      
-      if (accounts && accounts.length > 0) {
-        throw new Error("Não é possível excluir esta categoria pois existem contas vinculadas a ela");
-      }
-      
-      const { error } = await supabase
-        .from('expense_categories')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
+    mutationFn: deleteExpenseCategory,
     onSuccess: () => {
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['expense-categories'] });
       onCategoriesChange();
-      toast({
-        title: "Categoria excluída",
-        description: "Categoria foi excluída com sucesso",
-      });
+      toast({ title: "Categoria excluída com sucesso!" });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        title: "Erro",
-        description: `Não foi possível excluir a categoria: ${error.message}`,
-        variant: "destructive",
+        title: "Erro ao excluir categoria",
+        description: error.message,
+        variant: "destructive"
       });
     }
   });
 
-  const handleCreate = () => {
-    if (newCategoryName.trim()) {
-      createMutation.mutate({ 
-        name: newCategoryName.trim(),
-        description: newCategoryDescription.trim() || undefined
+  const resetForm = () => {
+    setFormData({ name: "", description: "", color: PRESET_COLORS[0] });
+    setIsCreating(false);
+    setEditingCategory(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name.trim()) {
+      toast({
+        title: "Nome obrigatório",
+        description: "Por favor, informe o nome da categoria",
+        variant: "destructive"
       });
+      return;
+    }
+
+    if (editingCategory) {
+      updateMutation.mutate({ id: editingCategory.id, data: formData });
+    } else {
+      createMutation.mutate(formData);
     }
   };
 
-  const handleEdit = (category: any) => {
-    setEditingId(category.id);
-    setEditingName(category.name);
-    setEditingDescription(category.description || "");
-  };
-
-  const handleSaveEdit = () => {
-    if (editingId && editingName.trim()) {
-      updateMutation.mutate({ 
-        id: editingId, 
-        name: editingName.trim(),
-        description: editingDescription.trim() || undefined
-      });
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditingName("");
-    setEditingDescription("");
+  const handleEdit = (category: ExpenseCategory) => {
+    setEditingCategory(category);
+    setFormData({
+      name: category.name,
+      description: category.description || "",
+      color: category.color
+    });
+    setIsCreating(true);
   };
 
   const handleDelete = (id: string) => {
@@ -205,133 +142,130 @@ export const ExpenseCategoryManager = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Gerenciar Categorias de Despesas</DialogTitle>
-          <DialogDescription>
-            Adicione, edite ou remova categorias de despesas
-          </DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Tag className="h-5 w-5" />
+            Gerenciar Categorias de Despesa
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="newCategory">Nova Categoria</Label>
-              <Input
-                id="newCategory"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="Nome da categoria"
-                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleCreate()}
-              />
-            </div>
-            <div>
-              <Label htmlFor="newDescription">Descrição (opcional)</Label>
-              <Input
-                id="newDescription"
-                value={newCategoryDescription}
-                onChange={(e) => setNewCategoryDescription(e.target.value)}
-                placeholder="Descrição da categoria"
-                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleCreate()}
-              />
-            </div>
-            <Button 
-              onClick={handleCreate} 
-              disabled={!newCategoryName.trim() || createMutation.isPending}
-              className="w-full"
-            >
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Adicionar
-            </Button>
-          </div>
+        <div className="space-y-6">
+          {/* Form */}
+          {isCreating && (
+            <Card>
+              <CardContent className="p-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Nome *</label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Nome da categoria"
+                    />
+                  </div>
 
-          <div className="border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+                  <div>
+                    <label className="text-sm font-medium">Descrição</label>
+                    <Textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Descrição da categoria"
+                      className="resize-none"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Cor</label>
+                    <div className="flex gap-2 mt-2">
+                      {PRESET_COLORS.map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          className={`w-8 h-8 rounded-full border-2 ${
+                            formData.color === color ? 'border-gray-800' : 'border-gray-300'
+                          }`}
+                          style={{ backgroundColor: color }}
+                          onClick={() => setFormData(prev => ({ ...prev, color }))}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      type="submit" 
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                      className="flex-1"
+                    >
+                      {editingCategory ? "Atualizar" : "Criar"} Categoria
+                    </Button>
+                    <Button type="button" variant="outline" onClick={resetForm}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Add button */}
+          {!isCreating && (
+            <Button onClick={() => setIsCreating(true)} className="w-full gap-2">
+              <Plus className="h-4 w-4" />
+              Nova Categoria
+            </Button>
+          )}
+
+          {/* Categories list */}
+          <div className="space-y-2">
+            <h3 className="font-medium">Categorias Existentes</h3>
+            {isLoading ? (
+              <p className="text-muted-foreground">Carregando...</p>
+            ) : categories.length === 0 ? (
+              <p className="text-muted-foreground">Nenhuma categoria cadastrada</p>
+            ) : (
+              <div className="space-y-2">
                 {categories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell>
-                      {editingId === category.id ? (
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit()}
-                          autoFocus
+                  <Card key={category.id} className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: category.color }}
                         />
-                      ) : (
-                        category.name
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === category.id ? (
-                        <Input
-                          value={editingDescription}
-                          onChange={(e) => setEditingDescription(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit()}
-                          placeholder="Descrição"
-                        />
-                      ) : (
-                        category.description || "-"
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {editingId === category.id ? (
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={handleSaveEdit}
-                            disabled={updateMutation.isPending}
-                          >
-                            <Save className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={handleCancelEdit}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                        <div>
+                          <p className="font-medium">{category.name}</p>
+                          {category.description && (
+                            <p className="text-sm text-muted-foreground">
+                              {category.description}
+                            </p>
+                          )}
                         </div>
-                      ) : (
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEdit(category)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(category.id)}
-                            disabled={deleteMutation.isPending}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEdit(category)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(category.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
                 ))}
-                {categories.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
-                      Nenhuma categoria cadastrada
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

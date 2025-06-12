@@ -30,8 +30,13 @@ export interface Product {
     name: string;
   };
   categoryId?: string;
+  category_id?: string;
   selling_price?: number;
+  sellingPrice?: number;
   total_cost?: number;
+  totalCost?: number;
+  packaging_cost?: number;
+  packagingCost?: number;
   calculatedPrice?: number;
   items?: ProductItem[];
   packagingItems?: ProductPackaging[];
@@ -39,9 +44,6 @@ export interface Product {
   updated_at: string;
   user_id: string;
   imageUrl?: string;
-  packaging_cost?: number;
-  totalCost?: number;
-  sellingPrice?: number;
 }
 
 export interface ProductItem {
@@ -64,7 +66,7 @@ export interface ProductPackaging {
 export interface Recipe {
   id: string;
   name: string;
-  unitCost: number;
+  unitCost?: number;
   unit_cost?: number;
   total_cost?: number;
   portions?: number;
@@ -79,7 +81,7 @@ export interface Recipe {
 export interface Packaging {
   id: string;
   name: string;
-  unitCost: number;
+  unitCost?: number;
   unit_cost?: number;
   type: string;
   imageUrl?: string;
@@ -183,4 +185,9 @@ export interface PricingResult {
   sellingPrice: number;
   margin: number;
   profit: number;
+  unitProfit?: number;
+  appliedMarkup?: number;
+  priceWithTaxes?: number;
+  priceWithCommission?: number;
+  minimumRecommendedPrice?: number;
 }
