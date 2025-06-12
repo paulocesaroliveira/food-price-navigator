@@ -1,231 +1,208 @@
+
 import { 
   Ingredient, 
   Recipe, 
-  Packaging, 
-  Category, 
-  Product,
+  Product, 
+  Category,
   PricingConfiguration,
-  PricingResult,
-  AdditionalCost
+  PricingResult
 } from "../types";
 
-// Mock Categories
-export const ingredientCategories: Category[] = [
-  { id: "cat-ing-1", name: "Secos" },
-  { id: "cat-ing-2", name: "Lácteos" },
-  { id: "cat-ing-3", name: "Chocolates" },
-  { id: "cat-ing-4", name: "Frutas" },
-  { id: "cat-ing-5", name: "Especiarias" },
+export const mockCategories: Category[] = [
+  { id: "1", name: "Carnes", user_id: "user1", created_at: "2024-01-01T00:00:00Z" },
+  { id: "2", name: "Vegetais", user_id: "user1", created_at: "2024-01-01T00:00:00Z" },
+  { id: "3", name: "Laticínios", user_id: "user1", created_at: "2024-01-01T00:00:00Z" },
+  { id: "4", name: "Grãos", user_id: "user1", created_at: "2024-01-01T00:00:00Z" },
+  { id: "5", name: "Temperos", user_id: "user1", created_at: "2024-01-01T00:00:00Z" }
 ];
 
-export const recipeCategories: Category[] = [
-  { id: "cat-rec-1", name: "Doces" },
-  { id: "cat-rec-2", name: "Bolos" },
-  { id: "cat-rec-3", name: "Tortas" },
-  { id: "cat-rec-4", name: "Salgados" },
+export const mockProductCategories: Category[] = [
+  { id: "1", name: "Pratos Principais", user_id: "user1", created_at: "2024-01-01T00:00:00Z" },
+  { id: "2", name: "Sobremesas", user_id: "user1", created_at: "2024-01-01T00:00:00Z" },
+  { id: "3", name: "Bebidas", user_id: "user1", created_at: "2024-01-01T00:00:00Z" },
+  { id: "4", name: "Entradas", user_id: "user1", created_at: "2024-01-01T00:00:00Z" }
 ];
 
-// Mock Ingredients
-export const ingredients: Ingredient[] = [
+export const mockIngredients: Ingredient[] = [
   {
-    id: "ing-1",
-    name: "Açúcar",
-    categoryId: "cat-ing-1",
-    unit: "g",
-    brand: "Caravelas",
-    supplier: "Supermercado Extra",
-    packageQuantity: 1000,
-    packagePrice: 3.99,
-    unitCost: 0.00399,
+    id: "1",
+    name: "Peito de Frango",
+    unit_cost: 0.020,
+    bulk_quantity: 1000,
+    bulk_price: 20.00,
+    category_id: "1",
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z"
   },
   {
-    id: "ing-2",
-    name: "Leite Condensado",
-    categoryId: "cat-ing-2",
-    unit: "g",
-    brand: "Nestlé",
-    supplier: "Atacadão",
-    packageQuantity: 395,
-    packagePrice: 6.49,
-    unitCost: 0.01644,
+    id: "2",
+    name: "Arroz Branco",
+    unit_cost: 0.008,
+    bulk_quantity: 1000,
+    bulk_price: 8.00,
+    category_id: "4",
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z"
   },
   {
-    id: "ing-3",
-    name: "Chocolate em Pó",
-    categoryId: "cat-ing-3",
-    unit: "g",
-    brand: "Garoto",
-    packageQuantity: 200,
-    packagePrice: 9.99,
-    unitCost: 0.04995,
+    id: "3",
+    name: "Feijão Carioca",
+    unit_cost: 0.010,
+    bulk_quantity: 1000,
+    bulk_price: 10.00,
+    category_id: "4",
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z"
   },
   {
-    id: "ing-4",
-    name: "Manteiga",
-    categoryId: "cat-ing-2",
-    unit: "g",
-    brand: "Aviação",
-    packageQuantity: 200,
-    packagePrice: 10.9,
-    unitCost: 0.0545,
+    id: "4",
+    name: "Cebola",
+    unit_cost: 0.005,
+    bulk_quantity: 1000,
+    bulk_price: 5.00,
+    category_id: "2",
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z"
   },
   {
-    id: "ing-5",
-    name: "Granulado",
-    categoryId: "cat-ing-3",
-    unit: "g",
-    brand: "Harald",
-    packageQuantity: 500,
-    packagePrice: 15.9,
-    unitCost: 0.0318,
-  },
+    id: "5",
+    name: "Alho",
+    unit_cost: 0.015,
+    bulk_quantity: 100,
+    bulk_price: 1.50,
+    category_id: "5",
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z"
+  }
 ];
 
-// Mock Recipes
-export const recipes: Recipe[] = [
+export const mockRecipes: Recipe[] = [
   {
-    id: "rec-1",
-    name: "Brigadeiro Tradicional",
-    categoryId: "cat-rec-1",
+    id: "1",
+    name: "Frango Grelhado",
+    unit_cost: 4.50,
+    total_cost: 4.50,
+    portions: 1,
+    category: { id: "1", name: "Pratos Principais" },
+    image: "/placeholder.svg",
     baseIngredients: [
-      { id: "bi-1", ingredient_id: "ing-2", quantity: 395, cost: 6.49 },
-      { id: "bi-2", ingredient_id: "ing-3", quantity: 50, cost: 2.50 },
-      { id: "bi-3", ingredient_id: "ing-4", quantity: 20, cost: 1.09 },
+      { id: "1", recipe_id: "1", ingredient_id: "1", quantity: 200, cost: 4.00, created_at: "2024-01-01T00:00:00Z" },
+      { id: "2", recipe_id: "1", ingredient_id: "4", quantity: 50, cost: 0.25, created_at: "2024-01-01T00:00:00Z" },
+      { id: "3", recipe_id: "1", ingredient_id: "5", quantity: 10, cost: 0.15, created_at: "2024-01-01T00:00:00Z" }
     ],
     portionIngredients: [
-      { id: "pi-1", ingredient_id: "ing-5", quantity: 5, cost: 0.159 },
-    ],
-    portions: 25,
-    totalCost: 10.08 + 0.159 * 25,
-    unitCost: 0.5592,
-    notes: "Misturar todos os ingredientes e cozinhar em fogo baixo por 15 minutos.",
+      { id: "4", recipe_id: "1", ingredient_id: "5", quantity: 5, cost: 0.10, created_at: "2024-01-01T00:00:00Z" }
+    ]
   },
   {
-    id: "rec-2",
-    name: "Brigadeiro de Morango",
-    categoryId: "cat-rec-1",
+    id: "2", 
+    name: "Arroz com Feijão",
+    unit_cost: 2.80,
+    total_cost: 2.80,
+    portions: 1,
+    category: { id: "1", name: "Pratos Principais" },
+    image: "/placeholder.svg",
     baseIngredients: [
-      { id: "bi-4", ingredient_id: "ing-2", quantity: 395, cost: 6.49 },
-      { id: "bi-5", ingredient_id: "ing-4", quantity: 20, cost: 1.09 },
+      { id: "5", recipe_id: "2", ingredient_id: "2", quantity: 150, cost: 1.20, created_at: "2024-01-01T00:00:00Z" },
+      { id: "6", recipe_id: "2", ingredient_id: "3", quantity: 150, cost: 1.50, created_at: "2024-01-01T00:00:00Z" }
     ],
     portionIngredients: [
-      { id: "pi-2", ingredient_id: "ing-5", quantity: 5, cost: 0.159 },
-    ],
-    portions: 25,
-    totalCost: 7.58 + 0.159 * 25,
-    unitCost: 0.4432,
-    notes: "Adicionar essência de morango.",
+      { id: "7", recipe_id: "2", ingredient_id: "4", quantity: 20, cost: 0.10, created_at: "2024-01-01T00:00:00Z" }
+    ]
   },
   {
-    id: "rec-3",
-    name: "Brigadeiro de Paçoca",
-    categoryId: "cat-rec-1",
+    id: "3",
+    name: "Prato Completo",
+    unit_cost: 7.30,
+    total_cost: 7.30, 
+    portions: 1,
+    category: { id: "1", name: "Pratos Principais" },
+    image: "/placeholder.svg",
     baseIngredients: [
-      { id: "bi-6", ingredient_id: "ing-2", quantity: 395, cost: 6.49 },
-      { id: "bi-7", ingredient_id: "ing-4", quantity: 20, cost: 1.09 },
+      { id: "8", recipe_id: "3", ingredient_id: "1", quantity: 200, cost: 4.00, created_at: "2024-01-01T00:00:00Z" },
+      { id: "9", recipe_id: "3", ingredient_id: "2", quantity: 150, cost: 1.20, created_at: "2024-01-01T00:00:00Z" }
     ],
     portionIngredients: [
-      { id: "pi-3", ingredient_id: "ing-5", quantity: 5, cost: 0.159 },
-    ],
-    portions: 25,
-    totalCost: 7.58 + 0.159 * 25,
-    unitCost: 0.4432,
-  },
+      { id: "10", recipe_id: "3", ingredient_id: "3", quantity: 150, cost: 1.50, created_at: "2024-01-01T00:00:00Z" }
+    ]
+  }
 ];
 
-// Mock Packaging
-export const packaging: Packaging[] = [
+export const mockProducts: Product[] = [
   {
-    id: "pkg-1",
-    name: "Forminha de Papel",
-    type: "Unidade",
-    bulkQuantity: 100,
-    bulkPrice: 15.90,
-    unitCost: 0.159,
-  },
-  {
-    id: "pkg-2",
-    name: "Caixa de Presente",
-    type: "Unidade",
-    bulkQuantity: 50,
-    bulkPrice: 99.50,
-    unitCost: 1.99,
-    notes: "Caixa com capacidade para 8 brigadeiros.",
-  },
-  {
-    id: "pkg-3",
-    name: "Saco de Celofane",
-    type: "Unidade",
-    bulkQuantity: 100,
-    bulkPrice: 29.90,
-    unitCost: 0.299,
-  },
-];
-
-// Mock Products
-export const products: Product[] = [
-  {
-    id: "prod-1",
-    name: "Caixa Degustação 8 Brigadeiros",
+    id: "1",
+    name: "Prato Executivo de Frango",
+    categoryId: "1",
+    category_id: "1",
+    selling_price: 18.00,
+    total_cost: 7.50,
+    packaging_cost: 0.50,
+    calculatedPrice: 18.00,
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z",
+    user_id: "user1",
+    category: {
+      id: "1",
+      name: "Pratos Principais"
+    },
     items: [
-      { id: "item-1", recipeId: "rec-1", quantity: 4, cost: 2.2368 },
-      { id: "item-2", recipeId: "rec-2", quantity: 2, cost: 0.8864 },
-      { id: "item-3", recipeId: "rec-3", quantity: 2, cost: 0.8864 },
-    ],
-    packagingId: "pkg-2",
-    packagingCost: 1.99,
-    totalCost: 6.0,
+      {
+        recipeId: "1",
+        quantity: 1,
+        cost: 4.50
+      },
+      {
+        recipeId: "2", 
+        quantity: 1,
+        cost: 2.80
+      }
+    ]
   }
 ];
 
-// Mock Pricing Configuration
-const mockPricingConfig: PricingConfiguration = {
-  id: "mock-pricing-1",
-  name: "Configuração Padrão",
-  product_id: "mock-product-1",
-  base_cost: 15.50,
-  packaging_cost: 2.00,
-  wastage_percentage: 5,
-  margin_percentage: 30,
-  platform_fee_percentage: 0,
-  tax_percentage: 0,
-  total_unit_cost: 18.38,
-  ideal_price: 26.25,
-  final_price: 26.25,
-  unit_profit: 7.87,
-  actual_margin: 30,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString()
-};
-
-// Mock Pricing Results
-export const pricingResults: PricingResult[] = [
+export const mockPricingConfigs: PricingConfiguration[] = [
   {
-    totalProductionCost: 18.50,
-    unitCost: 18.50,
-    sellingPrice: 30.83,
-    unitProfit: 12.33,
-    appliedMarkup: 66.67,
-    priceWithCommission: 35.03,
-    priceWithTaxes: 37.13,
-    minimumRecommendedPrice: 23.13,
+    id: "1",
+    name: "Configuração Padrão",
+    product_id: "1",
+    user_id: "user1",
+    base_cost: 7.50,
+    packaging_cost: 0.50,
+    wastage_percentage: 5,
+    margin_percentage: 65,
+    platform_fee_percentage: 0,
+    tax_percentage: 0,
+    total_unit_cost: 8.40,
+    ideal_price: 18.00,
+    final_price: 18.00,
+    unit_profit: 9.60,
+    actual_margin: 53.33,
+    labor_cost: 0,
+    overhead_cost: 0,
+    marketing_cost: 0,
+    delivery_cost: 0,
+    other_costs: 0,
+    target_margin_percentage: 65,
+    minimum_price: 10.08,
+    maximum_price: 25.00,
+    competitor_price: 0,
+    notes: "",
+    additionalCosts: [],
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z"
   }
 ];
 
-// Chart data for dashboard
-export const dashboardChartData = {
-  barChart: [
-    { name: "Brigadeiro Tradicional", profit: 12.33 },
-    { name: "Brigadeiro de Morango", profit: 10.50 },
-    { name: "Brigadeiro de Paçoca", profit: 9.75 },
-    { name: "Caixa Degustação", profit: 16.80 },
-  ],
-  lineChart: [
-    { month: "Jan", price: 28.99 },
-    { month: "Fev", price: 28.99 },
-    { month: "Mar", price: 29.99 },
-    { month: "Abr", price: 29.99 },
-    { month: "Mai", price: 30.83 },
-    { month: "Jun", price: 30.83 },
-  ]
-};
+export const mockPricingResults: PricingResult[] = [
+  {
+    unitCost: 8.40,
+    sellingPrice: 18.00,
+    margin: 65,
+    profit: 9.60,
+    unitProfit: 9.60,
+    appliedMarkup: 114.29,
+    priceWithTaxes: 18.00,
+    priceWithCommission: 18.00,
+    minimumRecommendedPrice: 10.08
+  }
+];

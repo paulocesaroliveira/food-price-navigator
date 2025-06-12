@@ -1,434 +1,345 @@
 
-import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Search, Package, Plus, Minus, X } from 'lucide-react';
-import { getProductList } from '@/services/productService';
-import { getSalePoints } from '@/services/salePointService';
-import { getDiscountCategories } from '@/services/discountCategoryService';
-import { createSale } from '@/services/salesService';
-import { formatCurrency } from '@/utils/calculations';
-import { Product, Sale } from '@/types';
-import { CreateSaleRequest } from '@/types/sales';
-import { toast } from '@/hooks/use-toast';
-
-interface SaleItem {
-  id: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  unitCost: number;
-  totalCost: number;
-  product: Product;
-}
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "@/hooks/use-toast";
+import { PlusCircle, Minus, Search, Package } from "lucide-react";
+import { Sale, Product, SaleItem } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SaleFormProps {
-  onSubmit: (sale: Sale) => void;
+  onSubmit: (sale: Omit<Sale, 'id' | 'created_at' | 'updated_at'>) => void;
+  editingSale?: Sale | null;
   onCancel: () => void;
 }
 
-const SaleForm: React.FC<SaleFormProps> = ({ onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
-    sale_point_id: '',
-    discount_category_id: '',
-    discount_amount: 0,
-    notes: ''
-  });
+interface SaleItemForm extends Omit<SaleItem, 'id' | 'sale_id' | 'created_at'> {
+  id?: string;
+  tempId: string;
+}
 
-  const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const SaleForm: React.FC<SaleFormProps> = ({ onSubmit, editingSale, onCancel }) => {
+  const [saleDate, setSaleDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [items, setItems] = useState<SaleItemForm[]>([]);
+  const [notes, setNotes] = useState<string>("");
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Fetch data
-  const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: getProductList
-  });
+  useEffect(() => {
+    fetchProducts();
+    if (editingSale) {
+      setSaleDate(editingSale.sale_date);
+      setNotes(editingSale.notes || "");
+      setDiscountAmount(editingSale.discount_amount || 0);
+      if (editingSale.sale_items) {
+        setItems(editingSale.sale_items.map((item, index) => ({
+          ...item,
+          tempId: `item-${index}`
+        })));
+      }
+    }
+  }, [editingSale]);
 
-  const { data: salePoints = [] } = useQuery({
-    queryKey: ['sale-points'],
-    queryFn: getSalePoints
-  });
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os produtos",
+        variant: "destructive",
+      });
+    }
+  };
 
-  const { data: discountCategories = [] } = useQuery({
-    queryKey: ['discount-categories'],
-    queryFn: getDiscountCategories
-  });
+  const addItem = () => {
+    const newItem: SaleItemForm = {
+      tempId: `item-${Date.now()}`,
+      product_id: "",
+      quantity: 1,
+      unit_price: 0,
+      total_price: 0,
+      unit_cost: 0,
+      total_cost: 0
+    };
+    setItems([...items, newItem]);
+  };
 
-  // Get categories for filtering
-  const categories = [...new Set(products.map(p => p.category?.name).filter(Boolean))];
+  const removeItem = (tempId: string) => {
+    setItems(items.filter(item => item.tempId !== tempId));
+  };
 
-  // Filter products
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || product.category?.name === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const updateItem = (tempId: string, field: keyof SaleItemForm, value: any) => {
+    setItems(items.map(item => {
+      if (item.tempId === tempId) {
+        const updatedItem = { ...item, [field]: value };
+        
+        if (field === 'product_id') {
+          const product = products.find(p => p.id === value);
+          if (product) {
+            updatedItem.unit_price = product.selling_price || 0;
+            updatedItem.unit_cost = product.total_cost || 0;
+          }
+        }
+        
+        if (field === 'quantity' || field === 'unit_price') {
+          updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price;
+          updatedItem.total_cost = updatedItem.quantity * updatedItem.unit_cost;
+        }
+        
+        return updatedItem;
+      }
+      return item;
+    }));
+  };
 
-  // Calculate totals
-  const subtotal = saleItems.reduce((sum, item) => sum + item.totalPrice, 0);
-  const totalCost = saleItems.reduce((sum, item) => sum + item.totalCost, 0);
-  const totalAmount = subtotal - formData.discount_amount;
-  const grossProfit = subtotal - totalCost;
-  const netProfit = totalAmount - totalCost;
-
-  const addProductToSale = (product: Product) => {
-    const existingItem = saleItems.find(item => item.id === product.id);
+  const calculateTotals = () => {
+    const totalAmount = items.reduce((sum, item) => sum + item.total_price, 0) - discountAmount;
+    const totalCost = items.reduce((sum, item) => sum + item.total_cost, 0);
+    const grossProfit = totalAmount - totalCost;
+    const netProfit = grossProfit; // Simplified for now
     
-    if (existingItem) {
-      updateQuantity(product.id, existingItem.quantity + 1);
-    } else {
-      const unitPrice = product.selling_price || 0;
-      const unitCost = product.total_cost || 0;
-
-      const newItem: SaleItem = {
-        id: product.id,
-        name: product.name,
-        quantity: 1,
-        unitPrice: unitPrice,
-        totalPrice: unitPrice * 1,
-        unitCost: unitCost,
-        totalCost: unitCost * 1,
-        product: product
-      };
-
-      setSaleItems(prev => [...prev, newItem]);
-    }
-  };
-
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      removeItem(productId);
-      return;
-    }
-
-    setSaleItems(prev => prev.map(item => {
-      if (item.id === productId) {
-        return {
-          ...item,
-          quantity: newQuantity,
-          totalPrice: item.unitPrice * newQuantity,
-          totalCost: item.unitCost * newQuantity
-        };
-      }
-      return item;
-    }));
-  };
-
-  const updateUnitPrice = (productId: string, newPrice: number) => {
-    setSaleItems(prev => prev.map(item => {
-      if (item.id === productId) {
-        return {
-          ...item,
-          unitPrice: newPrice,
-          totalPrice: newPrice * item.quantity
-        };
-      }
-      return item;
-    }));
-  };
-
-  const removeItem = (productId: string) => {
-    setSaleItems(prev => prev.filter(item => item.id !== productId));
+    return { totalAmount, totalCost, grossProfit, netProfit };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (saleItems.length === 0) {
+    if (items.length === 0) {
       toast({
         title: "Erro",
-        description: "Adicione pelo menos um produto à venda",
-        variant: "destructive"
+        description: "Adicione pelo menos um item à venda",
+        variant: "destructive",
       });
       return;
     }
 
-    setIsSubmitting(true);
+    const { totalAmount, totalCost, grossProfit, netProfit } = calculateTotals();
+    
+    const saleData = {
+      sale_date: saleDate,
+      total_amount: totalAmount,
+      total_cost: totalCost,
+      gross_profit: grossProfit,
+      net_profit: netProfit,
+      discount_amount: discountAmount,
+      notes: notes,
+      status: 'completed' as const,
+      sale_number: `VD-${Date.now()}`,
+      items: items.map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+        unit_cost: item.unit_cost,
+        total_cost: item.total_cost
+      }))
+    };
 
     try {
-      const saleData: CreateSaleRequest = {
-        sale_date: new Date().toISOString().split('T')[0],
-        ...formData,
-        items: saleItems.map(item => ({
-          product_id: item.id,
-          quantity: item.quantity,
-          unit_price: item.unitPrice
-        }))
-      };
-
-      const newSale = await createSale(saleData);
-      
-      if (newSale) {
-        toast({
-          title: "Sucesso",
-          description: "Venda registrada com sucesso!"
-        });
-        onSubmit(newSale);
-      }
+      await onSubmit(saleData);
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao registrar venda",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error submitting sale:', error);
     }
   };
 
+  const { totalAmount, totalCost, grossProfit, netProfit } = calculateTotals();
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Product Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Selecionar Produtos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Search and Filter */}
-          <div className="space-y-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle>
+          {editingSale ? 'Editar Venda' : 'Nova Venda'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="saleDate">Data da Venda</Label>
               <Input
-                placeholder="Buscar produtos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                id="saleDate"
+                type="date"
+                value={saleDate}
+                onChange={(e) => setSaleDate(e.target.value)}
+                required
               />
             </div>
-            
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Todas as categorias</SelectItem>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category || ''}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
-          {/* Product List */}
-          <div className="max-h-96 overflow-y-auto space-y-2">
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                onClick={() => addProductToSale(product)}
+          <Separator />
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Itens da Venda</h3>
+              <Button
+                type="button"
+                onClick={addItem}
+                size="sm"
+                className="gap-2"
               >
-                <div className="flex-1">
-                  <div className="font-medium">{product.name}</div>
-                  <div className="text-sm text-gray-500">
-                    {formatCurrency(product.selling_price || 0)}
-                  </div>
-                  {product.category && (
-                    <Badge variant="secondary" className="text-xs">
-                      {product.category.name}
-                    </Badge>
-                  )}
-                </div>
-                <Package className="h-4 w-4 text-gray-400" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+                <PlusCircle className="h-4 w-4" />
+                Adicionar Item
+              </Button>
+            </div>
 
-      {/* Sale Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Detalhes da Venda</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Sale Items */}
-            <div className="space-y-4">
-              <Label>Itens da Venda</Label>
-              {saleItems.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  Nenhum produto adicionado
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {saleItems.map((item) => (
-                    <div key={item.id} className="flex items-center gap-2 p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{item.name}</div>
-                        <div className="text-xs text-gray-500">
-                          {formatCurrency(item.unitPrice)} cada
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 0)}
-                          className="w-16 text-center"
-                          min="1"
-                        />
-                        
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
+            {items.map((item) => {
+              const product = products.find(p => p.id === item.product_id);
+              
+              return (
+                <Card key={item.tempId} className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+                    <div className="md:col-span-2">
+                      <Label>Produto</Label>
+                      <Select
+                        value={item.product_id}
+                        onValueChange={(value) => updateItem(item.tempId, 'product_id', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um produto" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              <div className="flex items-center gap-2">
+                                <Package className="h-4 w-4" />
+                                <span>{product.name}</span>
+                                <Badge variant="outline">
+                                  R$ {product.selling_price?.toFixed(2)}
+                                </Badge>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
+                    <div>
+                      <Label>Quantidade</Label>
                       <Input
                         type="number"
-                        step="0.01"
-                        value={item.unitPrice}
-                        onChange={(e) => updateUnitPrice(item.id, parseFloat(e.target.value) || 0)}
-                        className="w-24"
+                        min="1"
+                        step="1"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(item.tempId, 'quantity', parseInt(e.target.value) || 1)}
                       />
+                    </div>
 
-                      <div className="text-sm font-medium w-20 text-right">
-                        {formatCurrency(item.totalPrice)}
-                      </div>
+                    <div>
+                      <Label>Preço Unit.</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.unit_price}
+                        onChange={(e) => updateItem(item.tempId, 'unit_price', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
 
+                    <div>
+                      <Label>Total</Label>
+                      <Input
+                        type="text"
+                        value={`R$ ${item.total_price.toFixed(2)}`}
+                        readOnly
+                        className="bg-gray-50"
+                      />
+                    </div>
+
+                    <div>
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(item.tempId)}
+                        className="w-full"
                       >
-                        <X className="h-4 w-4" />
+                        <Minus className="h-4 w-4" />
                       </Button>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          <Separator />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="discountAmount">Desconto (R$)</Label>
+              <Input
+                id="discountAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={discountAmount}
+                onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
+              />
             </div>
+          </div>
 
-            {/* Sale Configuration */}
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <Label htmlFor="sale_point_id">Ponto de Venda</Label>
-                <Select value={formData.sale_point_id} onValueChange={(value) => 
-                  setFormData(prev => ({ ...prev, sale_point_id: value }))
-                }>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o ponto de venda" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {salePoints.map((point) => (
-                      <SelectItem key={point.id} value={point.id}>
-                        {point.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <div>
+            <Label htmlFor="notes">Observações</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Observações adicionais..."
+              rows={3}
+            />
+          </div>
 
-              <div>
-                <Label htmlFor="discount_category_id">Categoria de Desconto</Label>
-                <Select value={formData.discount_category_id} onValueChange={(value) => 
-                  setFormData(prev => ({ ...prev, discount_category_id: value }))
-                }>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {discountCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <Separator />
 
-              <div>
-                <Label htmlFor="discount_amount">Valor do Desconto</Label>
-                <Input
-                  id="discount_amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.discount_amount}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    discount_amount: parseFloat(e.target.value) || 0 
-                  }))}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="notes">Observações</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Observações sobre a venda..."
-                />
-              </div>
+          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+            <div className="flex justify-between">
+              <span>Subtotal:</span>
+              <span>R$ {(totalAmount + discountAmount).toFixed(2)}</span>
             </div>
-
-            {/* Totals */}
-            {saleItems.length > 0 && (
-              <div className="space-y-2 pt-4 border-t">
-                <div className="flex justify-between text-sm">
-                  <span>Subtotal:</span>
-                  <span>{formatCurrency(subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Desconto:</span>
-                  <span>-{formatCurrency(formData.discount_amount)}</span>
-                </div>
-                <div className="flex justify-between font-bold">
-                  <span>Total:</span>
-                  <span>{formatCurrency(totalAmount)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-green-600">
-                  <span>Lucro Líquido:</span>
-                  <span>{formatCurrency(netProfit)}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting || saleItems.length === 0}
-              >
-                {isSubmitting ? 'Salvando...' : 'Registrar Venda'}
-              </Button>
+            <div className="flex justify-between">
+              <span>Desconto:</span>
+              <span>R$ {discountAmount.toFixed(2)}</span>
             </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+            <div className="flex justify-between font-semibold">
+              <span>Total:</span>
+              <span>R$ {totalAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Custo Total:</span>
+              <span>R$ {totalCost.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm font-medium text-green-600">
+              <span>Lucro Bruto:</span>
+              <span>R$ {grossProfit.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <Button type="submit" disabled={loading || items.length === 0}>
+              {loading ? 'Salvando...' : editingSale ? 'Atualizar Venda' : 'Criar Venda'}
+            </Button>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 
