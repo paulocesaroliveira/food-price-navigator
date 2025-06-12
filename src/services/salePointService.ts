@@ -1,89 +1,47 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 
-export interface SalePoint {
-  id: string;
-  name: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+export const getSalePoints = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
 
-export interface CreateSalePointRequest {
-  name: string;
-  is_active: boolean;
-}
+  const { data, error } = await supabase
+    .from('sale_points')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('name');
+  
+  if (error) throw error;
+  return data || [];
+};
 
-export async function getSalePoints() {
-  try {
-    const { data, error } = await supabase
-      .from("sale_points")
-      .select("*")
-      .order("name");
+export const createSalePoint = async (salePointData: any) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
 
-    if (error) throw error;
-    return data as SalePoint[];
-  } catch (error: any) {
-    console.error("Erro ao buscar pontos de venda:", error.message);
-    toast({
-      title: "Erro",
-      description: `Não foi possível carregar os pontos de venda: ${error.message}`,
-      variant: "destructive",
-    });
-    return [];
-  }
-}
+  const { data, error } = await supabase
+    .from('sale_points')
+    .insert([{
+      ...salePointData,
+      user_id: user.id,
+    }])
+    .select()
+    .single();
 
-export async function createSalePoint(salePointData: CreateSalePointRequest) {
-  try {
-    const { data, error } = await supabase
-      .from("sale_points")
-      .insert(salePointData)
-      .select()
-      .single();
+  if (error) throw error;
+  return data;
+};
 
-    if (error) throw error;
+export const deleteSalePoint = async (id: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
 
-    toast({
-      title: "Ponto de venda criado",
-      description: `${data.name} foi criado com sucesso`,
-    });
+  const { error } = await supabase
+    .from('sale_points')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
 
-    return data as SalePoint;
-  } catch (error: any) {
-    console.error("Erro ao criar ponto de venda:", error.message);
-    toast({
-      title: "Erro",
-      description: `Não foi possível criar o ponto de venda: ${error.message}`,
-      variant: "destructive",
-    });
-    return null;
-  }
-}
-
-export async function deleteSalePoint(id: string) {
-  try {
-    const { error } = await supabase
-      .from("sale_points")
-      .delete()
-      .eq("id", id);
-
-    if (error) throw error;
-
-    toast({
-      title: "Ponto de venda excluído",
-      description: "O ponto de venda foi excluído com sucesso",
-    });
-
-    return true;
-  } catch (error: any) {
-    console.error("Erro ao excluir ponto de venda:", error.message);
-    toast({
-      title: "Erro",
-      description: `Não foi possível excluir o ponto de venda: ${error.message}`,
-      variant: "destructive",
-    });
-    return false;
-  }
-}
+  if (error) throw error;
+  return true;
+};

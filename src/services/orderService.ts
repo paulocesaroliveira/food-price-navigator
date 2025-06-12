@@ -35,3 +35,28 @@ export const createOrder = async (orderData: any, orderItems: any[]) => {
 
   return order;
 };
+
+export const getOrders = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      customer:customers(id, name),
+      items:order_items(
+        id,
+        product_id,
+        quantity,
+        price_at_order,
+        total_price,
+        product:products(id, name)
+      )
+    `)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+  
+  if (error) throw error;
+  return data || [];
+};

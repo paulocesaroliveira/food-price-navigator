@@ -31,5 +31,9 @@ export const useFileUpload = () => {
     }
   };
 
-  return { uploadFile, isUploading };
+  const setUploading = (uploading: boolean) => {
+    setIsUploading(uploading);
+  };
+
+  return { uploadFile, isUploading, setUploading };
 };
