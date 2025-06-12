@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -156,6 +157,47 @@ const Products = () => {
     queryClient.invalidateQueries({ queryKey: ['product-categories'] });
   };
 
+  const handleFormSubmit = async (data: any) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const productData = {
+        ...data,
+        user_id: user.id,
+        category_id: data.categoryId || null
+      };
+
+      if (editingProduct) {
+        const { error } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', editingProduct.id);
+        
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('products')
+          .insert(productData);
+        
+        if (error) throw error;
+      }
+
+      handleFormSuccess();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFormCancel = () => {
+    setShowForm(false);
+    setEditingProduct(null);
+  };
+
   const renderListView = () => (
     <div className="space-y-2">
       {isLoading ? (
@@ -276,15 +318,16 @@ const Products = () => {
       )}
 
       {/* Formulário de Produto */}
-      <ProductForm
-        open={showForm}
-        onOpenChange={setShowForm}
-        onSuccess={handleFormSuccess}
-        categories={categories}
-        recipes={recipes}
-        packaging={packaging}
-        editingProduct={editingProduct}
-      />
+      {showForm && (
+        <ProductForm
+          product={editingProduct}
+          onSubmit={handleFormSubmit}
+          onCancel={handleFormCancel}
+          categories={categories}
+          recipes={recipes}
+          packaging={packaging}
+        />
+      )}
 
       {/* Dialog de Categoria */}
       <ProductCategoryDialog
