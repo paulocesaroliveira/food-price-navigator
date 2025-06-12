@@ -9,8 +9,9 @@ export const getRecipes = async (): Promise<Recipe[]> => {
       .from('recipes')
       .select(`
         *,
-        category:categories(*),
-        recipe_ingredients(*)
+        category:recipe_categories(*),
+        recipe_base_ingredients(*),
+        recipe_portion_ingredients(*)
       `)
       .order('name');
 
@@ -19,8 +20,8 @@ export const getRecipes = async (): Promise<Recipe[]> => {
     return (data || []).map(recipe => ({
       ...recipe,
       category: recipe.category?.[0] || null,
-      baseIngredients: recipe.recipe_ingredients || [],
-      portionIngredients: []
+      baseIngredients: recipe.recipe_base_ingredients || [],
+      portionIngredients: recipe.recipe_portion_ingredients || []
     }));
   } catch (error) {
     console.error('Error fetching recipes:', error);
@@ -39,8 +40,9 @@ export const getRecipeById = async (id: string): Promise<Recipe | null> => {
       .from('recipes')
       .select(`
         *,
-        category:categories(*),
-        recipe_ingredients(*)
+        category:recipe_categories(*),
+        recipe_base_ingredients(*),
+        recipe_portion_ingredients(*)
       `)
       .eq('id', id)
       .single();
@@ -50,8 +52,8 @@ export const getRecipeById = async (id: string): Promise<Recipe | null> => {
     return {
       ...data,
       category: data.category?.[0] || null,
-      baseIngredients: data.recipe_ingredients || [],
-      portionIngredients: []
+      baseIngredients: data.recipe_base_ingredients || [],
+      portionIngredients: data.recipe_portion_ingredients || []
     };
   } catch (error) {
     console.error('Error fetching recipe:', error);
@@ -72,6 +74,7 @@ export const createRecipe = async (recipe: Omit<Recipe, 'id'>): Promise<Recipe |
       category_id: recipe.category?.id,
       image_url: recipe.image,
       user_id: user.data.user.id,
+      notes: recipe.notes
     };
 
     const { data, error } = await supabase
@@ -92,7 +95,7 @@ export const createRecipe = async (recipe: Omit<Recipe, 'id'>): Promise<Recipe |
       }));
 
       await supabase
-        .from('recipe_ingredients')
+        .from('recipe_base_ingredients')
         .insert(ingredientsToInsert);
     }
 
@@ -106,7 +109,7 @@ export const createRecipe = async (recipe: Omit<Recipe, 'id'>): Promise<Recipe |
       }));
 
       await supabase
-        .from('recipe_ingredients')
+        .from('recipe_portion_ingredients')
         .insert(ingredientsToInsert);
     }
 
@@ -136,6 +139,7 @@ export const updateRecipe = async (id: string, recipe: Partial<Recipe>): Promise
       portions: recipe.portions,
       category_id: recipe.category?.id,
       image_url: recipe.image,
+      notes: recipe.notes
     };
 
     const { data, error } = await supabase
@@ -149,7 +153,12 @@ export const updateRecipe = async (id: string, recipe: Partial<Recipe>): Promise
 
     // Update ingredients
     await supabase
-      .from('recipe_ingredients')
+      .from('recipe_base_ingredients')
+      .delete()
+      .eq('recipe_id', id);
+
+    await supabase
+      .from('recipe_portion_ingredients')
       .delete()
       .eq('recipe_id', id);
 
@@ -163,7 +172,7 @@ export const updateRecipe = async (id: string, recipe: Partial<Recipe>): Promise
       }));
 
       await supabase
-        .from('recipe_ingredients')
+        .from('recipe_base_ingredients')
         .insert(ingredientsToInsert);
     }
 
@@ -177,7 +186,7 @@ export const updateRecipe = async (id: string, recipe: Partial<Recipe>): Promise
       }));
 
       await supabase
-        .from('recipe_ingredients')
+        .from('recipe_portion_ingredients')
         .insert(ingredientsToInsert);
     }
 
@@ -221,5 +230,76 @@ export const deleteRecipe = async (id: string): Promise<boolean> => {
       variant: "destructive",
     });
     return false;
+  }
+};
+
+// Recipe Categories functions
+export const fetchRecipeCategories = async () => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
+    const { data, error } = await supabase
+      .from('recipe_categories')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('name');
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching recipe categories:', error);
+    return [];
+  }
+};
+
+export const createRecipeCategory = async (name: string) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
+    const { data, error } = await supabase
+      .from('recipe_categories')
+      .insert({ name, user_id: user.id })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error creating recipe category:', error);
+    throw error;
+  }
+};
+
+export const updateRecipeCategory = async (id: string, name: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('recipe_categories')
+      .update({ name })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating recipe category:', error);
+    throw error;
+  }
+};
+
+export const deleteRecipeCategory = async (id: string) => {
+  try {
+    const { error } = await supabase
+      .from('recipe_categories')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting recipe category:', error);
+    throw error;
   }
 };

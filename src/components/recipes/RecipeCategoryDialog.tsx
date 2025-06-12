@@ -47,12 +47,19 @@ interface RecipeCategoryDialogProps {
   onClose: () => void;
 }
 
+interface RecipeCategory {
+  id: string;
+  name: string;
+  user_id: string;
+  created_at: string;
+}
+
 export const RecipeCategoryDialog = ({ 
   open, 
   onClose 
 }: RecipeCategoryDialogProps) => {
   const [newCategory, setNewCategory] = useState("");
-  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [editingCategory, setEditingCategory] = useState<RecipeCategory | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -78,6 +85,7 @@ export const RecipeCategoryDialog = ({
     mutationFn: (name: string) => createRecipeCategory(name),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeCategories"] });
+      queryClient.invalidateQueries({ queryKey: ["recipe-categories"] });
       setNewCategory("");
       toast({
         title: "Categoria criada",
@@ -98,6 +106,7 @@ export const RecipeCategoryDialog = ({
       updateRecipeCategory(id, name),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeCategories"] });
+      queryClient.invalidateQueries({ queryKey: ["recipe-categories"] });
       setEditingCategory(null);
       toast({
         title: "Categoria atualizada",
@@ -117,6 +126,7 @@ export const RecipeCategoryDialog = ({
     mutationFn: (id: string) => deleteRecipeCategory(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeCategories"] });
+      queryClient.invalidateQueries({ queryKey: ["recipe-categories"] });
       setCategoryToDelete(null);
       toast({
         title: "Categoria excluída",
@@ -206,9 +216,11 @@ export const RecipeCategoryDialog = ({
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Plus className="h-4 w-4 mr-2" />
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar
+                  </>
                 )}
-                Adicionar
               </Button>
             </div>
             
@@ -226,8 +238,8 @@ export const RecipeCategoryDialog = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {categories.length > 0 ? (
-                      categories.map((category: any) => (
+                    {Array.isArray(categories) && categories.length > 0 ? (
+                      categories.map((category: RecipeCategory) => (
                         <TableRow key={category.id}>
                           <TableCell>
                             {editingCategory?.id === category.id ? (

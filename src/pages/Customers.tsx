@@ -33,6 +33,11 @@ const Customers = () => {
     }
   };
 
+  const handleFormSubmit = () => {
+    refetch();
+    setShowForm(false);
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -61,7 +66,6 @@ const Customers = () => {
               key={customer.id}
               customer={customer}
               onEdit={() => handleEditCustomer(customer)}
-              onDelete={() => handleDeleteCustomer(customer.id)}
             />
           ))}
         </div>
@@ -69,9 +73,9 @@ const Customers = () => {
 
       {/* Modal do formulário */}
       <CustomerForm
-        isOpen={showForm}
-        onClose={() => setShowForm(false)}
-        onSubmit={() => {}}
+        open={showForm}
+        onOpenChange={setShowForm}
+        onSubmit={handleFormSubmit}
         editingCustomer={editingCustomer}
       />
     </div>
