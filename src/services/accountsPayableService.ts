@@ -1,233 +1,168 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import type { CreateAccountPayable, ExpenseCategory } from "@/types/accountsPayable";
+import { supabase } from '@/lib/supabase';
+import { AccountPayable, CreateAccountPayable, ExpenseCategory } from '@/types/accountsPayable';
+import { toast } from '@/hooks/use-toast';
 
-export const getAccountsPayable = async (filters: any = {}) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
+export const getAccountsPayable = async (filters: any = {}): Promise<AccountPayable[]> => {
+  try {
+    let query = supabase
+      .from('accounts_payable')
+      .select(`
+        *,
+        category:expense_categories(*)
+      `)
+      .order('due_date', { ascending: true });
 
-  let query = supabase
-    .from('accounts_payable')
-    .select(`
-      *,
-      category:expense_categories(id, name, color)
-    `)
-    .eq('user_id', user.id);
-
-  if (filters.startDate) {
-    query = query.gte('due_date', filters.startDate);
-  }
-  
-  if (filters.endDate) {
-    query = query.lte('due_date', filters.endDate);
-  }
-
-  if (filters.status && filters.status !== 'all') {
-    if (filters.status === 'overdue') {
-      query = query.eq('status', 'pending').lt('due_date', new Date().toISOString().split('T')[0]);
-    } else {
-      query = query.eq('status', filters.status);
+    if (filters.startDate) {
+      query = query.gte('due_date', filters.startDate);
     }
-  }
+    if (filters.endDate) {
+      query = query.lte('due_date', filters.endDate);
+    }
+    if (filters.status && filters.status !== 'all') {
+      if (filters.status === 'overdue') {
+        query = query.eq('status', 'pending').lt('due_date', new Date().toISOString().split('T')[0]);
+      } else {
+        query = query.eq('status', filters.status);
+      }
+    }
 
-  if (filters.category && filters.category !== 'all') {
-    query = query.eq('category_id', filters.category);
-  }
+    const { data, error } = await query;
 
-  if (filters.search) {
-    query = query.or(`description.ilike.%${filters.search}%,supplier.ilike.%${filters.search}%`);
-  }
+    if (error) throw error;
 
-  const { data, error } = await query.order('due_date', { ascending: false });
-  
-  if (error) throw error;
-  return data || [];
-};
-
-export const createAccountPayable = async (accountData: CreateAccountPayable) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
-
-  const { data, error } = await supabase
-    .from('accounts_payable')
-    .insert([{
-      ...accountData,
-      user_id: user.id,
-      status: accountData.status || 'pending',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-export const updateAccountPayable = async (id: string, updates: Partial<CreateAccountPayable>) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
-
-  const { data, error } = await supabase
-    .from('accounts_payable')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-export const deleteAccountPayable = async (id: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
-
-  const { error } = await supabase
-    .from('accounts_payable')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id);
-
-  if (error) throw error;
-  return true;
-};
-
-export const markAsPaid = async (id: string, paymentDate: string, paymentMethod: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
-
-  const { error } = await supabase
-    .from('accounts_payable')
-    .update({
-      status: 'paid',
-      payment_date: paymentDate,
-      payment_method: paymentMethod,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .eq('user_id', user.id);
-
-  if (error) throw error;
-  return true;
-};
-
-export const reversePayment = async (id: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
-
-  const { error } = await supabase
-    .from('accounts_payable')
-    .update({
-      status: 'pending',
-      payment_date: null,
-      payment_method: null,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .eq('user_id', user.id);
-
-  if (error) throw error;
-  return true;
-};
-
-export const createRecurringAccounts = async (account: CreateAccountPayable, installments: number, startDate: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
-
-  const accounts = [];
-  const baseDate = new Date(startDate);
-
-  for (let i = 0; i < installments; i++) {
-    const dueDate = new Date(baseDate);
-    dueDate.setMonth(dueDate.getMonth() + i);
-    
-    accounts.push({
-      ...account,
-      description: `${account.description} (${i + 1}/${installments})`,
-      due_date: dueDate.toISOString().split('T')[0],
-      user_id: user.id,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+    // Type cast and ensure proper status typing
+    return (data || []).map(item => ({
+      ...item,
+      status: item.status as 'pending' | 'paid' | 'cancelled',
+      payment_method: item.payment_method as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'pix' | 'check' | undefined
+    }));
+  } catch (error: any) {
+    console.error('Error fetching accounts payable:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível carregar as contas a pagar",
+      variant: "destructive"
     });
+    return [];
   }
+};
 
-  const { data, error } = await supabase
-    .from('accounts_payable')
-    .insert(accounts)
-    .select();
+export const createAccountPayable = async (data: CreateAccountPayable): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('accounts_payable')
+      .insert([{ ...data, user_id: (await supabase.auth.getUser()).data.user?.id }]);
 
-  if (error) throw error;
-  return data;
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: "Conta criada com sucesso!"
+    });
+    return true;
+  } catch (error: any) {
+    console.error('Error creating account payable:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível criar a conta",
+      variant: "destructive"
+    });
+    return false;
+  }
+};
+
+export const updateAccountPayable = async (id: string, data: Partial<CreateAccountPayable>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('accounts_payable')
+      .update(data)
+      .eq('id', id);
+
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: "Conta atualizada com sucesso!"
+    });
+    return true;
+  } catch (error: any) {
+    console.error('Error updating account payable:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível atualizar a conta",
+      variant: "destructive"
+    });
+    return false;
+  }
+};
+
+export const deleteAccountPayable = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('accounts_payable')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: "Conta excluída com sucesso!"
+    });
+    return true;
+  } catch (error: any) {
+    console.error('Error deleting account payable:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível excluir a conta",
+      variant: "destructive"
+    });
+    return false;
+  }
+};
+
+export const markAsPaid = async (id: string, paymentDate: string, paymentMethod: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('accounts_payable')
+      .update({
+        status: 'paid',
+        payment_date: paymentDate,
+        payment_method: paymentMethod
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: "Conta marcada como paga!"
+    });
+    return true;
+  } catch (error: any) {
+    console.error('Error marking as paid:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível marcar como paga",
+      variant: "destructive"
+    });
+    return false;
+  }
 };
 
 export const getExpenseCategories = async (): Promise<ExpenseCategory[]> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
+  try {
+    const { data, error } = await supabase
+      .from('expense_categories')
+      .select('*')
+      .order('name');
 
-  const { data, error } = await supabase
-    .from('expense_categories')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('name');
+    if (error) throw error;
 
-  if (error) throw error;
-  return data || [];
-};
-
-export const createExpenseCategory = async (category: Omit<ExpenseCategory, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
-
-  const { data, error } = await supabase
-    .from('expense_categories')
-    .insert([{
-      ...category,
-      user_id: user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-export const updateExpenseCategory = async (id: string, updates: Partial<ExpenseCategory>) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
-
-  const { data, error } = await supabase
-    .from('expense_categories')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-export const deleteExpenseCategory = async (id: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
-
-  const { error } = await supabase
-    .from('expense_categories')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id);
-
-  if (error) throw error;
-  return true;
+    return data || [];
+  } catch (error: any) {
+    console.error('Error fetching expense categories:', error);
+    return [];
+  }
 };

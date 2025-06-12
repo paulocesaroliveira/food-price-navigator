@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { getProductList } from "@/services/productService";
 import { getSalePoints, createSalePoint, deleteSalePoint } from "@/services/salePointService";
@@ -21,10 +22,20 @@ import {
   Receipt, 
   Percent,
   MapPin,
-  X
+  X,
+  Search,
+  Package
 } from "lucide-react";
 import { formatCurrency } from "@/utils/calculations";
 import { toast } from "@/hooks/use-toast";
+import { Product } from "@/types";
+
+interface Sale {
+  id: string;
+  sale_date: string;
+  total_amount: number;
+  notes: string;
+}
 
 interface SaleFormProps {
   onSuccess: () => void;
@@ -55,7 +66,8 @@ const SaleForm: React.FC<SaleFormProps> = ({
   onOpenChange, 
   onSubmit, 
   editingSale = null,
-  isLoading = false 
+  isLoading = false,
+  onCancel
 }) => {
   const [formData, setFormData] = useState({
     sale_date: format(new Date(), "yyyy-MM-dd"),
@@ -284,11 +296,6 @@ const SaleForm: React.FC<SaleFormProps> = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.name}
-              </SelectItem>
-            ))}
           </SelectContent>
         </Select>
       </div>

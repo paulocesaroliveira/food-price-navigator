@@ -1,4 +1,3 @@
-
 export interface Customer {
   id: string;
   name: string;
@@ -154,6 +153,7 @@ export interface PricingConfiguration {
   id: string;
   name: string;
   product_id: string;
+  user_id: string;
   base_cost: number;
   packaging_cost: number;
   wastage_percentage: number;
@@ -175,9 +175,9 @@ export interface PricingConfiguration {
   maximum_price?: number;
   competitor_price?: number;
   notes?: string;
+  additionalCosts?: AdditionalCost[];
   created_at: string;
   updated_at: string;
-  user_id: string;
 }
 
 export interface PricingResult {
@@ -185,9 +185,9 @@ export interface PricingResult {
   sellingPrice: number;
   margin: number;
   profit: number;
-  unitProfit?: number;
-  appliedMarkup?: number;
-  priceWithTaxes?: number;
-  priceWithCommission?: number;
-  minimumRecommendedPrice?: number;
+  unitProfit: number;
+  appliedMarkup: number;
+  priceWithTaxes: number;
+  priceWithCommission: number;
+  minimumRecommendedPrice: number;
 }
