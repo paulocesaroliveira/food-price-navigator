@@ -16,7 +16,7 @@ const Orders = () => {
         subtitle="Gerencie seus pedidos e entregas com eficiência"
         icon={ShoppingCart}
         gradient="from-purple-500 to-pink-600"
-        action={
+        actions={
           <Button className="btn-gradient">
             <Plus className="h-4 w-4 mr-2" />
             Novo Pedido

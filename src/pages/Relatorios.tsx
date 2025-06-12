@@ -13,7 +13,7 @@ const Relatorios = () => {
         subtitle="Análise de performance e dados do seu negócio"
         icon={BarChart3}
         gradient="from-indigo-500 to-purple-600"
-        action={
+        actions={
           <Button className="btn-gradient">
             <Download className="h-4 w-4 mr-2" />
             Exportar

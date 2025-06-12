@@ -16,7 +16,7 @@ const Products = () => {
         subtitle="Gerencie seus produtos e preços com facilidade"
         icon={Package}
         gradient="from-green-500 to-blue-600"
-        action={
+        actions={
           <Button className="btn-gradient">
             <Plus className="h-4 w-4 mr-2" />
             Novo Produto

@@ -16,7 +16,7 @@ const Ingredients = () => {
         subtitle="Gerencie seus ingredientes e custos de forma inteligente"
         icon={Utensils}
         gradient="from-orange-500 to-red-600"
-        action={
+        actions={
           <Button className="btn-gradient">
             <Plus className="h-4 w-4 mr-2" />
             Novo Ingrediente
