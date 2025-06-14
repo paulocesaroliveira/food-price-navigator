@@ -88,7 +88,7 @@ export const PackagingSelector = ({
                               <div className="flex items-center gap-2">
                                 <span>{pkg.name}</span>
                                 <span className="text-xs text-muted-foreground">
-                                  {formatCurrency(pkg.unitCost)}
+                                  {formatCurrency(pkg.unitCost || 0)}/un
                                 </span>
                               </div>
                             </SelectItem>
@@ -108,10 +108,15 @@ export const PackagingSelector = ({
                     </div>
 
                     <div className="col-span-2">
-                      <Label className="text-sm text-muted-foreground">Custo</Label>
+                      <Label className="text-sm text-muted-foreground">Custo Total</Label>
                       <div className="text-sm font-medium text-green-600">
                         {formatCurrency(item.cost || 0)}
                       </div>
+                      {pkg && (
+                        <div className="text-xs text-muted-foreground">
+                          {formatCurrency(pkg.unitCost || 0)} × {item.quantity || 1}
+                        </div>
+                      )}
                     </div>
 
                     <div className="col-span-1">

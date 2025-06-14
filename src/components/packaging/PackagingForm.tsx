@@ -22,7 +22,6 @@ import { toast } from "@/hooks/use-toast";
 
 const packagingSchema = z.object({
   name: z.string().min(2, { message: "Nome é obrigatório" }),
-  type: z.string().min(1, { message: "Tipo é obrigatório" }),
   bulkQuantity: z.coerce.number().positive({ message: "Quantidade deve ser maior que 0" }),
   bulkPrice: z.coerce.number().positive({ message: "Preço deve ser maior que 0" }),
   notes: z.string().optional(),
@@ -49,7 +48,6 @@ export const PackagingForm = ({
     resolver: zodResolver(packagingSchema),
     defaultValues: {
       name: packaging?.name || "",
-      type: packaging?.type || "",
       bulkQuantity: packaging?.bulkQuantity || 0,
       bulkPrice: packaging?.bulkPrice || 0,
       notes: packaging?.notes || "",
@@ -103,20 +101,6 @@ export const PackagingForm = ({
                   <FormLabel>Nome da Embalagem</FormLabel>
                   <FormControl>
                     <Input placeholder="Ex: Caixa para Doces" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo/Unidade</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Caixa, Pote, Saquinho" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

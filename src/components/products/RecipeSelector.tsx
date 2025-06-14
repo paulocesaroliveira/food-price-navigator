@@ -75,7 +75,7 @@ export const RecipeSelector = ({
                               <div className="flex items-center gap-2">
                                 <span>{recipe.name}</span>
                                 <span className="text-xs text-muted-foreground">
-                                  {formatCurrency(recipe.unitCost)}
+                                  {formatCurrency(recipe.unit_cost || 0)}/porção
                                 </span>
                               </div>
                             </SelectItem>
@@ -95,10 +95,15 @@ export const RecipeSelector = ({
                     </div>
 
                     <div className="col-span-2">
-                      <Label className="text-sm text-muted-foreground">Custo</Label>
+                      <Label className="text-sm text-muted-foreground">Custo Total</Label>
                       <div className="text-sm font-medium text-green-600">
                         {formatCurrency(item.cost || 0)}
                       </div>
+                      {recipe && (
+                        <div className="text-xs text-muted-foreground">
+                          {formatCurrency(recipe.unit_cost || 0)} × {item.quantity || 1}
+                        </div>
+                      )}
                     </div>
 
                     <div className="col-span-1">

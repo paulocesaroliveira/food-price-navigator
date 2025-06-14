@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Search, ShoppingCart } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import NewOrderForm from "@/components/orders/NewOrderForm";
@@ -115,69 +116,67 @@ const Orders = () => {
         />
       </div>
 
-      {showForm ? (
-        <Card className="custom-card">
-          <CardHeader>
-            <CardTitle>Novo Pedido</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <NewOrderForm
-              onOrderCreated={handleOrderCreated}
-              onCancel={() => setShowForm(false)}
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="custom-card">
-          <CardHeader>
-            <CardTitle>Lista de Pedidos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
-                <p className="mt-2 text-muted-foreground">Carregando pedidos...</p>
-              </div>
-            ) : filteredOrders.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                <p>Nenhum pedido registrado ainda.</p>
-                <Button 
-                  className="mt-4 btn-gradient"
-                  onClick={() => setShowForm(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Primeiro Pedido
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                    <div>
-                      <h3 className="font-medium">#{order.order_number}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {order.customer?.name} • {order.status}
+      <Card className="custom-card">
+        <CardHeader>
+          <CardTitle>Lista de Pedidos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
+              <p className="mt-2 text-muted-foreground">Carregando pedidos...</p>
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <p>Nenhum pedido registrado ainda.</p>
+              <Button 
+                className="mt-4 btn-gradient"
+                onClick={() => setShowForm(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeiro Pedido
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredOrders.map((order) => (
+                <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                  <div>
+                    <h3 className="font-medium">#{order.order_number}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {order.customer?.name} • {order.status}
+                    </p>
+                    {order.scheduled_date && (
+                      <p className="text-xs text-purple-600">
+                        Agendado: {new Date(order.scheduled_date).toLocaleDateString()}
                       </p>
-                      {order.scheduled_date && (
-                        <p className="text-xs text-purple-600">
-                          Agendado: {new Date(order.scheduled_date).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatCurrency(order.total_amount)}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {order.items?.length || 0} item(s)
-                      </p>
-                    </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                  <div className="text-right">
+                    <p className="font-medium">{formatCurrency(order.total_amount)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {order.items?.length || 0} item(s)
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Novo Pedido</DialogTitle>
+          </DialogHeader>
+          <NewOrderForm
+            onOrderCreated={handleOrderCreated}
+            onCancel={() => setShowForm(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

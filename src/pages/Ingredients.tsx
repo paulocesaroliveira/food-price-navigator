@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -128,6 +129,93 @@ const Ingredients = () => {
     queryClient.invalidateQueries({ queryKey: ['ingredient-categories'] });
   };
 
+  const renderGridView = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {isLoading ? (
+        Array.from({ length: 8 }).map((_, i) => (
+          <Card key={i} className="p-4">
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            </div>
+          </Card>
+        ))
+      ) : filteredIngredients.length === 0 ? (
+        <div className="col-span-full text-center py-12">
+          <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h3 className="text-lg font-medium">Nenhum ingrediente encontrado</h3>
+          <p className="text-muted-foreground">
+            {searchTerm ? "Tente alterar os termos de busca" : "Comece criando seu primeiro ingrediente"}
+          </p>
+        </div>
+      ) : (
+        filteredIngredients.map((ingredient) => (
+          <Card key={ingredient.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  {ingredient.image_url && (
+                    <img
+                      src={ingredient.image_url}
+                      alt={ingredient.name}
+                      className="w-10 h-10 rounded-md object-cover"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium truncate">{ingredient.name}</h3>
+                    <p className="text-sm text-gray-500">{ingredient.brand}</p>
+                  </div>
+                </div>
+                {ingredient.category && (
+                  <p className="text-sm text-orange-600">{ingredient.category.name}</p>
+                )}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Pacote:</span>
+                    <span>{ingredient.package_quantity} {ingredient.unit}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Preço:</span>
+                    <span className="text-green-600 font-medium">
+                      {formatCurrency(ingredient.package_price)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Custo unitário:</span>
+                    <span className="text-blue-600 font-medium">
+                      {formatCurrency(ingredient.unit_cost)}/{ingredient.unit}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex space-x-2 pt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(ingredient)}
+                    disabled={deletingIngredientId === ingredient.id}
+                    className="flex-1"
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(ingredient.id)}
+                    disabled={deletingIngredientId === ingredient.id}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    {deletingIngredientId === ingredient.id ? "..." : "Excluir"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      )}
+    </div>
+  );
+
   const renderListView = () => (
     <div className="space-y-2">
       {isLoading ? (
@@ -228,7 +316,6 @@ const Ingredients = () => {
         }
       />
 
-      {/* Controles de busca e visualização */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2 flex-1 max-w-md">
           <Search className="h-4 w-4 text-gray-400 shrink-0" />
@@ -242,16 +329,8 @@ const Ingredients = () => {
         <ViewToggle view={view} onViewChange={setView} />
       </div>
 
-      {/* Lista de Ingredientes */}
-      {view === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {/* Grid implementation here */}
-        </div>
-      ) : (
-        renderListView()
-      )}
+      {view === 'grid' ? renderGridView() : renderListView()}
 
-      {/* Formulário de Ingrediente */}
       <IngredientForm
         open={showForm}
         onOpenChange={setShowForm}
@@ -259,7 +338,6 @@ const Ingredients = () => {
         ingredient={editingIngredient}
       />
 
-      {/* Dialog de Categoria */}
       <CategoryDialog
         open={showCategoryDialog}
         onOpenChange={setShowCategoryDialog}
