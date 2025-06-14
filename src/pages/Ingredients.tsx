@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -135,9 +134,9 @@ const Ingredients = () => {
         Array.from({ length: 8 }).map((_, i) => (
           <Card key={i} className="p-4">
             <div className="animate-pulse space-y-3">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+              <div className="h-4 bg-muted rounded w-3/4"></div>
+              <div className="h-4 bg-muted rounded w-1/2"></div>
+              <div className="h-4 bg-muted rounded w-1/4"></div>
             </div>
           </Card>
         ))
@@ -164,11 +163,11 @@ const Ingredients = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium truncate">{ingredient.name}</h3>
-                    <p className="text-sm text-gray-500">{ingredient.brand}</p>
+                    <p className="text-sm text-muted-foreground">{ingredient.brand}</p>
                   </div>
                 </div>
                 {ingredient.category && (
-                  <p className="text-sm text-orange-600">{ingredient.category.name}</p>
+                  <p className="text-sm text-primary">{ingredient.category.name}</p>
                 )}
                 <div className="space-y-1">
                   <div className="flex justify-between text-sm">
@@ -203,7 +202,7 @@ const Ingredients = () => {
                     variant="outline"
                     onClick={() => handleDelete(ingredient.id)}
                     disabled={deletingIngredientId === ingredient.id}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-destructive hover:text-destructive"
                   >
                     {deletingIngredientId === ingredient.id ? "..." : "Excluir"}
                   </Button>
@@ -221,11 +220,9 @@ const Ingredients = () => {
       {isLoading ? (
         Array.from({ length: 6 }).map((_, i) => (
           <Card key={i} className="p-4">
-            <div className="animate-pulse flex items-center space-x-4">
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+            <div className="animate-pulse space-y-2">
+              <div className="h-4 bg-muted rounded w-full"></div>
+              <div className="h-3 bg-muted rounded w-2/3"></div>
             </div>
           </Card>
         ))
@@ -239,46 +236,116 @@ const Ingredients = () => {
         </div>
       ) : (
         filteredIngredients.map((ingredient) => (
-          <Card key={ingredient.id} className="p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 flex-1">
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-medium truncate">{ingredient.name}</h3>
-                  <p className="text-sm text-gray-500">{ingredient.brand}</p>
-                  {ingredient.category && (
-                    <p className="text-sm text-orange-600">{ingredient.category.name}</p>
+          <Card key={ingredient.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-3 sm:p-4">
+              {/* Mobile Layout */}
+              <div className="block sm:hidden space-y-3">
+                <div className="flex items-start space-x-3">
+                  {ingredient.image_url && (
+                    <img
+                      src={ingredient.image_url}
+                      alt={ingredient.name}
+                      className="w-12 h-12 rounded-md object-cover flex-shrink-0"
+                    />
                   )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-sm">{ingredient.name}</h3>
+                    <p className="text-xs text-muted-foreground">{ingredient.brand}</p>
+                    {ingredient.category && (
+                      <p className="text-xs text-primary">{ingredient.category.name}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {ingredient.package_quantity} {ingredient.unit}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Pacote: </span>
+                    <span>{ingredient.package_quantity} {ingredient.unit}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Preço: </span>
+                    <span className="text-green-600 font-medium">
+                      {formatCurrency(ingredient.package_price)}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Custo unitário: </span>
+                    <span className="text-blue-600 font-medium">
+                      {formatCurrency(ingredient.unit_cost)}/{ingredient.unit}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-sm font-medium text-green-600 min-w-0">
-                  {formatCurrency(ingredient.package_price)}
-                </div>
-                <div className="text-sm font-medium text-blue-600 min-w-0">
-                  {formatCurrency(ingredient.unit_cost)}/{ingredient.unit}
+                <div className="flex space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(ingredient)}
+                    disabled={deletingIngredientId === ingredient.id}
+                    className="flex-1 text-xs h-8"
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(ingredient.id)}
+                    disabled={deletingIngredientId === ingredient.id}
+                    className="text-destructive hover:text-destructive text-xs h-8"
+                  >
+                    {deletingIngredientId === ingredient.id ? "..." : "Excluir"}
+                  </Button>
                 </div>
               </div>
-              <div className="flex space-x-2 ml-4">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleEdit(ingredient)}
-                  disabled={deletingIngredientId === ingredient.id}
-                >
-                  Editar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleDelete(ingredient.id)}
-                  disabled={deletingIngredientId === ingredient.id}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  {deletingIngredientId === ingredient.id ? "Excluindo..." : "Excluir"}
-                </Button>
+
+              {/* Desktop Layout */}
+              <div className="hidden sm:flex items-center justify-between">
+                <div className="flex items-center space-x-4 flex-1">
+                  <div className="flex items-center space-x-3">
+                    {ingredient.image_url && (
+                      <img
+                        src={ingredient.image_url}
+                        alt={ingredient.name}
+                        className="w-10 h-10 rounded-md object-cover"
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <h3 className="font-medium truncate">{ingredient.name}</h3>
+                      <p className="text-sm text-muted-foreground">{ingredient.brand}</p>
+                      {ingredient.category && (
+                        <p className="text-sm text-primary">{ingredient.category.name}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="hidden lg:block text-sm text-muted-foreground">
+                    {ingredient.package_quantity} {ingredient.unit}
+                  </div>
+                  <div className="hidden lg:block text-sm font-medium text-green-600">
+                    {formatCurrency(ingredient.package_price)}
+                  </div>
+                  <div className="text-sm font-medium text-blue-600">
+                    {formatCurrency(ingredient.unit_cost)}/{ingredient.unit}
+                  </div>
+                </div>
+                <div className="flex space-x-2 ml-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(ingredient)}
+                    disabled={deletingIngredientId === ingredient.id}
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(ingredient.id)}
+                    disabled={deletingIngredientId === ingredient.id}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    {deletingIngredientId === ingredient.id ? "..." : "Excluir"}
+                  </Button>
+                </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
         ))
       )}
@@ -286,7 +353,7 @@ const Ingredients = () => {
   );
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 lg:p-6">
       <PageHeader
         title="Ingredientes"
         subtitle="Gerencie seus ingredientes e custos"
@@ -301,24 +368,26 @@ const Ingredients = () => {
             <Button 
               onClick={() => setShowCategoryDialog(true)}
               variant="outline"
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm"
+              size="sm"
             >
               Categorias
             </Button>
             <Button 
               onClick={() => setShowForm(true)}
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm"
+              size="sm"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Ingrediente
+              <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              Novo
             </Button>
           </div>
         }
       />
 
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:gap-4 sm:items-center sm:justify-between">
         <div className="flex items-center space-x-2 flex-1 max-w-md">
-          <Search className="h-4 w-4 text-gray-400 shrink-0" />
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <Input
             placeholder="Buscar ingredientes..."
             value={searchTerm}

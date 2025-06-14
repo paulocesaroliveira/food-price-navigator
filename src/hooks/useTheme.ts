@@ -28,12 +28,12 @@ const themeStyles = {
   coral: {
     '--primary': '14 91% 67%',        // #FF6B6B bright coral
     '--secondary': '174 67% 56%',     // #4ECDC4 teal
-    '--background': '35 60% 95%',     // warm light background
+    '--background': '35 60% 97%',     // warm light background
     '--foreground': '222.2 84% 4.9%', // dark gray
     '--card': '0 0% 100%',            // white
-    '--muted': '35 40% 92%',          // warm light gray
-    '--accent': '35 40% 90%',         // warm accent
-    '--border': '35 31.8% 85%',       // warm border
+    '--muted': '35 40% 94%',          // warm light gray
+    '--accent': '35 40% 92%',         // warm accent
+    '--border': '35 31.8% 87%',       // warm border
     '--ring': '14 91% 67%',           // bright coral
     '--destructive': '0 84% 60%',
     '--destructive-foreground': '210 40% 98%',
@@ -44,17 +44,17 @@ const themeStyles = {
     '--popover': '0 0% 100%',
     '--popover-foreground': '222.2 84% 4.9%',
     '--card-foreground': '222.2 84% 4.9%',
-    '--input': '35 31.8% 85%'
+    '--input': '35 31.8% 87%'
   },
   mint: {
     '--primary': '173 58% 39%',       // #26A69A mint
     '--secondary': '134 70% 75%',     // #81C784 light green
-    '--background': '180 60% 96%',    // mint light background
+    '--background': '180 60% 98%',    // mint light background
     '--foreground': '222.2 84% 4.9%', // dark gray
     '--card': '0 0% 100%',            // white
-    '--muted': '180 40% 93%',         // mint light gray
-    '--accent': '180 40% 91%',        // mint accent
-    '--border': '180 31.8% 85%',      // mint border
+    '--muted': '180 40% 95%',         // mint light gray
+    '--accent': '180 40% 93%',        // mint accent
+    '--border': '180 31.8% 87%',      // mint border
     '--ring': '173 58% 39%',          // mint
     '--destructive': '0 84% 60%',
     '--destructive-foreground': '210 40% 98%',
@@ -65,17 +65,17 @@ const themeStyles = {
     '--popover': '0 0% 100%',
     '--popover-foreground': '222.2 84% 4.9%',
     '--card-foreground': '222.2 84% 4.9%',
-    '--input': '180 31.8% 85%'
+    '--input': '180 31.8% 87%'
   },
   amber: {
     '--primary': '43 96% 56%',        // #FFC107 amber
     '--secondary': '37 90% 64%',      // #FF9800 orange
-    '--background': '48 60% 94%',     // amber light background
+    '--background': '48 60% 96%',     // amber light background
     '--foreground': '222.2 84% 4.9%', // dark gray
     '--card': '0 0% 100%',            // white
-    '--muted': '48 40% 90%',          // amber light gray
-    '--accent': '48 40% 88%',         // amber accent
-    '--border': '48 31.8% 82%',       // amber border
+    '--muted': '48 40% 92%',          // amber light gray
+    '--accent': '48 40% 90%',         // amber accent
+    '--border': '48 31.8% 84%',       // amber border
     '--ring': '43 96% 56%',           // amber
     '--destructive': '0 84% 60%',
     '--destructive-foreground': '210 40% 98%',
@@ -86,7 +86,7 @@ const themeStyles = {
     '--popover': '0 0% 100%',
     '--popover-foreground': '222.2 84% 4.9%',
     '--card-foreground': '222.2 84% 4.9%',
-    '--input': '48 31.8% 82%'
+    '--input': '48 31.8% 84%'
   },
   dark: {
     '--primary': '14 71% 61%',        // #E76F51 coral
