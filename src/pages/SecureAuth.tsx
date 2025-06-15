@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Navigate } from "react-router-dom";
 import { useSecureAuth } from "@/hooks/useSecureAuth";
 import { PasswordStrengthIndicator } from "@/components/security/PasswordStrengthIndicator";
-import { useRateLimit } from "@/components/security/RateLimiter";
+import { useAuthRateLimit } from "@/hooks/useRateLimit";
 import { EnhancedSecurityHeaders } from "@/components/security/EnhancedSecurityHeaders";
 
 const SecureAuth = () => {
@@ -24,12 +24,8 @@ const SecureAuth = () => {
   const [authLoading, setAuthLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Rate limiting for auth attempts
-  const authRateLimit = useRateLimit('auth_attempts', {
-    maxAttempts: 5,
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    blockDurationMs: 15 * 60 * 1000, // 15 minutes
-  });
+  // Rate limiting for auth attempts - using the working hook
+  const { checkRateLimit, isLimited, getRemainingTime } = useAuthRateLimit();
 
   if (loading) {
     return (
@@ -52,12 +48,7 @@ const SecureAuth = () => {
   };
 
   const validateForm = () => {
-    if (!authRateLimit.checkLimit()) {
-      toast({
-        title: "Muitas tentativas",
-        description: `Aguarde ${authRateLimit.remainingTime}s antes de tentar novamente.`,
-        variant: "destructive",
-      });
+    if (!checkRateLimit()) {
       return false;
     }
 
@@ -102,7 +93,6 @@ const SecureAuth = () => {
     e.preventDefault();
     
     if (!validateForm()) {
-      authRateLimit.recordAttempt();
       return;
     }
     
@@ -125,8 +115,6 @@ const SecureAuth = () => {
       }
       
       if (result.error) {
-        authRateLimit.recordAttempt();
-        
         if (result.error.message.includes('Invalid login credentials')) {
           toast({
             title: "Credenciais inválidas",
@@ -147,8 +135,6 @@ const SecureAuth = () => {
           });
         }
       } else {
-        authRateLimit.reset();
-        
         if (isSignUp) {
           toast({
             title: "Conta criada com sucesso!",
@@ -162,7 +148,6 @@ const SecureAuth = () => {
         }
       }
     } catch (error: any) {
-      authRateLimit.recordAttempt();
       toast({
         title: "Erro inesperado",
         description: "Tente novamente em alguns instantes.",
@@ -205,11 +190,11 @@ const SecureAuth = () => {
               </div>
 
               {/* Rate limit warning */}
-              {authRateLimit.isBlocked && (
+              {isLimited && (
                 <Alert className="mb-4" variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Muitas tentativas. Aguarde {authRateLimit.remainingTime}s antes de tentar novamente.
+                    Muitas tentativas. Aguarde {getRemainingTime()}s antes de tentar novamente.
                   </AlertDescription>
                 </Alert>
               )}
@@ -230,7 +215,7 @@ const SecureAuth = () => {
                         placeholder="Digite seu nome completo"
                         className="border-food-borderLight focus:border-food-coral"
                         required
-                        disabled={authLoading || authRateLimit.isBlocked}
+                        disabled={authLoading || isLimited}
                       />
                     </div>
                     
@@ -246,7 +231,7 @@ const SecureAuth = () => {
                         placeholder="Digite o nome da sua loja"
                         className="border-food-borderLight focus:border-food-coral"
                         required
-                        disabled={authLoading || authRateLimit.isBlocked}
+                        disabled={authLoading || isLimited}
                       />
                     </div>
                     
@@ -262,7 +247,7 @@ const SecureAuth = () => {
                         placeholder="(11) 99999-9999"
                         className="border-food-borderLight focus:border-food-coral"
                         required
-                        disabled={authLoading || authRateLimit.isBlocked}
+                        disabled={authLoading || isLimited}
                       />
                     </div>
                   </div>
@@ -280,7 +265,7 @@ const SecureAuth = () => {
                     placeholder="Digite seu email"
                     className="border-food-borderLight focus:border-food-coral"
                     required
-                    disabled={authLoading || authRateLimit.isBlocked}
+                    disabled={authLoading || isLimited}
                   />
                 </div>
                 
@@ -297,7 +282,7 @@ const SecureAuth = () => {
                       placeholder="Digite sua senha"
                       className="border-food-borderLight focus:border-food-coral pr-10"
                       required
-                      disabled={authLoading || authRateLimit.isBlocked}
+                      disabled={authLoading || isLimited}
                     />
                     <Button
                       type="button"
@@ -326,7 +311,7 @@ const SecureAuth = () => {
                         placeholder="Confirme sua senha"
                         className="border-food-borderLight focus:border-food-coral"
                         required
-                        disabled={authLoading || authRateLimit.isBlocked}
+                        disabled={authLoading || isLimited}
                       />
                     </div>
 
@@ -339,7 +324,7 @@ const SecureAuth = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-food-coral hover:bg-food-amber transition-colors text-white font-medium py-3" 
-                  disabled={authLoading || authRateLimit.isBlocked || (isSignUp && !isPasswordStrong(password))}
+                  disabled={authLoading || isLimited || (isSignUp && !isPasswordStrong(password))}
                 >
                   {authLoading ? "Processando..." : isSignUp ? "Criar Conta Segura" : "Entrar"}
                 </Button>
