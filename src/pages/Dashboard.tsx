@@ -1,16 +1,17 @@
-import React from "react";
+
+import React, { useState } from "react";
+import RecentOrders from "@/components/dashboard/RecentOrders";
+import QuickActions from "@/components/dashboard/QuickActions";
+import SalesChart from "@/components/dashboard/SalesChart";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import StatusOverview from "@/components/dashboard/StatusOverview";
+import DashboardNotices from "@/components/dashboard/DashboardNotices";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DashboardStats, DashboardFilters } from "@/services/dashboard";
 import { getDashboardStats } from "@/services/dashboard/statsService";
 import { getRecentOrders } from "@/services/dashboard/ordersService";
 import { getSalesData } from "@/services/dashboard/salesService";
 import { useQuery } from "@tanstack/react-query";
-import { RecentOrders } from "@/components/dashboard/RecentOrders";
-import { QuickActions } from "@/components/dashboard/QuickActions";
-import { SalesChart } from "@/components/dashboard/SalesChart";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { useState } from "react";
-import { StatusOverview } from "@/components/dashboard/StatusOverview";
-import DashboardNotices from "@/components/dashboard/DashboardNotices";
 
 const Dashboard = () => {
   const [filters, setFilters] = useState<DashboardFilters>({
