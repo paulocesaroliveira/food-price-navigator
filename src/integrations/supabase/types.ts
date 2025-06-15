@@ -911,6 +911,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           id: string
+          is_blocked: boolean
           phone: string | null
           store_name: string | null
           updated_at: string
@@ -920,6 +921,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id: string
+          is_blocked?: boolean
           phone?: string | null
           store_name?: string | null
           updated_at?: string
@@ -929,6 +931,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id?: string
+          is_blocked?: boolean
           phone?: string | null
           store_name?: string | null
           updated_at?: string

@@ -12,6 +12,7 @@ import { getDashboardStats } from "@/services/dashboard/statsService";
 import { getRecentOrders } from "@/services/dashboard/ordersService";
 import { getSalesData } from "@/services/dashboard/salesService";
 import { useQuery } from "@tanstack/react-query";
+import { useProfileBlocked } from "@/hooks/useProfileBlocked";
 
 const Dashboard = () => {
   const [filters, setFilters] = useState<DashboardFilters>({
@@ -41,9 +42,17 @@ const Dashboard = () => {
     setFilters({ ...filters, period: 'custom', [field]: value });
   };
 
+  // Novo: status de bloqueio
+  const { isBlocked } = useProfileBlocked();
+
   return (
     <div className="space-y-4 p-6">
       <h1 className="text-3xl font-bold">Dashboard</h1>
+      {isBlocked && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-4 rounded-md mb-4 text-lg font-semibold text-center shadow">
+          <span>Seu acesso foi <b>bloqueado</b> pelo administrador do sistema.<br/>Atualmente você só pode visualizar o seu dashboard.</span>
+        </div>
+      )}
       <DashboardNotices />
       <DashboardHeader
         filters={filters}

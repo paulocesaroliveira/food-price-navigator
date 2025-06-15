@@ -33,6 +33,7 @@ interface UserData {
   salesCount: number;
   productsCount: number;
   ordersCount: number;
+  is_blocked?: boolean; // Add support
 }
 
 interface UserStats {
@@ -61,13 +62,13 @@ const UserManagement: React.FC = () => {
   const { user: currentAdmin } = useAuth();
   const { toast } = useToast();
 
-  const { data: users, isLoading } = useQuery({
+  const { data: users, isLoading, refetch } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      // Buscar usuários com informações básicas
+      // Buscar usuários com informações básicas, incluindo bloqueio
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, store_name, created_at')
+        .select('id, store_name, created_at, is_blocked')
         .order('created_at', { ascending: false });
 
       if (!profiles) return [];
@@ -97,6 +98,7 @@ const UserManagement: React.FC = () => {
             salesCount: salesResult.count || 0,
             productsCount: productsResult.count || 0,
             ordersCount: ordersResult.count || 0,
+            is_blocked: profile.is_blocked, // Novo campo
           };
         })
       );
@@ -137,6 +139,25 @@ const UserManagement: React.FC = () => {
 
     setUserProfile(profile.data);
     setIsModalOpen(true);
+  };
+
+  const handleBlockUnblock = async (user: UserData, block: boolean) => {
+    if (!window.confirm(
+      block 
+        ? `Deseja BLOQUEAR o usuário "${user.store_name}"? Ele só poderá acessar o dashboard.`
+        : `Deseja DESBLOQUEAR o usuário "${user.store_name}" e restaurar acesso normal?`
+    )) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_blocked: block })
+      .eq("id", user.id);
+    if (error) {
+      toast({ title: "Erro ao atualizar bloqueio", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: block ? "Usuário bloqueado" : "Usuário desbloqueado" });
+      refetch();
+    }
   };
 
   const handlePermanentDelete = async (user: UserData) => {
@@ -197,6 +218,7 @@ const UserManagement: React.FC = () => {
                   <TableHead className="text-center">Vendas</TableHead>
                   <TableHead className="text-center">Produtos</TableHead>
                   <TableHead className="text-center">Pedidos</TableHead>
+                  <TableHead className="text-center">Bloqueado</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -219,6 +241,11 @@ const UserManagement: React.FC = () => {
                     <TableCell className="text-center">
                       <Badge variant="outline">{user.ordersCount}</Badge>
                     </TableCell>
+                    <TableCell className="text-center">
+                      {user.is_blocked 
+                        ? <Badge className="bg-red-600 text-white">Sim</Badge>
+                        : <Badge variant="secondary">Não</Badge>}
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -231,6 +258,21 @@ const UserManagement: React.FC = () => {
                             <Eye className="mr-2 h-4 w-4" />
                             Ver Detalhes
                           </DropdownMenuItem>
+                          {user.is_blocked ? (
+                            <DropdownMenuItem
+                              onClick={() => handleBlockUnblock(user, false)}
+                              className="text-yellow-600"
+                            >
+                              Desbloquear Usuário
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => handleBlockUnblock(user, true)}
+                              className="text-red-600"
+                            >
+                              Bloquear Usuário
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             onClick={() => handlePermanentDelete(user)}
                             className="text-red-600 focus:bg-red-100"
@@ -261,3 +303,5 @@ const UserManagement: React.FC = () => {
 };
 
 export default UserManagement;
+
+// AVISO: Esse arquivo está chegando a 300+ linhas. Considere pedir refatoração após esta entrega!
