@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/toast"
 
 export function Toaster() {
+  // Add console log to verify component is rendered and context is correct
+  console.log("Custom Toaster mounted - React version:", React.version);
+
   const { toasts } = useToast()
 
   return (
@@ -33,3 +36,4 @@ export function Toaster() {
     </ToastProvider>
   )
 }
+
