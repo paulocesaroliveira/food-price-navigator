@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Eye, EyeOff, Shield, Mail, Lock } from "lucide-react";
 import { useSecureAuth } from "@/hooks/useSecureAuth";
 import { useNavigate } from "react-router-dom";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
-import { InputSanitizer } from "./InputSanitizer";
+import { sanitizeEmail } from "./InputSanitizer";
 import { useRateLimit } from "@/hooks/useRateLimit";
 
 const SecureAuthForm: React.FC = () => {
@@ -28,6 +29,10 @@ const SecureAuthForm: React.FC = () => {
     message: "Muitas tentativas de login. Tente novamente em 15 minutos."
   });
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitizedEmail = sanitizeEmail(e.target.value);
+    setEmail(sanitizedEmail);
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,11 +106,11 @@ const SecureAuthForm: React.FC = () => {
                 <Mail className="h-4 w-4" />
                 Email
               </label>
-              <InputSanitizer
+              <Input
                 type="email"
                 placeholder="seu@email.com"
                 value={email}
-                onChange={setEmail}
+                onChange={handleEmailChange}
                 required
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
