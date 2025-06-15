@@ -6,7 +6,7 @@ interface RateLimiterProps {
 }
 
 export const RateLimiter: React.FC<RateLimiterProps> = ({ children }) => {
-  // This component is just a wrapper - no logic needed here
-  // Rate limiting logic should be handled in the components that need it
+  // Este componente é apenas um wrapper simples - sem lógica
+  // A lógica de rate limiting é tratada pelos hooks específicos nos componentes que precisam
   return <>{children}</>;
 };
