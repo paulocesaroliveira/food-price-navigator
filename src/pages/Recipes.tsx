@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, ChefHat, Package, DollarSign } from "lucide-react";
+import { Search, Plus, ChefHat, Package, DollarSign, Edit, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RecipesGrid } from "@/components/recipes/RecipesGrid";
 import { RecipeCategoryDialog } from "@/components/recipes/RecipeCategoryDialog";
@@ -184,21 +183,23 @@ const Recipes = () => {
               </div>
               <div className="flex space-x-2 ml-4">
                 <Button
-                  size="sm"
+                  size="icon"
                   variant="outline"
                   onClick={() => handleEdit(recipe)}
                   disabled={deletingRecipeId === recipe.id}
                 >
-                  Editar
+                  <Edit className="h-4 w-4" />
+                  <span className="sr-only">Editar</span>
                 </Button>
                 <Button
-                  size="sm"
+                  size="icon"
                   variant="outline"
                   onClick={() => handleDelete(recipe.id)}
                   disabled={deletingRecipeId === recipe.id}
                   className="text-red-500 hover:text-red-700"
                 >
-                  {deletingRecipeId === recipe.id ? "Excluindo..." : "Excluir"}
+                  {deletingRecipeId === recipe.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  <span className="sr-only">Excluir</span>
                 </Button>
               </div>
             </div>

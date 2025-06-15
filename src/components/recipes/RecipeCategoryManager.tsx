@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -136,11 +135,12 @@ export const RecipeCategoryManager: React.FC<RecipeCategoryManagerProps> = ({
                     <span>{category.name}</span>
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={() => handleDeleteCategory(category.id)}
                       className="text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Excluir</span>
                     </Button>
                   </div>
                 ))}

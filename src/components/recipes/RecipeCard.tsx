@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -69,18 +68,17 @@ export function RecipeCard({ recipe, onEdit, onDelete, isDeleting = false }: Rec
         <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
             onClick={() => onEdit(recipe)}
-            className="w-full sm:w-auto"
           >
-            <Edit className="mr-2 h-4 w-4" />
-            Editar
+            <Edit className="h-4 w-4" />
+            <span className="sr-only">Editar</span>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Excluir
+              <Button variant="outline" size="icon">
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Excluir</span>
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

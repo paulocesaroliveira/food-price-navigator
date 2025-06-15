@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Package, DollarSign } from "lucide-react";
+import { Search, Plus, Package, DollarSign, Edit, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { IngredientForm } from "@/components/ingredients/IngredientForm";
 import { CategoryDialog } from "@/components/ingredients/CategoryDialog";
@@ -189,22 +189,23 @@ const Ingredients = () => {
                 </div>
                 <div className="flex space-x-2 pt-2">
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="outline"
                     onClick={() => handleEdit(ingredient)}
                     disabled={deletingIngredientId === ingredient.id}
-                    className="flex-1"
                   >
-                    Editar
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Editar</span>
                   </Button>
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="outline"
                     onClick={() => handleDelete(ingredient.id)}
                     disabled={deletingIngredientId === ingredient.id}
                     className="text-destructive hover:text-destructive"
                   >
-                    {deletingIngredientId === ingredient.id ? "..." : "Excluir"}
+                    {deletingIngredientId === ingredient.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    <span className="sr-only">Excluir</span>
                   </Button>
                 </div>
               </div>
@@ -276,22 +277,24 @@ const Ingredients = () => {
                 </div>
                 <div className="flex space-x-2">
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="outline"
                     onClick={() => handleEdit(ingredient)}
                     disabled={deletingIngredientId === ingredient.id}
-                    className="flex-1 text-xs h-8"
+                    className="h-8 w-8"
                   >
-                    Editar
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Editar</span>
                   </Button>
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="outline"
                     onClick={() => handleDelete(ingredient.id)}
                     disabled={deletingIngredientId === ingredient.id}
-                    className="text-destructive hover:text-destructive text-xs h-8"
+                    className="text-destructive hover:text-destructive h-8 w-8"
                   >
-                    {deletingIngredientId === ingredient.id ? "..." : "Excluir"}
+                    {deletingIngredientId === ingredient.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    <span className="sr-only">Excluir</span>
                   </Button>
                 </div>
               </div>
@@ -327,21 +330,23 @@ const Ingredients = () => {
                 </div>
                 <div className="flex space-x-2 ml-4">
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="outline"
                     onClick={() => handleEdit(ingredient)}
                     disabled={deletingIngredientId === ingredient.id}
                   >
-                    Editar
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Editar</span>
                   </Button>
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="outline"
                     onClick={() => handleDelete(ingredient.id)}
                     disabled={deletingIngredientId === ingredient.id}
                     className="text-destructive hover:text-destructive"
                   >
-                    {deletingIngredientId === ingredient.id ? "..." : "Excluir"}
+                    {deletingIngredientId === ingredient.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    <span className="sr-only">Excluir</span>
                   </Button>
                 </div>
               </div>
