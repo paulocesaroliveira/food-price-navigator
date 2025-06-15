@@ -24,7 +24,7 @@ const SecureAuth = () => {
   const [authLoading, setAuthLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Rate limiting for auth attempts
+  // Rate limiting for auth attempts - using the hook directly
   const { checkRateLimit, isLimited, getRemainingTime } = useAuthRateLimit();
 
   if (loading) {
@@ -200,7 +200,6 @@ const SecureAuth = () => {
               )}
 
               <form onSubmit={handleAuth} className="space-y-4">
-                {/* Form fields remain the same as original */}
                 {isSignUp && (
                   <div className="space-y-4">
                     <div>
