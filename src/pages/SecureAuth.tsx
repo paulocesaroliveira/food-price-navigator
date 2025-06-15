@@ -25,7 +25,7 @@ const SecureAuth = () => {
   const [authLoading, setAuthLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Hook de rate limiting para autenticação
+  // Direct rate limiting without any wrapper component
   const { checkRateLimit, isLimited, getRemainingTime } = useAuthRateLimit();
 
   if (loading) {
