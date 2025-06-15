@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 
 interface RateLimitConfig {
@@ -14,6 +15,8 @@ interface RateLimitState {
 }
 
 export const useRateLimit = (key: string, config: RateLimitConfig) => {
+  console.log('useRateLimit called with key:', key, 'config:', config);
+  
   const [state, setState] = useState<RateLimitState>({
     attempts: 0,
     windowStart: Date.now(),
@@ -22,6 +25,7 @@ export const useRateLimit = (key: string, config: RateLimitConfig) => {
   });
 
   const checkLimit = useCallback(() => {
+    console.log('checkLimit called');
     const now = Date.now();
     const storageKey = `rate_limit_${key}`;
     
@@ -61,6 +65,7 @@ export const useRateLimit = (key: string, config: RateLimitConfig) => {
   }, [key, config]);
 
   const recordAttempt = useCallback(() => {
+    console.log('recordAttempt called');
     const now = Date.now();
     const storageKey = `rate_limit_${key}`;
     
@@ -90,6 +95,7 @@ export const useRateLimit = (key: string, config: RateLimitConfig) => {
   }, [state]);
 
   const reset = useCallback(() => {
+    console.log('reset called');
     const newState: RateLimitState = {
       attempts: 0,
       windowStart: Date.now(),
@@ -103,6 +109,7 @@ export const useRateLimit = (key: string, config: RateLimitConfig) => {
 
   // Initialize on mount
   useEffect(() => {
+    console.log('useRateLimit useEffect called');
     checkLimit();
   }, [checkLimit]);
 
@@ -117,6 +124,6 @@ export const useRateLimit = (key: string, config: RateLimitConfig) => {
   };
 };
 
-export const RateLimiter = ({ children }: { children: React.ReactNode }) => {
+export const RateLimiter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
