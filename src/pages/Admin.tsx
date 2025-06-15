@@ -1,258 +1,71 @@
 
-import React, { useState, lazy } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Shield, Users, Database, Settings, BarChart3, MessageSquare, Star } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings, Users, FileText, BarChart3, MessageSquare } from "lucide-react";
 import UserManagement from "@/components/admin/UserManagement";
+import NoticesList from "@/components/admin/NoticesList";
 import AnalyticsTab from "@/components/admin/AnalyticsTab";
 import SupportTicketsTab from "@/components/admin/SupportTicketsTab";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import FeedbackTab from "@/components/admin/FeedbackTab";
 
 const Admin = () => {
-  const [activeTab, setActiveTab] = useState("overview");
-
-  // Query para estatísticas do sistema
-  const { data: systemStats, isLoading } = useQuery({
-    queryKey: ['admin-system-stats'],
-    queryFn: async () => {
-      // Buscar número total de usuários
-      const { count: userCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-
-      // Buscar estatísticas básicas do sistema
-      const { count: totalIngredients } = await supabase
-        .from('ingredients')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: totalProducts } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: totalSales } = await supabase
-        .from('sales')
-        .select('*', { count: 'exact', head: true });
-
-      // Buscar tickets de suporte abertos
-      const { count: openTickets } = await supabase
-        .from('support_tickets')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['open', 'in_progress']);
-
-      // Buscar feedback pendente
-      const { count: pendingFeedback } = await supabase
-        .from('user_feedback')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      return {
-        activeUsers: userCount || 0,
-        totalIngredients: totalIngredients || 0,
-        totalProducts: totalProducts || 0,
-        totalSales: totalSales || 0,
-        openTickets: openTickets || 0,
-        pendingFeedback: pendingFeedback || 0
-      };
-    }
-  });
-
-  // Lazy load components
-  const NoticesList = lazy(() => import("@/components/admin/NoticesList"));
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold">Painel Administrativo</h1>
-        <p className="text-muted-foreground">
-          Gerencie usuários, monitore analytics, tickets de suporte e configurações do sistema
-        </p>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit overflow-x-auto">
-        <Button
-          variant={activeTab === "overview" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("overview")}
-        >
-          Visão Geral
-        </Button>
-        <Button
-          variant={activeTab === "users" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("users")}
-        >
-          <Users className="w-4 h-4 mr-2" />
-          Usuários
-        </Button>
-        <Button
-          variant={activeTab === "analytics" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("analytics")}
-        >
-          <BarChart3 className="w-4 h-4 mr-2" />
-          Analytics
-        </Button>
-        <Button
-          variant={activeTab === "support" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("support")}
-        >
-          <MessageSquare className="w-4 h-4 mr-2" />
-          Tickets {systemStats?.openTickets ? `(${systemStats.openTickets})` : ''}
-        </Button>
-        <Button
-          variant={activeTab === "notices" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("notices")}
-        >
-          <Shield className="w-4 h-4 mr-2" />
-          Avisos
-        </Button>
-      </div>
-
-      {/* Overview Tab */}
-      {activeTab === "overview" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{systemStats?.activeUsers || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                Total de usuários cadastrados
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tickets Abertos</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{systemStats?.openTickets || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                Tickets aguardando resposta
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Feedback Pendente</CardTitle>
-              <Star className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{systemStats?.pendingFeedback || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                Feedbacks para revisar
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sistema</CardTitle>
-              <Settings className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">Online</div>
-              <p className="text-xs text-muted-foreground">
-                Todos os serviços operacionais
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Segurança</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">OK</div>
-              <p className="text-xs text-muted-foreground">
-                RLS ativo e configurado
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Banco de Dados</CardTitle>
-              <Database className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">98%</div>
-              <p className="text-xs text-muted-foreground">
-                Performance otimizada
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Produtos Ativos</CardTitle>
-              <Database className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{systemStats?.totalProducts || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                Produtos cadastrados
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Vendas Totais</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{systemStats?.totalSales || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                Vendas registradas
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Users Management Tab */}
-      {activeTab === "users" && (
-        <UserManagement />
-      )}
-
-      {/* Analytics Tab */}
-      {activeTab === "analytics" && (
-        <AnalyticsTab />
-      )}
-
-      {/* Support Tickets Tab */}
-      {activeTab === "support" && (
-        <SupportTicketsTab />
-      )}
-
-      {/* Notices Management Tab */}
-      {activeTab === "notices" && (
-        <React.Suspense fallback={
-          <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div>
-        }>
-          <NoticesList />
-        </React.Suspense>
-      )}
+    <div className="container mx-auto p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-6 w-6" />
+            Painel Administrativo
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="users" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Usuários
+              </TabsTrigger>
+              <TabsTrigger value="notices" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Avisos
+              </TabsTrigger>
+              <TabsTrigger value="support" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Suporte
+              </TabsTrigger>
+              <TabsTrigger value="feedback" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Feedback
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Analytics
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="users" className="mt-6">
+              <UserManagement />
+            </TabsContent>
+            
+            <TabsContent value="notices" className="mt-6">
+              <NoticesList />
+            </TabsContent>
+            
+            <TabsContent value="support" className="mt-6">
+              <SupportTicketsTab />
+            </TabsContent>
+            
+            <TabsContent value="feedback" className="mt-6">
+              <FeedbackTab />
+            </TabsContent>
+            
+            <TabsContent value="analytics" className="mt-6">
+              <AnalyticsTab />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 };

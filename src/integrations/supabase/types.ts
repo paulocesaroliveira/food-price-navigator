@@ -374,6 +374,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          priority: string | null
           published_at: string | null
           status: string
           title: string
@@ -384,6 +385,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          priority?: string | null
           published_at?: string | null
           status?: string
           title: string
@@ -394,6 +396,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          priority?: string | null
           published_at?: string | null
           status?: string
           title?: string
@@ -1656,6 +1659,7 @@ export type Database = {
           category: string
           created_at: string
           description: string
+          has_admin_response: boolean | null
           id: string
           priority: string
           status: string
@@ -1667,6 +1671,7 @@ export type Database = {
           category?: string
           created_at?: string
           description: string
+          has_admin_response?: boolean | null
           id?: string
           priority?: string
           status?: string
@@ -1678,6 +1683,7 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string
+          has_admin_response?: boolean | null
           id?: string
           priority?: string
           status?: string
