@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -27,6 +26,7 @@ import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import Suporte from "./pages/Suporte";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,6 +68,7 @@ function App() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/help" element={<Help />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/suporte" element={<Suporte />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />

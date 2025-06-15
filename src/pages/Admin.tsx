@@ -2,10 +2,12 @@
 import React, { useState, lazy } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Users, Database, Settings, UserPlus } from "lucide-react";
+import { Shield, Users, Database, Settings, BarChart3, MessageSquare, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/components/admin/UserManagement";
+import AnalyticsTab from "@/components/admin/AnalyticsTab";
+import SupportTicketsTab from "@/components/admin/SupportTicketsTab";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const Admin = () => {
@@ -33,16 +35,30 @@ const Admin = () => {
         .from('sales')
         .select('*', { count: 'exact', head: true });
 
+      // Buscar tickets de suporte abertos
+      const { count: openTickets } = await supabase
+        .from('support_tickets')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['open', 'in_progress']);
+
+      // Buscar feedback pendente
+      const { count: pendingFeedback } = await supabase
+        .from('user_feedback')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
       return {
         activeUsers: userCount || 0,
         totalIngredients: totalIngredients || 0,
         totalProducts: totalProducts || 0,
-        totalSales: totalSales || 0
+        totalSales: totalSales || 0,
+        openTickets: openTickets || 0,
+        pendingFeedback: pendingFeedback || 0
       };
     }
   });
 
-  // Novo: lazy load Notices para evitar bundle grande
+  // Lazy load components
   const NoticesList = lazy(() => import("@/components/admin/NoticesList"));
 
   if (isLoading) {
@@ -58,12 +74,12 @@ const Admin = () => {
       <div>
         <h1 className="text-3xl font-bold">Painel Administrativo</h1>
         <p className="text-muted-foreground">
-          Gerencie usuários, avisos e configurações do sistema
+          Gerencie usuários, monitore analytics, tickets de suporte e configurações do sistema
         </p>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
+      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit overflow-x-auto">
         <Button
           variant={activeTab === "overview" ? "default" : "ghost"}
           size="sm"
@@ -78,6 +94,22 @@ const Admin = () => {
         >
           <Users className="w-4 h-4 mr-2" />
           Usuários
+        </Button>
+        <Button
+          variant={activeTab === "analytics" ? "default" : "ghost"}
+          size="sm"
+          onClick={() => setActiveTab("analytics")}
+        >
+          <BarChart3 className="w-4 h-4 mr-2" />
+          Analytics
+        </Button>
+        <Button
+          variant={activeTab === "support" ? "default" : "ghost"}
+          size="sm"
+          onClick={() => setActiveTab("support")}
+        >
+          <MessageSquare className="w-4 h-4 mr-2" />
+          Tickets {systemStats?.openTickets ? `(${systemStats.openTickets})` : ''}
         </Button>
         <Button
           variant={activeTab === "notices" ? "default" : "ghost"}
@@ -101,6 +133,45 @@ const Admin = () => {
               <div className="text-2xl font-bold">{systemStats?.activeUsers || 0}</div>
               <p className="text-xs text-muted-foreground">
                 Total de usuários cadastrados
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tickets Abertos</CardTitle>
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">{systemStats?.openTickets || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Tickets aguardando resposta
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Feedback Pendente</CardTitle>
+              <Star className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{systemStats?.pendingFeedback || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Feedbacks para revisar
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Sistema</CardTitle>
+              <Settings className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">Online</div>
+              <p className="text-xs text-muted-foreground">
+                Todos os serviços operacionais
               </p>
             </CardContent>
           </Card>
@@ -133,13 +204,26 @@ const Admin = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sistema</CardTitle>
-              <Settings className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Produtos Ativos</CardTitle>
+              <Database className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">Online</div>
+              <div className="text-2xl font-bold">{systemStats?.totalProducts || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Todos os serviços operacionais
+                Produtos cadastrados
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Vendas Totais</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{systemStats?.totalSales || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Vendas registradas
               </p>
             </CardContent>
           </Card>
@@ -149,6 +233,16 @@ const Admin = () => {
       {/* Users Management Tab */}
       {activeTab === "users" && (
         <UserManagement />
+      )}
+
+      {/* Analytics Tab */}
+      {activeTab === "analytics" && (
+        <AnalyticsTab />
+      )}
+
+      {/* Support Tickets Tab */}
+      {activeTab === "support" && (
+        <SupportTicketsTab />
       )}
 
       {/* Notices Management Tab */}
