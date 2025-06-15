@@ -1,3 +1,4 @@
+
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -45,26 +46,28 @@ function App() {
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route element={<ProtectedRoute />}>
-              <Route element={<BlockedOnlyRoute />}>
-                <Route element={<AppLayout />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/products" element={<Products />} />
-                  <Route path="/ingredients" element={<Ingredients />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="/relatorios" element={<Relatorios />} />
-                  <Route path="/recipes" element={<Recipes />} />
-                  <Route path="/packaging" element={<Packaging />} />
-                  <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/sales" element={<Sales />} />
-                  <Route path="/customers" element={<Customers />} />
-                  <Route path="/resale" element={<Resale />} />
-                  <Route path="/accounts-payable" element={<AccountsPayable />} />
-                  <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
-                  <Route path="/cost-update" element={<CostUpdate />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/help" element={<Help />} />
-                  <Route path="/admin" element={<Admin />} />
-                </Route>
+              <Route element={
+                <BlockedOnlyRoute>
+                  <AppLayout />
+                </BlockedOnlyRoute>
+              }>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/ingredients" element={<Ingredients />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/recipes" element={<Recipes />} />
+                <Route path="/packaging" element={<Packaging />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/sales" element={<Sales />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/resale" element={<Resale />} />
+                <Route path="/accounts-payable" element={<AccountsPayable />} />
+                <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
+                <Route path="/cost-update" element={<CostUpdate />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/help" element={<Help />} />
+                <Route path="/admin" element={<Admin />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
