@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+
+import React, { useState, lazy } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Shield, Users, Database, Settings, UserPlus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/components/admin/UserManagement";
-import React, { lazy } from 'react';
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -43,7 +43,7 @@ const Admin = () => {
   });
 
   // Novo: lazy load Notices para evitar bundle grande
-  const NoticesList = React.lazy(() => import("@/components/admin/NoticesList"));
+  const NoticesList = lazy(() => import("@/components/admin/NoticesList"));
 
   if (isLoading) {
     return (
