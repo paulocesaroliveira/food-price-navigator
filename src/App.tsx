@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { SecurityProvider } from "@/components/SecurityProvider";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import BlockedOnlyRoute from "@/components/BlockedOnlyRoute";
+import { BlockedOnlyRoute } from "@/components/BlockedOnlyRoute";
 import AppLayout from "@/components/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
