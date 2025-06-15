@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +21,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Search, MoreHorizontal, Eye, User } from "lucide-react";
 import UserDetailsModal from "./UserDetailsModal";
+import { removeUserAndLog } from "@/services/adminUserService";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserData {
   id: string;
@@ -56,6 +58,8 @@ const UserManagement: React.FC = () => {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user: currentAdmin } = useAuth();
+  const { toast } = useToast();
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users'],
@@ -133,6 +137,16 @@ const UserManagement: React.FC = () => {
 
     setUserProfile(profile.data);
     setIsModalOpen(true);
+  };
+
+  const handlePermanentDelete = async (user: UserData) => {
+    if (!window.confirm(`Tem certeza que deseja remover permanentemente o usuário "${user.store_name}" (${user.email})? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await removeUserAndLog(user.id, currentAdmin?.id || "", "Remoção pelo painel Admin");
+      toast({ title: "Usuário removido permanentemente!" });
+    } catch (err: any) {
+      toast({ title: "Erro ao remover usuário", description: err.message, variant: "destructive" });
+    }
   };
 
   const filteredUsers = users?.filter(user => 
@@ -216,6 +230,13 @@ const UserManagement: React.FC = () => {
                           <DropdownMenuItem onClick={() => handleViewDetails(user)}>
                             <Eye className="mr-2 h-4 w-4" />
                             Ver Detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handlePermanentDelete(user)}
+                            className="text-red-600 focus:bg-red-100"
+                          >
+                            <User className="mr-2 h-4 w-4" />
+                            Remover Permanentemente
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

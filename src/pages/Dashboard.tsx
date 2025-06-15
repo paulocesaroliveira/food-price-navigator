@@ -1,144 +1,102 @@
-
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { 
-  Package, 
-  Utensils, 
-  ShoppingCart, 
-  BarChart3,
-  Plus,
-  TrendingUp,
-  Users,
-  DollarSign
-} from "lucide-react";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { DashboardStats, DashboardFilters } from "@/services/dashboard";
+import { getDashboardStats } from "@/services/dashboard/statsService";
+import { getRecentOrders } from "@/services/dashboard/ordersService";
+import { getSalesData } from "@/services/dashboard/salesService";
+import { useQuery } from "@tanstack/react-query";
+import { RecentOrders } from "@/components/dashboard/RecentOrders";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { SalesChart } from "@/components/dashboard/SalesChart";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { useState } from "react";
+import { StatusOverview } from "@/components/dashboard/StatusOverview";
+import DashboardNotices from "@/components/dashboard/DashboardNotices";
 
 const Dashboard = () => {
-  const navigate = useNavigate();
+  const [filters, setFilters] = useState<DashboardFilters>({
+    period: 'today',
+  });
 
-  const quickActions = [
-    {
-      title: "Produtos",
-      description: "Gerencie seus produtos",
-      icon: Package,
-      action: () => navigate("/products"),
-      color: "text-blue-600"
-    },
-    {
-      title: "Ingredientes", 
-      description: "Controle ingredientes",
-      icon: Utensils,
-      action: () => navigate("/ingredients"),
-      color: "text-green-600"
-    },
-    {
-      title: "Pedidos",
-      description: "Gerencie pedidos",
-      icon: ShoppingCart,
-      action: () => navigate("/orders"),
-      color: "text-orange-600"
-    },
-    {
-      title: "Relatórios",
-      description: "Veja relatórios",
-      icon: BarChart3,
-      action: () => navigate("/relatorios"),
-      color: "text-purple-600"
-    }
-  ];
+  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
+    queryKey: ['dashboard-stats', filters],
+    queryFn: () => getDashboardStats(filters),
+  });
 
-  const stats = [
-    {
-      title: "Total de Produtos",
-      value: "0",
-      icon: Package,
-      change: "+0%"
-    },
-    {
-      title: "Pedidos Hoje",
-      value: "0",
-      icon: ShoppingCart,
-      change: "+0%"
-    },
-    {
-      title: "Receita",
-      value: "R$ 0,00",
-      icon: DollarSign,
-      change: "+0%"
-    },
-    {
-      title: "Clientes",
-      value: "0",
-      icon: Users,
-      change: "+0%"
-    }
-  ];
+  const { data: recentOrders, isLoading: ordersLoading } = useQuery({
+    queryKey: ['recent-orders'],
+    queryFn: () => getRecentOrders(),
+  });
+
+  const { data: salesData, isLoading: salesLoading } = useQuery({
+    queryKey: ['sales-data', filters],
+    queryFn: () => getSalesData(filters),
+  });
+
+  const handlePeriodChange = (period: DashboardFilters['period']) => {
+    setFilters({ ...filters, period });
+  };
+
+  const handleCustomDateChange = (field: 'startDate' | 'endDate', value: string) => {
+    setFilters({ ...filters, period: 'custom', [field]: value });
+  };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Dashboard"
-        subtitle="Bem-vindo ao TastyHub - Gerencie seu negócio gastronômico"
-        icon={BarChart3}
-        gradient="from-blue-500 to-purple-600"
+    <div className="space-y-4 p-6">
+      <h1 className="text-3xl font-bold">Dashboard</h1>
+      <DashboardNotices />
+      <DashboardHeader
+        filters={filters}
+        onPeriodChange={handlePeriodChange}
+        onCustomDateChange={handleCustomDateChange}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index} className="stats-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground flex items-center">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                {stat.change} em relação ao mês passado
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {quickActions.map((action, index) => (
-          <Card key={index} className="cursor-pointer hover:shadow-lg transition-shadow card-hover" onClick={action.action}>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <action.icon className={`h-6 w-6 ${action.color}`} />
-                <span>{action.title}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">{action.description}</p>
-              <div className="mt-4">
-                <Button size="sm" className="w-full btn-gradient">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Acessar
-                </Button>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="col-span-1 md:col-span-2 lg:col-span-4">
+          <CardHeader>
+            <CardTitle>Visão Geral</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <div className="text-sm font-medium text-muted-foreground">
+                Receita Hoje
               </div>
-            </CardContent>
-          </Card>
-        ))}
+              <div className="text-2xl font-bold">
+                {statsLoading ? "Carregando..." : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats?.todayRevenue || 0)}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-medium text-muted-foreground">
+                Pedidos Hoje
+              </div>
+              <div className="text-2xl font-bold">{statsLoading ? "Carregando..." : stats?.todayOrders || 0}</div>
+            </div>
+            <div>
+              <div className="text-sm font-medium text-muted-foreground">
+                Receita da Semana
+              </div>
+              <div className="text-2xl font-bold">
+                {statsLoading ? "Carregando..." : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats?.weekRevenue || 0)}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-medium text-muted-foreground">
+                Pedidos da Semana
+              </div>
+              <div className="text-2xl font-bold">{statsLoading ? "Carregando..." : stats?.weekOrders || 0}</div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card className="custom-card">
-        <CardHeader>
-          <CardTitle>Atividade Recente</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-            <p>Nenhuma atividade recente</p>
-            <p className="text-sm">Comece criando seus primeiros produtos!</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <RecentOrders orders={recentOrders} isLoading={ordersLoading} />
+        <QuickActions />
+        <StatusOverview />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <SalesChart salesData={salesData} isLoading={salesLoading} />
+      </div>
     </div>
   );
 };

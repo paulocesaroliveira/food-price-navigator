@@ -1556,6 +1556,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_removal_log: {
+        Row: {
+          id: string
+          reason: string | null
+          removed_at: string | null
+          removed_by: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          reason?: string | null
+          removed_at?: string | null
+          removed_by: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          reason?: string | null
+          removed_at?: string | null
+          removed_by?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
