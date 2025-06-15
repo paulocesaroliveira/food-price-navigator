@@ -59,6 +59,7 @@ const UserManagement: React.FC = () => {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState<string | null>(null); // Track which user is being updated
   const { user: currentAdmin } = useAuth();
   const { toast } = useToast();
 
@@ -142,21 +143,51 @@ const UserManagement: React.FC = () => {
   };
 
   const handleBlockUnblock = async (user: UserData, block: boolean) => {
-    if (!window.confirm(
-      block 
-        ? `Deseja BLOQUEAR o usuário "${user.store_name}"? Ele só poderá acessar o dashboard.`
-        : `Deseja DESBLOQUEAR o usuário "${user.store_name}" e restaurar acesso normal?`
-    )) return;
+    const action = block ? "BLOQUEAR" : "DESBLOQUEAR";
+    const message = block 
+      ? `Deseja BLOQUEAR o usuário "${user.store_name}"? Ele só poderá acessar o dashboard.`
+      : `Deseja DESBLOQUEAR o usuário "${user.store_name}" e restaurar acesso normal?`;
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({ is_blocked: block })
-      .eq("id", user.id);
-    if (error) {
-      toast({ title: "Erro ao atualizar bloqueio", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: block ? "Usuário bloqueado" : "Usuário desbloqueado" });
-      refetch();
+    if (!window.confirm(message)) return;
+
+    setIsUpdating(user.id);
+    
+    try {
+      console.log(`${action} usuário:`, user.id, "Novo status:", block);
+      
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_blocked: block })
+        .eq("id", user.id);
+        
+      if (error) {
+        console.error("Erro ao atualizar bloqueio:", error);
+        toast({ 
+          title: "Erro ao atualizar bloqueio", 
+          description: error.message, 
+          variant: "destructive" 
+        });
+      } else {
+        const successMessage = block ? "Usuário bloqueado com sucesso!" : "Usuário desbloqueado com sucesso!";
+        toast({ 
+          title: successMessage,
+          description: block 
+            ? "O usuário só poderá acessar o dashboard"
+            : "O usuário tem acesso completo ao sistema"
+        });
+        
+        // Força atualização da lista
+        await refetch();
+      }
+    } catch (err: any) {
+      console.error("Erro inesperado:", err);
+      toast({ 
+        title: "Erro inesperado", 
+        description: err.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsUpdating(null);
     }
   };
 
@@ -249,8 +280,16 @@ const UserManagement: React.FC = () => {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
+                          <Button 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0"
+                            disabled={isUpdating === user.id}
+                          >
+                            {isUpdating === user.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                            ) : (
+                              <MoreHorizontal className="h-4 w-4" />
+                            )}
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -261,7 +300,8 @@ const UserManagement: React.FC = () => {
                           {user.is_blocked ? (
                             <DropdownMenuItem
                               onClick={() => handleBlockUnblock(user, false)}
-                              className="text-yellow-600"
+                              className="text-green-600"
+                              disabled={isUpdating === user.id}
                             >
                               Desbloquear Usuário
                             </DropdownMenuItem>
@@ -269,6 +309,7 @@ const UserManagement: React.FC = () => {
                             <DropdownMenuItem
                               onClick={() => handleBlockUnblock(user, true)}
                               className="text-red-600"
+                              disabled={isUpdating === user.id}
                             >
                               Bloquear Usuário
                             </DropdownMenuItem>
@@ -276,6 +317,7 @@ const UserManagement: React.FC = () => {
                           <DropdownMenuItem
                             onClick={() => handlePermanentDelete(user)}
                             className="text-red-600 focus:bg-red-100"
+                            disabled={isUpdating === user.id}
                           >
                             <User className="mr-2 h-4 w-4" />
                             Remover Permanentemente

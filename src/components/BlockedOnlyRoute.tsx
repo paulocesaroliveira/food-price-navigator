@@ -4,19 +4,32 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useProfileBlocked } from "@/hooks/useProfileBlocked";
 
 /**
- * Componente que só permite acesso ao Dashboard se o usuário estiver bloqueado,
- * e redireciona para dashboard quaisquer outras rotas tentadas.
+ * Componente que gerencia o acesso baseado no status de bloqueio do usuário.
+ * - Se bloqueado: só pode acessar /dashboard
+ * - Se não bloqueado: acesso normal a todas as rotas
  */
 export const BlockedOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isBlocked, loading } = useProfileBlocked();
   const location = useLocation();
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div></div>;
-
-  // Se bloqueado, só pode acessar /dashboard
-  if (isBlocked && location.pathname !== "/dashboard") {
-    return <Navigate to="/dashboard" replace />;
+  // Mostrar loading enquanto verifica o status
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
+  // Se o usuário está bloqueado
+  if (isBlocked) {
+    // Só permite acesso ao dashboard
+    if (location.pathname !== "/dashboard") {
+      console.log("Usuário bloqueado tentando acessar:", location.pathname, "- Redirecionando para /dashboard");
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  // Se não está bloqueado ou está acessando o dashboard (permitido para bloqueados), renderiza os filhos
   return <>{children}</>;
 };

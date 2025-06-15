@@ -4,28 +4,47 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 /**
- * Hook para saber se o usuário está bloqueado.
+ * Hook para verificar se o usuário está bloqueado.
+ * Atualiza automaticamente quando o status muda.
  */
 export function useProfileBlocked() {
   const { user, loading } = useAuth();
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ["profile-blocked", user?.id],
     enabled: !!user,
+    staleTime: 30 * 1000, // Cache por 30 segundos
+    refetchInterval: 60 * 1000, // Revalida a cada minuto
     queryFn: async () => {
       if (!user) return null;
+      
+      console.log("Verificando status de bloqueio para usuário:", user.id);
+      
       const { data, error } = await supabase
         .from("profiles")
         .select("is_blocked")
         .eq("id", user.id)
         .single();
-      if (error) throw new Error(error.message);
+        
+      if (error) {
+        console.error("Erro ao verificar status de bloqueio:", error);
+        throw new Error(error.message);
+      }
+      
+      console.log("Status de bloqueio obtido:", data);
       return data;
     }
   });
 
+  // Função para forçar atualização (útil após mudanças admin)
+  const refreshBlockedStatus = () => {
+    console.log("Forçando atualização do status de bloqueio");
+    refetch();
+  };
+
   return {
     isBlocked: !!profile?.is_blocked,
     loading: loading || isLoading,
+    refreshBlockedStatus,
   };
 }
