@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,8 @@ import { Shield, Users, Database, Settings, UserPlus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/components/admin/UserManagement";
+import React, { lazy } from 'react';
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -41,6 +42,9 @@ const Admin = () => {
     }
   });
 
+  // Novo: lazy load Notices para evitar bundle grande
+  const NoticesList = React.lazy(() => import("@/components/admin/NoticesList"));
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -54,7 +58,7 @@ const Admin = () => {
       <div>
         <h1 className="text-3xl font-bold">Painel Administrativo</h1>
         <p className="text-muted-foreground">
-          Gerencie usuários e configurações do sistema
+          Gerencie usuários, avisos e configurações do sistema
         </p>
       </div>
 
@@ -74,6 +78,14 @@ const Admin = () => {
         >
           <Users className="w-4 h-4 mr-2" />
           Usuários
+        </Button>
+        <Button
+          variant={activeTab === "notices" ? "default" : "ghost"}
+          size="sm"
+          onClick={() => setActiveTab("notices")}
+        >
+          <Shield className="w-4 h-4 mr-2" />
+          Avisos
         </Button>
       </div>
 
@@ -137,6 +149,15 @@ const Admin = () => {
       {/* Users Management Tab */}
       {activeTab === "users" && (
         <UserManagement />
+      )}
+
+      {/* Notices Management Tab */}
+      {activeTab === "notices" && (
+        <React.Suspense fallback={
+          <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div>
+        }>
+          <NoticesList />
+        </React.Suspense>
       )}
     </div>
   );
