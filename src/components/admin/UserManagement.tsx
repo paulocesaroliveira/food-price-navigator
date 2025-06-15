@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Search, MoreHorizontal, Eye, User } from "lucide-react";
+import { Search, MoreHorizontal, Eye, User, UserX, UserCheck } from "lucide-react";
 import UserDetailsModal from "./UserDetailsModal";
 import { removeUserAndLog } from "@/services/adminUserService";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,7 +34,7 @@ interface UserData {
   salesCount: number;
   productsCount: number;
   ordersCount: number;
-  is_blocked?: boolean; // Add support
+  is_blocked?: boolean;
 }
 
 interface UserStats {
@@ -59,23 +60,29 @@ const UserManagement: React.FC = () => {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isUpdating, setIsUpdating] = useState<string | null>(null); // Track which user is being updated
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const { user: currentAdmin } = useAuth();
   const { toast } = useToast();
 
   const { data: users, isLoading, refetch } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
+      console.log("Buscando usuários...");
+      
       // Buscar usuários com informações básicas, incluindo bloqueio
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, store_name, created_at, is_blocked')
         .order('created_at', { ascending: false });
 
+      if (profilesError) {
+        console.error("Erro ao buscar profiles:", profilesError);
+        throw profilesError;
+      }
+
       if (!profiles) return [];
 
       // Buscar emails dos usuários (apenas admins podem ver)
-      const userIds = profiles.map(p => p.id);
       const { data: authUsersResponse } = await supabase.auth.admin.listUsers();
       const authUsers: AuthUser[] = authUsersResponse?.users || [];
       
@@ -99,11 +106,12 @@ const UserManagement: React.FC = () => {
             salesCount: salesResult.count || 0,
             productsCount: productsResult.count || 0,
             ordersCount: ordersResult.count || 0,
-            is_blocked: profile.is_blocked, // Novo campo
+            is_blocked: !!profile.is_blocked, // Garantir que seja boolean
           };
         })
       );
 
+      console.log("Usuários carregados:", usersWithStats);
       return usersWithStats;
     }
   });
@@ -153,12 +161,15 @@ const UserManagement: React.FC = () => {
     setIsUpdating(user.id);
     
     try {
-      console.log(`${action} usuário:`, user.id, "Novo status:", block);
+      console.log(`Tentando ${action} usuário:`, user.id, "Novo status de bloqueio:", block);
       
-      const { error } = await supabase
+      // Atualizar o status de bloqueio no banco
+      const { data, error } = await supabase
         .from("profiles")
         .update({ is_blocked: block })
-        .eq("id", user.id);
+        .eq("id", user.id)
+        .select('is_blocked')
+        .single();
         
       if (error) {
         console.error("Erro ao atualizar bloqueio:", error);
@@ -167,20 +178,25 @@ const UserManagement: React.FC = () => {
           description: error.message, 
           variant: "destructive" 
         });
-      } else {
-        const successMessage = block ? "Usuário bloqueado com sucesso!" : "Usuário desbloqueado com sucesso!";
-        toast({ 
-          title: successMessage,
-          description: block 
-            ? "O usuário só poderá acessar o dashboard"
-            : "O usuário tem acesso completo ao sistema"
-        });
-        
-        // Força atualização da lista
-        await refetch();
+        return;
       }
+
+      console.log("Resultado da atualização:", data);
+      
+      const successMessage = block ? "Usuário bloqueado com sucesso!" : "Usuário desbloqueado com sucesso!";
+      toast({ 
+        title: successMessage,
+        description: block 
+          ? "O usuário só poderá acessar o dashboard"
+          : "O usuário tem acesso completo ao sistema"
+      });
+      
+      // Força atualização da lista de usuários
+      console.log("Forçando atualização da lista...");
+      await refetch();
+      
     } catch (err: any) {
-      console.error("Erro inesperado:", err);
+      console.error("Erro inesperado ao bloquear/desbloquear:", err);
       toast({ 
         title: "Erro inesperado", 
         description: err.message, 
@@ -193,11 +209,16 @@ const UserManagement: React.FC = () => {
 
   const handlePermanentDelete = async (user: UserData) => {
     if (!window.confirm(`Tem certeza que deseja remover permanentemente o usuário "${user.store_name}" (${user.email})? Esta ação não pode ser desfeita.`)) return;
+    
+    setIsUpdating(user.id);
     try {
       await removeUserAndLog(user.id, currentAdmin?.id || "", "Remoção pelo painel Admin");
       toast({ title: "Usuário removido permanentemente!" });
+      await refetch();
     } catch (err: any) {
       toast({ title: "Erro ao remover usuário", description: err.message, variant: "destructive" });
+    } finally {
+      setIsUpdating(null);
     }
   };
 
@@ -273,9 +294,17 @@ const UserManagement: React.FC = () => {
                       <Badge variant="outline">{user.ordersCount}</Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      {user.is_blocked 
-                        ? <Badge className="bg-red-600 text-white">Sim</Badge>
-                        : <Badge variant="secondary">Não</Badge>}
+                      {user.is_blocked ? (
+                        <Badge className="bg-red-600 text-white">
+                          <UserX className="w-3 h-3 mr-1" />
+                          Sim
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-green-100 text-green-800">
+                          <UserCheck className="w-3 h-3 mr-1" />
+                          Não
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -303,6 +332,7 @@ const UserManagement: React.FC = () => {
                               className="text-green-600"
                               disabled={isUpdating === user.id}
                             >
+                              <UserCheck className="mr-2 h-4 w-4" />
                               Desbloquear Usuário
                             </DropdownMenuItem>
                           ) : (
@@ -311,6 +341,7 @@ const UserManagement: React.FC = () => {
                               className="text-red-600"
                               disabled={isUpdating === user.id}
                             >
+                              <UserX className="mr-2 h-4 w-4" />
                               Bloquear Usuário
                             </DropdownMenuItem>
                           )}
@@ -345,5 +376,3 @@ const UserManagement: React.FC = () => {
 };
 
 export default UserManagement;
-
-// AVISO: Esse arquivo está chegando a 300+ linhas. Considere pedir refatoração após esta entrega!

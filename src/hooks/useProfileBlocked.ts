@@ -13,8 +13,9 @@ export function useProfileBlocked() {
   const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ["profile-blocked", user?.id],
     enabled: !!user,
-    staleTime: 30 * 1000, // Cache por 30 segundos
-    refetchInterval: 60 * 1000, // Revalida a cada minuto
+    staleTime: 10 * 1000, // Cache por 10 segundos (reduzido para detectar mudanças mais rápido)
+    refetchInterval: 30 * 1000, // Revalida a cada 30 segundos
+    refetchOnWindowFocus: true, // Revalida quando a janela ganha foco
     queryFn: async () => {
       if (!user) return null;
       
