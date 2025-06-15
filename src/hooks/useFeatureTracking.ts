@@ -21,11 +21,12 @@ export const useFeatureTracking = () => {
           action
         }]);
     } catch (error) {
-      console.error('Error tracking feature usage:', error);
+      // Silently fail to avoid breaking the app
+      console.debug('Feature tracking error:', error);
     }
   };
 
-  const trackError = async (error: Error, context?: any) => {
+  const trackError = async (error: Error) => {
     if (!user) return;
     
     try {
@@ -39,7 +40,7 @@ export const useFeatureTracking = () => {
           user_agent: navigator.userAgent
         }]);
     } catch (err) {
-      console.error('Error logging error:', err);
+      console.debug('Error logging failed:', err);
     }
   };
 

@@ -12,9 +12,10 @@ import { getDashboardStats } from "@/services/dashboard/statsService";
 import { getRecentOrders } from "@/services/dashboard/ordersService";
 import { getSalesData } from "@/services/dashboard/salesService";
 import { useQuery } from "@tanstack/react-query";
-import { useProfileBlocked } from "@/hooks/useProfileBlocked";
+import { useAuth } from "@/hooks/useAuth";
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [filters, setFilters] = useState<DashboardFilters>({
     period: 'today',
   });
@@ -42,8 +43,36 @@ const Dashboard = () => {
     setFilters({ ...filters, period: 'custom', [field]: value });
   };
 
-  // Novo: status de bloqueio
-  const { isBlocked } = useProfileBlocked();
+  // Check if user profile is blocked
+  const [isBlocked, setIsBlocked] = useState(false);
+
+  React.useEffect(() => {
+    const checkBlockedStatus = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_blocked')
+          .eq('id', user.id)
+          .single();
+        
+        setIsBlocked(profile?.is_blocked || false);
+      } catch (error) {
+        console.error('Error checking blocked status:', error);
+      }
+    };
+
+    checkBlockedStatus();
+  }, [user]);
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 p-6">

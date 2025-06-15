@@ -3,12 +3,10 @@ import React, { Component, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error?: Error;
-  errorInfo?: React.ErrorInfo;
 }
 
 interface ErrorBoundaryProps {
@@ -33,57 +31,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     
-    // Log to security audit
-    this.logSecurityEvent(error, errorInfo);
-    
     // Call custom error handler if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
-
-    this.setState({
-      error,
-      errorInfo
-    });
-
-    // Show toast notification
-    toast({
-      title: "Erro inesperado",
-      description: "Algo deu errado. Nossa equipe foi notificada.",
-      variant: "destructive",
-    });
   }
 
-  private logSecurityEvent = async (error: Error, errorInfo: React.ErrorInfo) => {
-    try {
-      // Log critical errors for security monitoring
-      const errorData = {
-        message: error.message,
-        stack: error.stack,
-        componentStack: errorInfo.componentStack,
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
-        url: window.location.href
-      };
-
-      console.error('Critical Error:', errorData);
-      
-      // In production, send to monitoring service
-      if (process.env.NODE_ENV === 'production') {
-        // Integration with monitoring service would go here
-      }
-    } catch (logError) {
-      console.error('Failed to log error:', logError);
-    }
-  };
-
   private handleReload = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
     window.location.reload();
   };
 
   private handleRetry = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+    this.setState({ hasError: false, error: undefined });
   };
 
   render() {
@@ -105,21 +64,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </CardHeader>
             <CardContent className="text-center space-y-4">
               <p className="text-gray-600">
-                Encontramos um erro inesperado. Nossa equipe foi notificada e está trabalhando para corrigi-lo.
+                Encontramos um erro inesperado. Tente recarregar a página.
               </p>
-              
-              {process.env.NODE_ENV === 'development' && this.state.error && (
-                <details className="text-left mt-4 p-3 bg-gray-100 rounded text-xs">
-                  <summary className="cursor-pointer font-medium text-red-600 mb-2">
-                    Detalhes do erro (desenvolvimento)
-                  </summary>
-                  <pre className="whitespace-pre-wrap overflow-auto">
-                    {this.state.error.message}
-                    {'\n\n'}
-                    {this.state.error.stack}
-                  </pre>
-                </details>
-              )}
               
               <div className="flex gap-3 justify-center">
                 <Button
