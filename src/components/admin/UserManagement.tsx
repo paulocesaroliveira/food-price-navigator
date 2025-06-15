@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -168,8 +167,7 @@ const UserManagement: React.FC = () => {
         .from("profiles")
         .update({ is_blocked: block })
         .eq("id", user.id)
-        .select('is_blocked')
-        .single();
+        .select('is_blocked');
         
       if (error) {
         console.error("Erro ao atualizar bloqueio:", error);
