@@ -13,6 +13,7 @@ import { getRecentOrders } from "@/services/dashboard/ordersService";
 import { getSalesData } from "@/services/dashboard/salesService";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -79,7 +80,7 @@ const Dashboard = () => {
       <h1 className="text-3xl font-bold">Dashboard</h1>
       {isBlocked && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-4 rounded-md mb-4 text-lg font-semibold text-center shadow">
-          <span>Seu acesso foi <b>bloqueado</b> pelo administrador do sistema.<br/>Atualmente você só pode visualizar o seu dashboard.</span>
+          <span>Seu acesso foi <b>bloqueado</b> pelo administrador do sistema.<br/>Atualmente você só pode visualizar o seu dashboard e acessar o suporte.</span>
         </div>
       )}
       <DashboardNotices />

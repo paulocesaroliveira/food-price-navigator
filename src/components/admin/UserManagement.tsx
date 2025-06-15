@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User } from "lucide-react";
+import { Users } from "lucide-react";
 import { UserManagementHeader } from "./user-management/UserManagementHeader";
 import { UserTable } from "./user-management/UserTable";
 import { useUserManagement } from "./user-management/useUserManagement";
@@ -19,6 +19,8 @@ const UserManagement: React.FC = () => {
     isUpdating,
     users,
     isLoading,
+    blockedCount,
+    activeCount,
     handleViewDetails,
     handleBlockUnblock,
     handlePermanentDelete
@@ -37,7 +39,7 @@ const UserManagement: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+            <Users className="h-5 w-5" />
             Gerenciamento de Usuários
           </CardTitle>
         </CardHeader>
@@ -46,6 +48,8 @@ const UserManagement: React.FC = () => {
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
             userCount={users.length}
+            blockedCount={blockedCount}
+            activeCount={activeCount}
           />
 
           <UserTable

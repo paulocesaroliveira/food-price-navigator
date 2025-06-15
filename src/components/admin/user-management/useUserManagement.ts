@@ -128,8 +128,8 @@ export const useUserManagement = () => {
   const handleBlockUnblock = async (user: UserData, block: boolean) => {
     const action = block ? "BLOQUEAR" : "DESBLOQUEAR";
     const message = block 
-      ? `Deseja BLOQUEAR o usuário "${user.store_name}"? Ele só poderá acessar o dashboard.`
-      : `Deseja DESBLOQUEAR o usuário "${user.store_name}" e restaurar acesso normal?`;
+      ? `🚫 Deseja BLOQUEAR o usuário "${user.store_name}"?\n\nAo bloquear:\n• O usuário só poderá acessar o dashboard\n• Terá acesso limitado apenas ao suporte\n• Será notificado sobre o bloqueio`
+      : `✅ Deseja DESBLOQUEAR o usuário "${user.store_name}"?\n\nAo desbloquear:\n• O usuário terá acesso completo ao sistema\n• Poderá usar todas as funcionalidades normalmente`;
 
     if (!window.confirm(message)) return;
 
@@ -140,7 +140,10 @@ export const useUserManagement = () => {
       
       const { data, error } = await supabase
         .from("profiles")
-        .update({ is_blocked: block })
+        .update({ 
+          is_blocked: block,
+          updated_at: new Date().toISOString()
+        })
         .eq("id", user.id)
         .select('is_blocked');
         
@@ -156,12 +159,16 @@ export const useUserManagement = () => {
 
       console.log("Resultado da atualização:", data);
       
-      const successMessage = block ? "Usuário bloqueado com sucesso!" : "Usuário desbloqueado com sucesso!";
+      const successMessage = block 
+        ? "🚫 Usuário bloqueado com sucesso!" 
+        : "✅ Usuário desbloqueado com sucesso!";
+      const description = block 
+        ? "O usuário foi notificado e terá acesso limitado"
+        : "O usuário tem acesso completo ao sistema";
+        
       toast({ 
         title: successMessage,
-        description: block 
-          ? "O usuário só poderá acessar o dashboard"
-          : "O usuário tem acesso completo ao sistema"
+        description: description
       });
       
       console.log("Forçando atualização da lista...");
@@ -180,15 +187,31 @@ export const useUserManagement = () => {
   };
 
   const handlePermanentDelete = async (user: UserData) => {
-    if (!window.confirm(`Tem certeza que deseja remover permanentemente o usuário "${user.store_name}" (${user.email})? Esta ação não pode ser desfeita.`)) return;
+    const confirmMessage = `⚠️ ATENÇÃO: REMOÇÃO PERMANENTE\n\nDeseja remover permanentemente o usuário "${user.store_name}" (${user.email})?\n\n❌ Esta ação é IRREVERSÍVEL e irá:\n• Deletar todos os dados do usuário\n• Remover todas as vendas, produtos e pedidos\n• Excluir a conta permanentemente\n\nDigite "CONFIRMAR" para prosseguir:`;
+    
+    const confirmation = window.prompt(confirmMessage);
+    if (confirmation !== "CONFIRMAR") {
+      toast({ 
+        title: "Remoção cancelada", 
+        description: "A remoção do usuário foi cancelada." 
+      });
+      return;
+    }
     
     setIsUpdating(user.id);
     try {
       await removeUserAndLog(user.id, currentAdmin?.id || "", "Remoção pelo painel Admin");
-      toast({ title: "Usuário removido permanentemente!" });
+      toast({ 
+        title: "✅ Usuário removido permanentemente!", 
+        description: "Todos os dados foram excluídos do sistema."
+      });
       await refetch();
     } catch (err: any) {
-      toast({ title: "Erro ao remover usuário", description: err.message, variant: "destructive" });
+      toast({ 
+        title: "Erro ao remover usuário", 
+        description: err.message, 
+        variant: "destructive" 
+      });
     } finally {
       setIsUpdating(null);
     }
@@ -198,6 +221,9 @@ export const useUserManagement = () => {
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.store_name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+
+  const blockedCount = filteredUsers.filter(user => user.is_blocked).length;
+  const activeCount = filteredUsers.length - blockedCount;
 
   return {
     searchTerm,
@@ -210,6 +236,8 @@ export const useUserManagement = () => {
     isUpdating,
     users: filteredUsers,
     isLoading,
+    blockedCount,
+    activeCount,
     handleViewDetails,
     handleBlockUnblock,
     handlePermanentDelete
