@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,7 @@ const SecureAuth = () => {
   const [authLoading, setAuthLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Rate limiting implementado diretamente aqui
+  // Hook de rate limiting para autenticação
   const { checkRateLimit, isLimited, getRemainingTime } = useAuthRateLimit();
 
   if (loading) {
