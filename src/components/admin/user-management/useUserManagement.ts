@@ -56,7 +56,7 @@ export const useUserManagement = () => {
   // Query para buscar usuários
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["admin-users"],
-    queryFn: async () => {
+    queryFn: async (): Promise<UserWithDetails[]> => {
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("*");
@@ -69,7 +69,7 @@ export const useUserManagement = () => {
       if (authError) throw authError;
 
       // Combinar dados e adicionar contadores
-      const usersWithEmails = await Promise.all(profiles.map(async (profile) => {
+      const usersWithEmails = await Promise.all((profiles as UserProfile[]).map(async (profile: UserProfile) => {
         const authUser = authUsers.users.find(u => u.id === profile.id);
         
         // Buscar estatísticas para cada usuário
