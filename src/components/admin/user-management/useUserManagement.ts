@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,25 +9,25 @@ interface UserProfile {
   created_at: string;
   updated_at: string;
   is_blocked: boolean;
-  avatar_url?: string;
-  store_name?: string;
-  phone?: string;
-  address?: string;
+  avatar_url?: string | null;
+  store_name?: string | null;
+  phone?: string | null;
+  address?: string | null;
 }
 
-interface UserRole {
+interface UserWithDetails {
   id: string;
-  user_id: string;
-  role: string;
-  created_at: string;
-}
-
-interface UserWithDetails extends UserProfile {
-  user_roles?: UserRole[];
   email: string;
+  created_at: string;
+  updated_at: string;
+  store_name?: string | null;
   salesCount: number;
   productsCount: number;
   ordersCount: number;
+  is_blocked: boolean;
+  phone?: string | null;
+  address?: string | null;
+  avatar_url?: string | null;
 }
 
 interface UserStats {
@@ -57,39 +58,83 @@ export const useUserManagement = () => {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async (): Promise<UserWithDetails[]> => {
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*");
+      try {
+        // Buscar perfis dos usuários
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("*");
 
-      if (profilesError) throw profilesError;
+        if (profilesError) {
+          console.error("Erro ao buscar perfis:", profilesError);
+          throw profilesError;
+        }
 
-      // Buscar emails dos usuários do auth
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) throw authError;
-
-      // Combinar dados e adicionar contadores
-      const usersWithEmails = await Promise.all((profiles as UserProfile[]).map(async (profile: UserProfile) => {
-        const authUser = authUsers.users.find(u => u.id === profile.id);
+        // Buscar emails dos usuários do auth
+        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
         
-        // Buscar estatísticas para cada usuário
-        const [salesData, productsData, ordersData] = await Promise.all([
-          supabase.from("sales").select("id").eq("user_id", profile.id),
-          supabase.from("products").select("id").eq("user_id", profile.id),
-          supabase.from("orders").select("id").eq("user_id", profile.id)
-        ]);
+        if (authError) {
+          console.error("Erro ao buscar usuários auth:", authError);
+          throw authError;
+        }
 
-        return {
-          ...profile,
-          email: authUser?.email || 'N/A',
-          salesCount: salesData.data?.length || 0,
-          productsCount: productsData.data?.length || 0,
-          ordersCount: ordersData.data?.length || 0,
-          user_roles: [] // Initialize as empty array to avoid query errors
-        } as UserWithDetails;
-      }));
+        // Validar se profiles existe e é um array
+        if (!profiles || !Array.isArray(profiles)) {
+          console.warn("Nenhum perfil encontrado ou dados inválidos");
+          return [];
+        }
 
-      return usersWithEmails;
+        // Combinar dados e adicionar contadores
+        const usersWithEmails: UserWithDetails[] = await Promise.all(
+          profiles.map(async (profile: UserProfile) => {
+            const authUser = authUsers.users.find(u => u.id === profile.id);
+            
+            try {
+              // Buscar estatísticas para cada usuário
+              const [salesData, productsData, ordersData] = await Promise.all([
+                supabase.from("sales").select("id").eq("user_id", profile.id),
+                supabase.from("products").select("id").eq("user_id", profile.id),
+                supabase.from("orders").select("id").eq("user_id", profile.id)
+              ]);
+
+              return {
+                id: profile.id,
+                email: authUser?.email || 'N/A',
+                created_at: profile.created_at,
+                updated_at: profile.updated_at,
+                store_name: profile.store_name,
+                phone: profile.phone,
+                address: profile.address,
+                avatar_url: profile.avatar_url,
+                is_blocked: profile.is_blocked,
+                salesCount: salesData.data?.length || 0,
+                productsCount: productsData.data?.length || 0,
+                ordersCount: ordersData.data?.length || 0,
+              };
+            } catch (error) {
+              console.error(`Erro ao buscar estatísticas para usuário ${profile.id}:`, error);
+              return {
+                id: profile.id,
+                email: authUser?.email || 'N/A',
+                created_at: profile.created_at,
+                updated_at: profile.updated_at,
+                store_name: profile.store_name,
+                phone: profile.phone,
+                address: profile.address,
+                avatar_url: profile.avatar_url,
+                is_blocked: profile.is_blocked,
+                salesCount: 0,
+                productsCount: 0,
+                ordersCount: 0,
+              };
+            }
+          })
+        );
+
+        return usersWithEmails;
+      } catch (error) {
+        console.error("Erro geral na query de usuários:", error);
+        throw error;
+      }
     }
   });
 
