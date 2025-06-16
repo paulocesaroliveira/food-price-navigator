@@ -59,8 +59,10 @@ export const useUserManagement = () => {
     queryKey: ["admin-users"],
     queryFn: async (): Promise<UserWithDetails[]> => {
       try {
+        console.log("Iniciando busca de usuários...");
+        
         // Buscar perfis dos usuários
-        const { data: profiles, error: profilesError } = await supabase
+        const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("*");
 
@@ -70,67 +72,74 @@ export const useUserManagement = () => {
         }
 
         // Buscar emails dos usuários do auth
-        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
         
         if (authError) {
           console.error("Erro ao buscar usuários auth:", authError);
           throw authError;
         }
 
-        // Validar se profiles existe e é um array
-        if (!profiles || !Array.isArray(profiles)) {
+        console.log("Perfis encontrados:", profilesData?.length || 0);
+        console.log("Usuários auth encontrados:", authData?.users?.length || 0);
+
+        // Validar se temos dados
+        if (!profilesData || !Array.isArray(profilesData)) {
           console.warn("Nenhum perfil encontrado ou dados inválidos");
           return [];
         }
 
+        if (!authData?.users || !Array.isArray(authData.users)) {
+          console.warn("Nenhum usuário auth encontrado ou dados inválidos");
+          return [];
+        }
+
         // Combinar dados e adicionar contadores
-        const usersWithEmails: UserWithDetails[] = await Promise.all(
-          profiles.map(async (profile: UserProfile) => {
-            const authUser = authUsers.users.find(u => u.id === profile.id);
+        const combinedUsers: UserWithDetails[] = [];
+
+        for (const profile of profilesData) {
+          try {
+            // Encontrar usuário correspondente no auth
+            const authUser = authData.users.find((user: any) => user.id === profile.id);
             
-            try {
-              // Buscar estatísticas para cada usuário
-              const [salesData, productsData, ordersData] = await Promise.all([
-                supabase.from("sales").select("id").eq("user_id", profile.id),
-                supabase.from("products").select("id").eq("user_id", profile.id),
-                supabase.from("orders").select("id").eq("user_id", profile.id)
-              ]);
-
-              return {
-                id: profile.id,
-                email: authUser?.email || 'N/A',
-                created_at: profile.created_at,
-                updated_at: profile.updated_at,
-                store_name: profile.store_name,
-                phone: profile.phone,
-                address: profile.address,
-                avatar_url: profile.avatar_url,
-                is_blocked: profile.is_blocked,
-                salesCount: salesData.data?.length || 0,
-                productsCount: productsData.data?.length || 0,
-                ordersCount: ordersData.data?.length || 0,
-              };
-            } catch (error) {
-              console.error(`Erro ao buscar estatísticas para usuário ${profile.id}:`, error);
-              return {
-                id: profile.id,
-                email: authUser?.email || 'N/A',
-                created_at: profile.created_at,
-                updated_at: profile.updated_at,
-                store_name: profile.store_name,
-                phone: profile.phone,
-                address: profile.address,
-                avatar_url: profile.avatar_url,
-                is_blocked: profile.is_blocked,
-                salesCount: 0,
-                productsCount: 0,
-                ordersCount: 0,
-              };
+            if (!authUser) {
+              console.warn(`Usuário auth não encontrado para perfil ${profile.id}`);
+              continue;
             }
-          })
-        );
 
-        return usersWithEmails;
+            // Buscar estatísticas para cada usuário
+            const [salesResult, productsResult, ordersResult] = await Promise.all([
+              supabase.from("sales").select("id").eq("user_id", profile.id),
+              supabase.from("products").select("id").eq("user_id", profile.id),
+              supabase.from("orders").select("id").eq("user_id", profile.id)
+            ]);
+
+            const userWithDetails: UserWithDetails = {
+              id: profile.id,
+              email: authUser.email || 'N/A',
+              created_at: profile.created_at,
+              updated_at: profile.updated_at,
+              store_name: profile.store_name,
+              phone: profile.phone,
+              address: profile.address,
+              avatar_url: profile.avatar_url,
+              is_blocked: profile.is_blocked,
+              salesCount: salesResult.data?.length || 0,
+              productsCount: productsResult.data?.length || 0,
+              ordersCount: ordersResult.data?.length || 0,
+            };
+
+            combinedUsers.push(userWithDetails);
+
+          } catch (error) {
+            console.error(`Erro ao processar usuário ${profile.id}:`, error);
+            // Continuar com o próximo usuário em caso de erro
+            continue;
+          }
+        }
+
+        console.log("Usuários processados com sucesso:", combinedUsers.length);
+        return combinedUsers;
+
       } catch (error) {
         console.error("Erro geral na query de usuários:", error);
         throw error;
