@@ -47,7 +47,7 @@ export const useUserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserWithDetails | null>(null);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserWithDetails | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -60,10 +60,7 @@ export const useUserManagement = () => {
     queryFn: async () => {
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select(`
-          *,
-          user_roles(*)
-        `);
+        .select("*");
 
       if (profilesError) throw profilesError;
 
@@ -88,7 +85,8 @@ export const useUserManagement = () => {
           email: authUser?.email || 'N/A',
           salesCount: salesData.data?.length || 0,
           productsCount: productsData.data?.length || 0,
-          ordersCount: ordersData.data?.length || 0
+          ordersCount: ordersData.data?.length || 0,
+          user_roles: [] // Initialize as empty array to avoid query errors
         };
       }));
 
