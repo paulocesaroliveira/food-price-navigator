@@ -5,23 +5,27 @@ import { Badge } from "@/components/ui/badge";
 import { UserX, UserCheck } from "lucide-react";
 import { UserActionsDropdown } from "./UserActionsDropdown";
 
-interface UserData {
+interface UserWithDetails {
   id: string;
   email: string;
   created_at: string;
-  store_name: string;
+  updated_at: string;
+  store_name?: string;
   salesCount: number;
   productsCount: number;
   ordersCount: number;
-  is_blocked?: boolean;
+  is_blocked: boolean;
+  phone?: string;
+  address?: string;
+  avatar_url?: string;
 }
 
 interface UserTableRowProps {
-  user: UserData;
+  user: UserWithDetails;
   isUpdating: boolean;
-  onViewDetails: (user: UserData) => void;
-  onBlockUnblock: (user: UserData) => void;
-  onPermanentDelete: (user: UserData) => void;
+  onViewDetails: (user: UserWithDetails) => void;
+  onBlockUnblock: (user: UserWithDetails) => void;
+  onPermanentDelete: (user: UserWithDetails) => void;
 }
 
 export const UserTableRow: React.FC<UserTableRowProps> = ({
@@ -34,7 +38,7 @@ export const UserTableRow: React.FC<UserTableRowProps> = ({
   return (
     <TableRow key={user.id}>
       <TableCell className="font-medium">
-        {user.store_name}
+        {user.store_name || 'N/A'}
       </TableCell>
       <TableCell>{user.email}</TableCell>
       <TableCell>

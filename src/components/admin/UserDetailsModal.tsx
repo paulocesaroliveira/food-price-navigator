@@ -33,22 +33,27 @@ interface UserStats {
   totalCustomers: number;
 }
 
+interface UserWithDetails {
+  id: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
+  store_name?: string;
+  salesCount: number;
+  productsCount: number;
+  ordersCount: number;
+  is_blocked: boolean;
+  phone?: string;
+  address?: string;
+  avatar_url?: string;
+}
+
 interface UserDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: {
-    id: string;
-    store_name: string;
-    created_at: string;
-    salesCount: number;
-    productsCount: number;
-    ordersCount: number;
-  } | null;
+  user: UserWithDetails | null;
   userStats: UserStats | null;
-  userProfile: {
-    store_name: string;
-    phone?: string;
-  } | null;
+  userProfile: UserWithDetails | null;
 }
 
 const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
@@ -150,7 +155,7 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                   <label className="text-sm font-medium text-gray-500">Telefone</label>
                   <p className="text-lg flex items-center gap-2">
                     <Phone className="h-4 w-4" />
-                    {userProfile?.phone || 'Não informado'}
+                    {userProfile?.phone || user.phone || 'Não informado'}
                   </p>
                 </div>
                 
@@ -195,11 +200,17 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
-                <Badge variant="default" className="bg-green-100 text-green-800">
-                  Ativo
-                </Badge>
+                {user.is_blocked ? (
+                  <Badge className="bg-red-600 text-white">
+                    Bloqueado
+                  </Badge>
+                ) : (
+                  <Badge variant="default" className="bg-green-100 text-green-800">
+                    Ativo
+                  </Badge>
+                )}
                 <span className="text-sm text-gray-600">
-                  Usuário com acesso completo ao sistema
+                  {user.is_blocked ? "Usuário com acesso limitado" : "Usuário com acesso completo ao sistema"}
                 </span>
               </div>
             </CardContent>

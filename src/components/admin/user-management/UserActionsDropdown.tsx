@@ -9,23 +9,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, User, UserX, UserCheck } from "lucide-react";
 
-interface UserData {
+interface UserWithDetails {
   id: string;
   email: string;
   created_at: string;
-  store_name: string;
+  updated_at: string;
+  store_name?: string;
   salesCount: number;
   productsCount: number;
   ordersCount: number;
-  is_blocked?: boolean;
+  is_blocked: boolean;
+  phone?: string;
+  address?: string;
+  avatar_url?: string;
 }
 
 interface UserActionsDropdownProps {
-  user: UserData;
+  user: UserWithDetails;
   isUpdating: boolean;
-  onViewDetails: (user: UserData) => void;
-  onBlockUnblock: (user: UserData) => void;
-  onPermanentDelete: (user: UserData) => void;
+  onViewDetails: (user: UserWithDetails) => void;
+  onBlockUnblock: (user: UserWithDetails) => void;
+  onPermanentDelete: (user: UserWithDetails) => void;
 }
 
 export const UserActionsDropdown: React.FC<UserActionsDropdownProps> = ({

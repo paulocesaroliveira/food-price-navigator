@@ -10,23 +10,27 @@ import {
 } from "@/components/ui/table";
 import { UserTableRow } from "./UserTableRow";
 
-interface UserData {
+interface UserWithDetails {
   id: string;
   email: string;
   created_at: string;
-  store_name: string;
+  updated_at: string;
+  store_name?: string;
   salesCount: number;
   productsCount: number;
   ordersCount: number;
-  is_blocked?: boolean;
+  is_blocked: boolean;
+  phone?: string;
+  address?: string;
+  avatar_url?: string;
 }
 
 interface UserTableProps {
-  users: UserData[];
+  users: UserWithDetails[];
   isUpdating: boolean;
-  onViewDetails: (user: UserData) => void;
-  onBlockUnblock: (user: UserData) => void;
-  onPermanentDelete: (user: UserData) => void;
+  onViewDetails: (user: UserWithDetails) => void;
+  onBlockUnblock: (user: UserWithDetails) => void;
+  onPermanentDelete: (user: UserWithDetails) => void;
 }
 
 export const UserTable: React.FC<UserTableProps> = ({

@@ -24,7 +24,7 @@ interface UserRole {
 
 interface UserWithDetails extends UserProfile {
   user_roles?: UserRole[];
-  email?: string;
+  email: string;
   salesCount: number;
   productsCount: number;
   ordersCount: number;
@@ -73,7 +73,7 @@ export const useUserManagement = () => {
       if (authError) throw authError;
 
       // Combinar dados e adicionar contadores
-      const usersWithEmails = await Promise.all(profiles.map(async (profile: any) => {
+      const usersWithEmails = await Promise.all(profiles.map(async (profile) => {
         const authUser = authUsers.users.find(u => u.id === profile.id);
         
         // Buscar estatísticas para cada usuário
