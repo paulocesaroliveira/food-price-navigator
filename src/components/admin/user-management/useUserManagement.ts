@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,10 +86,10 @@ export const useUserManagement = () => {
           productsCount: productsData.data?.length || 0,
           ordersCount: ordersData.data?.length || 0,
           user_roles: [] // Initialize as empty array to avoid query errors
-        };
+        } as UserWithDetails;
       }));
 
-      return usersWithEmails as UserWithDetails[];
+      return usersWithEmails;
     }
   });
 
