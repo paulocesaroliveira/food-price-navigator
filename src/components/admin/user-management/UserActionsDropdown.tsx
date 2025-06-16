@@ -24,7 +24,7 @@ interface UserActionsDropdownProps {
   user: UserData;
   isUpdating: boolean;
   onViewDetails: (user: UserData) => void;
-  onBlockUnblock: (user: UserData, block: boolean) => void;
+  onBlockUnblock: (user: UserData) => void;
   onPermanentDelete: (user: UserData) => void;
 }
 
@@ -57,7 +57,7 @@ export const UserActionsDropdown: React.FC<UserActionsDropdownProps> = ({
         </DropdownMenuItem>
         {user.is_blocked ? (
           <DropdownMenuItem
-            onClick={() => onBlockUnblock(user, false)}
+            onClick={() => onBlockUnblock(user)}
             className="text-green-600"
             disabled={isUpdating}
           >
@@ -66,7 +66,7 @@ export const UserActionsDropdown: React.FC<UserActionsDropdownProps> = ({
           </DropdownMenuItem>
         ) : (
           <DropdownMenuItem
-            onClick={() => onBlockUnblock(user, true)}
+            onClick={() => onBlockUnblock(user)}
             className="text-red-600"
             disabled={isUpdating}
           >

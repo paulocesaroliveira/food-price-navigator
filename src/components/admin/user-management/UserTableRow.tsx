@@ -18,9 +18,9 @@ interface UserData {
 
 interface UserTableRowProps {
   user: UserData;
-  isUpdating: string | null;
+  isUpdating: boolean;
   onViewDetails: (user: UserData) => void;
-  onBlockUnblock: (user: UserData, block: boolean) => void;
+  onBlockUnblock: (user: UserData) => void;
   onPermanentDelete: (user: UserData) => void;
 }
 
@@ -65,7 +65,7 @@ export const UserTableRow: React.FC<UserTableRowProps> = ({
       <TableCell className="text-right">
         <UserActionsDropdown
           user={user}
-          isUpdating={isUpdating === user.id}
+          isUpdating={isUpdating}
           onViewDetails={onViewDetails}
           onBlockUnblock={onBlockUnblock}
           onPermanentDelete={onPermanentDelete}

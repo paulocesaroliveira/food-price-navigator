@@ -23,9 +23,9 @@ interface UserData {
 
 interface UserTableProps {
   users: UserData[];
-  isUpdating: string | null;
+  isUpdating: boolean;
   onViewDetails: (user: UserData) => void;
-  onBlockUnblock: (user: UserData, block: boolean) => void;
+  onBlockUnblock: (user: UserData) => void;
   onPermanentDelete: (user: UserData) => void;
 }
 

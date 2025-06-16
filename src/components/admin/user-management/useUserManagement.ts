@@ -25,12 +25,22 @@ interface UserRole {
 interface UserWithDetails extends UserProfile {
   user_roles?: UserRole[];
   email?: string;
+  salesCount: number;
+  productsCount: number;
+  ordersCount: number;
 }
 
 interface UserStats {
   totalOrders: number;
   totalSpent: number;
   lastActivity: string;
+  totalIngredients: number;
+  totalRecipes: number;
+  totalPackaging: number;
+  totalProducts: number;
+  totalSales: number;
+  totalResales: number;
+  totalCustomers: number;
 }
 
 export const useUserManagement = () => {
@@ -62,14 +72,25 @@ export const useUserManagement = () => {
       
       if (authError) throw authError;
 
-      // Combinar dados
-      const usersWithEmails = profiles.map((profile: any) => {
+      // Combinar dados e adicionar contadores
+      const usersWithEmails = await Promise.all(profiles.map(async (profile: any) => {
         const authUser = authUsers.users.find(u => u.id === profile.id);
+        
+        // Buscar estatísticas para cada usuário
+        const [salesData, productsData, ordersData] = await Promise.all([
+          supabase.from("sales").select("id").eq("user_id", profile.id),
+          supabase.from("products").select("id").eq("user_id", profile.id),
+          supabase.from("orders").select("id").eq("user_id", profile.id)
+        ]);
+
         return {
           ...profile,
-          email: authUser?.email || 'N/A'
+          email: authUser?.email || 'N/A',
+          salesCount: salesData.data?.length || 0,
+          productsCount: productsData.data?.length || 0,
+          ordersCount: ordersData.data?.length || 0
         };
-      });
+      }));
 
       return usersWithEmails as UserWithDetails[];
     }
@@ -166,26 +187,27 @@ export const useUserManagement = () => {
     setSelectedUser(user);
     setUserProfile(user);
     
-    // Buscar estatísticas do usuário
+    // Buscar estatísticas detalhadas do usuário
     try {
-      const { data: orders } = await supabase
-        .from("orders")
-        .select("total_amount, created_at")
-        .eq("user_id", user.id);
+      const [orders, sales, ingredients, recipes, packaging, products, customers] = await Promise.all([
+        supabase.from("orders").select("total_amount, created_at").eq("user_id", user.id),
+        supabase.from("sales").select("total_amount, created_at").eq("user_id", user.id),
+        supabase.from("ingredients").select("id").eq("user_id", user.id),
+        supabase.from("recipes").select("id").eq("user_id", user.id),
+        supabase.from("packaging").select("id").eq("user_id", user.id),
+        supabase.from("products").select("id").eq("user_id", user.id),
+        supabase.from("customers").select("id").eq("user_id", user.id)
+      ]);
 
-      const { data: sales } = await supabase
-        .from("sales")
-        .select("total_amount, created_at")
-        .eq("user_id", user.id);
-
-      const totalOrders = (orders?.length || 0) + (sales?.length || 0);
-      const totalSpent = (orders?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0) +
-                        (sales?.reduce((sum, sale) => sum + (sale.total_amount || 0), 0) || 0);
+      const totalOrders = orders?.data?.length || 0;
+      const totalSales = sales?.data?.length || 0;
+      const totalSpent = (orders?.data?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0) +
+                        (sales?.data?.reduce((sum, sale) => sum + (sale.total_amount || 0), 0) || 0);
 
       // Última atividade (mais recente entre orders e sales)
       const allActivities = [
-        ...(orders?.map(o => o.created_at) || []),
-        ...(sales?.map(s => s.created_at) || [])
+        ...(orders?.data?.map(o => o.created_at) || []),
+        ...(sales?.data?.map(s => s.created_at) || [])
       ];
       const lastActivity = allActivities.length > 0 
         ? Math.max(...allActivities.map(date => new Date(date).getTime()))
@@ -194,14 +216,28 @@ export const useUserManagement = () => {
       setUserStats({
         totalOrders,
         totalSpent,
-        lastActivity: lastActivity ? new Date(lastActivity).toLocaleDateString('pt-BR') : 'Nunca'
+        lastActivity: lastActivity ? new Date(lastActivity).toLocaleDateString('pt-BR') : 'Nunca',
+        totalIngredients: ingredients?.data?.length || 0,
+        totalRecipes: recipes?.data?.length || 0,
+        totalPackaging: packaging?.data?.length || 0,
+        totalProducts: products?.data?.length || 0,
+        totalSales,
+        totalResales: 0, // Implementar quando houver tabela de revendas
+        totalCustomers: customers?.data?.length || 0
       });
     } catch (error) {
       console.error("Erro ao buscar estatísticas do usuário:", error);
       setUserStats({
         totalOrders: 0,
         totalSpent: 0,
-        lastActivity: 'Erro ao carregar'
+        lastActivity: 'Erro ao carregar',
+        totalIngredients: 0,
+        totalRecipes: 0,
+        totalPackaging: 0,
+        totalProducts: 0,
+        totalSales: 0,
+        totalResales: 0,
+        totalCustomers: 0
       });
     }
 
