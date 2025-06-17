@@ -16,7 +16,6 @@ import {
   Video,
   FileText,
   Users,
-  Zap,
   Search,
   ShoppingCart,
   Package,
@@ -26,9 +25,14 @@ import {
   ChefHat,
   DollarSign,
   Truck,
-  CreditCard,
   UserCheck,
-  PlayCircle
+  PlayCircle,
+  Lightbulb,
+  Zap,
+  Star,
+  CheckCircle2,
+  Clock,
+  Target
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 
@@ -39,49 +43,113 @@ const Help = () => {
     {
       title: "Primeiros Passos",
       icon: Zap,
-      color: "bg-blue-50 border-blue-200",
+      color: "from-blue-500 to-cyan-500",
       description: "Configure sua conta e comece a usar o TastyHub",
       topics: [
-        { title: "Configurando seu perfil", description: "Como preencher informações da sua loja" },
-        { title: "Cadastrando ingredientes", description: "Adicione ingredientes com preços e fornecedores" },
-        { title: "Criando receitas", description: "Monte receitas com ingredientes base e por porção" },
-        { title: "Configurando produtos", description: "Crie produtos usando suas receitas" }
+        { 
+          title: "Configurando seu perfil", 
+          description: "Como preencher informações da sua loja e dados pessoais",
+          steps: ["Acesse Configurações > Perfil", "Preencha nome da loja", "Adicione telefone e endereço", "Salve as alterações"]
+        },
+        { 
+          title: "Cadastrando ingredientes", 
+          description: "Adicione ingredientes com preços e fornecedores para cálculos precisos",
+          steps: ["Vá para Ingredientes", "Clique em Novo Ingrediente", "Preencha nome, preço e fornecedor", "Organize por categorias"]
+        },
+        { 
+          title: "Criando receitas", 
+          description: "Monte receitas com ingredientes base e por porção",
+          steps: ["Acesse Receitas", "Adicione ingredientes base (custos únicos)", "Adicione ingredientes por porção", "Defina número de porções"]
+        },
+        { 
+          title: "Configurando produtos", 
+          description: "Crie produtos usando suas receitas e defina preços de venda",
+          steps: ["Entre em Produtos", "Selecione receitas criadas", "Adicione embalagens", "Configure preço de venda"]
+        }
       ]
     },
     {
       title: "Gestão de Produtos",
       icon: Package,
-      color: "bg-green-50 border-green-200",
+      color: "from-green-500 to-emerald-500",
       description: "Controle completo dos seus produtos e receitas",
       topics: [
-        { title: "Calculadora de custos", description: "Como o sistema calcula custos automaticamente" },
-        { title: "Gerenciamento de ingredientes", description: "Organizar por categorias e fornecedores" },
-        { title: "Configuração de embalagens", description: "Adicionar custos de embalagem aos produtos" },
-        { title: "Precificação inteligente", description: "Sistema automático de precificação com margens" }
+        { 
+          title: "Sistema de custos", 
+          description: "Como o sistema calcula custos automaticamente",
+          steps: ["Custos são calculados em tempo real", "Base na quantidade de ingredientes", "Considera desperdício configurado", "Inclui custos de embalagem"]
+        },
+        { 
+          title: "Categorias e organização", 
+          description: "Organize ingredientes e produtos por categorias",
+          steps: ["Crie categorias personalizadas", "Filtre por categoria", "Busque rapidamente", "Mantenha organizado"]
+        },
+        { 
+          title: "Gestão de embalagens", 
+          description: "Configure diferentes tipos de embalagem",
+          steps: ["Cadastre tipos de embalagem", "Defina custos unitários", "Associe aos produtos", "Controle estoque de embalagens"]
+        },
+        { 
+          title: "Precificação inteligente", 
+          description: "Sistema automático com margens personalizáveis",
+          steps: ["Configure margem desejada", "Adicione custos extras", "Considere impostos", "Visualize lucro por item"]
+        }
       ]
     },
     {
       title: "Vendas e Pedidos",
       icon: ShoppingCart,
-      color: "bg-purple-50 border-purple-200",
+      color: "from-purple-500 to-pink-500",
       description: "Gerencie vendas e pedidos de forma eficiente",
       topics: [
-        { title: "Criando pedidos", description: "Como registrar pedidos de clientes" },
-        { title: "Gerenciamento de clientes", description: "Cadastro e organização de informações" },
-        { title: "Controle de entregas", description: "Acompanhar status e agendamentos" },
-        { title: "Registro de vendas", description: "Controlar vendas diretas e lucros" }
+        { 
+          title: "Criando pedidos", 
+          description: "Como registrar e acompanhar pedidos de clientes",
+          steps: ["Selecione o cliente", "Escolha produtos e quantidades", "Defina tipo de entrega", "Agende data e horário"]
+        },
+        { 
+          title: "Gestão de clientes", 
+          description: "Cadastro completo com múltiplos endereços",
+          steps: ["Cadastre dados básicos", "Adicione múltiplos endereços", "Marque endereço principal", "Mantenha histórico atualizado"]
+        },
+        { 
+          title: "Controle de entregas", 
+          description: "Acompanhe status e organize entregas",
+          steps: ["Visualize pedidos por status", "Atualize progresso", "Controle rotas de entrega", "Confirme recebimento"]
+        },
+        { 
+          title: "Registro de vendas", 
+          description: "Controle vendas diretas e calcule lucros",
+          steps: ["Registre vendas instantâneas", "Calcule lucro automático", "Adicione gastos extras", "Gere relatórios"]
+        }
       ]
     },
     {
-      title: "Financeiro",
-      icon: DollarSign,
-      color: "bg-orange-50 border-orange-200",
-      description: "Controle financeiro completo do seu negócio",
+      title: "Relatórios e Análises",
+      icon: BarChart3,
+      color: "from-orange-500 to-red-500",
+      description: "Análise completa do seu negócio",
       topics: [
-        { title: "Contas a pagar", description: "Gerenciar despesas e fornecedores" },
-        { title: "Fluxo de caixa", description: "Acompanhar entradas e saídas" },
-        { title: "Relatórios financeiros", description: "Análises detalhadas de performance" },
-        { title: "Controle de margem", description: "Monitorar lucratividade por produto" }
+        { 
+          title: "Relatórios financeiros", 
+          description: "Acompanhe receitas, custos e lucros",
+          steps: ["Acesse aba Financeiro", "Filtre por período", "Analise gráficos", "Exporte dados"]
+        },
+        { 
+          title: "Performance de produtos", 
+          description: "Veja quais produtos vendem mais",
+          steps: ["Vá para aba Produtos", "Ordene por vendas", "Identifique top produtos", "Analise margem de lucro"]
+        },
+        { 
+          title: "Análise de clientes", 
+          description: "Entenda comportamento dos clientes",
+          steps: ["Acesse aba Clientes", "Veja frequência de compra", "Identifique melhores clientes", "Analise ticket médio"]
+        },
+        { 
+          title: "Controle operacional", 
+          description: "Monitore operações e eficiência",
+          steps: ["Veja tempos de produção", "Controle desperdícios", "Monitore entregas", "Otimize processos"]
+        }
       ]
     }
   ];
@@ -91,102 +159,117 @@ const Help = () => {
       title: "Introdução ao TastyHub",
       duration: "5:30",
       description: "Visão geral da plataforma e principais funcionalidades",
-      thumbnail: "intro",
-      level: "Iniciante"
+      level: "Iniciante",
+      views: "1.2k"
     },
     {
       title: "Cadastrando Ingredientes e Receitas",
-      duration: "8:15",
+      duration: "8:15", 
       description: "Como cadastrar ingredientes e criar receitas do zero",
-      thumbnail: "ingredients",
-      level: "Iniciante"
+      level: "Iniciante",
+      views: "890"
     },
     {
-      title: "Sistema de Precificação",
+      title: "Sistema de Precificação Inteligente",
       duration: "6:45",
       description: "Entenda como funciona o cálculo automático de preços",
-      thumbnail: "pricing",
-      level: "Intermediário"
+      level: "Intermediário",
+      views: "654"
     },
     {
-      title: "Gerenciamento de Pedidos",
+      title: "Gestão Completa de Pedidos",
       duration: "7:20",
       description: "Fluxo completo desde o pedido até a entrega",
-      thumbnail: "orders",
-      level: "Intermediário"
+      level: "Intermediário", 
+      views: "543"
     },
     {
-      title: "Relatórios e Análises",
+      title: "Relatórios e Análises Avançadas",
       duration: "9:10",
       description: "Como usar os relatórios para tomar decisões estratégicas",
-      thumbnail: "reports",
-      level: "Avançado"
+      level: "Avançado",
+      views: "432"
+    },
+    {
+      title: "Otimização de Custos",
+      duration: "11:30",
+      description: "Estratégias para reduzir custos e aumentar lucros",
+      level: "Avançado",
+      views: "321"
     }
   ];
 
   const faqItems = [
     {
       question: "Como atualizar os custos dos ingredientes?",
-      answer: "Vá para a página 'Atualizar Custos' no menu lateral. Lá você pode atualizar os preços dos ingredientes individualmente ou em massa. O sistema automaticamente recalculará os custos das receitas e produtos que usam esses ingredientes.",
-      category: "custos"
+      answer: "Vá para a página 'Ingredientes' e clique no ícone de editar ao lado do ingrediente desejado. O sistema automaticamente recalculará os custos das receitas e produtos que usam esse ingrediente.",
+      category: "custos",
+      popularity: 95
     },
     {
       question: "Como criar uma nova receita?",
-      answer: "Acesse 'Receitas' no menu, clique em 'Nova Receita' e preencha as informações. Você pode adicionar ingredientes base (custos únicos para toda a receita) e ingredientes por porção (multiplicados pelo número de porções).",
-      category: "receitas"
+      answer: "Acesse 'Receitas' > 'Nova Receita'. Adicione ingredientes base (custos únicos) e ingredientes por porção (multiplicados pelo número de porções). O custo total é calculado automaticamente.",
+      category: "receitas",
+      popularity: 92
     },
     {
       question: "Como funciona o cálculo de precificação?",
-      answer: "O sistema calcula automaticamente com base nos custos dos ingredientes, embalagens, desperdício configurado e aplica as margens de lucro. A fórmula considera: (Custo Total + Embalagem) × (1 + % Desperdício) × (1 + % Margem).",
-      category: "precificacao"
+      answer: "O sistema calcula: (Custo dos Ingredientes + Embalagem) × (1 + % Desperdício) × (1 + % Margem) + Custos Extras. Tudo é feito automaticamente conforme você define as margens.",
+      category: "precificacao",
+      popularity: 88
     },
     {
-      question: "Posso exportar relatórios?",
-      answer: "Sim! Na página de Relatórios você encontra diversas opções de relatórios que podem ser visualizados na tela e exportados em diferentes formatos (PDF, Excel).",
-      category: "relatorios"
+      question: "Posso cadastrar múltiplos endereços para um cliente?",
+      answer: "Sim! No cadastro do cliente, você pode adicionar quantos endereços quiser. Cada endereço pode ter um rótulo (Casa, Trabalho, etc.) e você pode marcar um como principal.",
+      category: "clientes",
+      popularity: 85
     },
     {
-      question: "Como cadastrar clientes com múltiplos endereços?",
-      answer: "No formulário de cliente, você pode adicionar quantos endereços desejar. Cada endereço pode ter um rótulo (ex: Casa, Trabalho) e você pode marcar um como principal.",
-      category: "clientes"
+      question: "Como exportar relatórios?",
+      answer: "Na página de Relatórios, selecione o período e filtros desejados, depois clique no botão 'Exportar'. Você pode escolher entre PDF para visualização ou Excel para análises.",
+      category: "relatorios",
+      popularity: 82
     },
     {
-      question: "Como funciona o controle de estoque?",
-      answer: "O sistema não controla estoque físico automaticamente, mas você pode acompanhar o consumo através dos relatórios de produção e vendas para ter uma noção de quando reabastecer ingredientes.",
-      category: "estoque"
+      question: "O sistema funciona em dispositivos móveis?",
+      answer: "Sim! O TastyHub é totalmente responsivo. Você pode acessar todas as funcionalidades através do navegador do seu smartphone ou tablet.",
+      category: "mobile",
+      popularity: 78
     },
     {
-      question: "Posso usar o sistema em dispositivos móveis?",
-      answer: "Sim! O TastyHub é totalmente responsivo e funciona perfeitamente em smartphones e tablets. Você pode acessar todas as funcionalidades através do navegador do seu dispositivo.",
-      category: "mobile"
+      question: "Como configurar margens de lucro diferentes por produto?",
+      answer: "Vá em 'Precificação' e crie configurações específicas para cada produto. Você pode definir margens, custos extras, impostos e outros fatores individuais.",
+      category: "precificacao",
+      popularity: 75
     },
     {
-      question: "Como configurar as margens de lucro?",
-      answer: "Na página de Precificação, você pode configurar margens diferentes para cada produto, além de custos adicionais como entrega, impostos e taxas de plataforma.",
-      category: "precificacao"
+      question: "É possível controlar estoque de ingredientes?",
+      answer: "Atualmente o sistema não controla estoque físico automaticamente, mas você pode acompanhar o consumo através dos relatórios de produção para ter uma estimativa.",
+      category: "estoque",
+      popularity: 70
     }
   ];
 
   const filteredFAQ = faqItems.filter(item =>
     item.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.answer.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).sort((a, b) => b.popularity - a.popularity);
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-8 p-6">
       <PageHeader
-        title="Ajuda e Suporte"
+        title="Central de Ajuda"
         subtitle="Aprenda a usar o TastyHub e maximize seus resultados"
         icon={HelpCircle}
-        gradient="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500"
+        gradient="from-indigo-500 via-purple-500 to-pink-500"
         badges={[
-          { icon: BookOpen, text: "Guias completos" },
-          { icon: Video, text: "Vídeo tutoriais" },
+          { icon: BookOpen, text: "Guias Interativos" },
+          { icon: Video, text: "Vídeo Tutoriais" },
           { icon: MessageCircle, text: "Suporte 24/7" }
         ]}
         actions={
           <Button 
-            className="bg-white text-indigo-600 hover:bg-indigo-50 border-white shadow-lg"
+            className="bg-white text-indigo-600 hover:bg-indigo-50 border-white shadow-xl"
             onClick={() => window.open('mailto:suporte@tastyhub.com')}
           >
             <Mail className="mr-2 h-4 w-4" />
@@ -195,38 +278,65 @@ const Help = () => {
         }
       />
 
-      <Tabs defaultValue="guides" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="guides">Guias</TabsTrigger>
-          <TabsTrigger value="videos">Vídeos</TabsTrigger>
-          <TabsTrigger value="faq">FAQ</TabsTrigger>
-          <TabsTrigger value="contact">Contato</TabsTrigger>
+      <Tabs defaultValue="guides" className="space-y-8">
+        <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-gray-100 to-gray-200 p-1 rounded-lg">
+          <TabsTrigger value="guides" className="data-[state=active]:bg-white data-[state=active]:shadow-md">
+            <BookOpen className="h-4 w-4 mr-2" />
+            Guias
+          </TabsTrigger>
+          <TabsTrigger value="videos" className="data-[state=active]:bg-white data-[state=active]:shadow-md">
+            <Video className="h-4 w-4 mr-2" />
+            Vídeos
+          </TabsTrigger>
+          <TabsTrigger value="faq" className="data-[state=active]:bg-white data-[state=active]:shadow-md">
+            <MessageCircle className="h-4 w-4 mr-2" />
+            FAQ
+          </TabsTrigger>
+          <TabsTrigger value="contact" className="data-[state=active]:bg-white data-[state=active]:shadow-md">
+            <Phone className="h-4 w-4 mr-2" />
+            Contato
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="guides" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <TabsContent value="guides" className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {helpSections.map((section, index) => (
-              <Card key={index} className={`${section.color} hover:shadow-lg transition-all duration-300 hover:scale-105`}>
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white rounded-lg">
-                      <section.icon className="h-6 w-6 text-blue-600" />
+              <Card key={index} className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 border-0 shadow-lg overflow-hidden">
+                <div className={`h-2 bg-gradient-to-r ${section.color}`} />
+                <CardHeader className="bg-gradient-to-br from-white to-gray-50">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-full bg-gradient-to-r ${section.color} text-white shadow-lg`}>
+                      <section.icon className="h-6 w-6" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{section.title}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">{section.description}</p>
+                      <CardTitle className="text-xl font-bold text-gray-800">{section.title}</CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">{section.description}</p>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   <Accordion type="single" collapsible className="w-full">
                     {section.topics.map((topic, topicIndex) => (
-                      <AccordionItem key={topicIndex} value={`item-${index}-${topicIndex}`}>
-                        <AccordionTrigger className="text-sm font-medium">
-                          {topic.title}
+                      <AccordionItem key={topicIndex} value={`item-${index}-${topicIndex}`} className="border-gray-200">
+                        <AccordionTrigger className="text-left font-medium hover:text-blue-600 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <Lightbulb className="h-4 w-4 text-blue-500" />
+                            {topic.title}
+                          </div>
                         </AccordionTrigger>
-                        <AccordionContent className="text-sm text-muted-foreground">
-                          {topic.description}
+                        <AccordionContent className="text-gray-600 leading-relaxed">
+                          <p className="mb-3">{topic.description}</p>
+                          <div className="space-y-2">
+                            <p className="font-medium text-sm text-gray-700">Passos:</p>
+                            <ol className="list-decimal list-inside space-y-1 text-sm">
+                              {topic.steps.map((step, stepIndex) => (
+                                <li key={stepIndex} className="flex items-start gap-2">
+                                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                  <span>{step}</span>
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
                         </AccordionContent>
                       </AccordionItem>
                     ))}
@@ -237,76 +347,95 @@ const Help = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="videos" className="space-y-6">
+        <TabsContent value="videos" className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {videoTutorials.map((video, index) => (
-              <Card key={index} className="hover:shadow-lg transition-all duration-300 hover:scale-105">
-                <CardContent className="p-0">
-                  <div className="relative">
-                    <div className="aspect-video bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-lg flex items-center justify-center">
-                      <PlayCircle className="h-16 w-16 text-blue-600" />
-                    </div>
-                    <Badge className="absolute top-2 right-2 bg-black/70 text-white">
-                      {video.duration}
-                    </Badge>
+              <Card key={index} className="group hover:shadow-xl transition-all duration-300 hover:scale-105 overflow-hidden border-0 shadow-lg">
+                <div className="relative">
+                  <div className="aspect-video bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 flex items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20" />
+                    <PlayCircle className="h-20 w-20 text-white drop-shadow-lg group-hover:scale-110 transition-transform duration-300" />
+                  </div>
+                  <div className="absolute top-3 right-3 flex gap-2">
+                    <Badge className="bg-black/70 text-white text-xs">{video.duration}</Badge>
+                    <Badge className="bg-white/90 text-gray-700 text-xs">{video.views} views</Badge>
+                  </div>
+                  <div className="absolute bottom-3 left-3">
                     <Badge 
                       variant="secondary" 
-                      className="absolute bottom-2 left-2"
+                      className={`text-xs ${
+                        video.level === 'Iniciante' ? 'bg-green-100 text-green-700' :
+                        video.level === 'Intermediário' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-red-100 text-red-700'
+                      }`}
                     >
                       {video.level}
                     </Badge>
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold mb-2">{video.title}</h3>
-                    <p className="text-sm text-muted-foreground mb-3">{video.description}</p>
-                    <Button size="sm" className="w-full">
-                      <PlayCircle className="h-4 w-4 mr-2" />
-                      Assistir
-                    </Button>
-                  </div>
+                </div>
+                <CardContent className="p-5">
+                  <h3 className="font-bold text-lg mb-2 group-hover:text-blue-600 transition-colors">{video.title}</h3>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{video.description}</p>
+                  <Button size="sm" className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+                    <PlayCircle className="h-4 w-4 mr-2" />
+                    Assistir Agora
+                  </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
         </TabsContent>
 
-        <TabsContent value="faq" className="space-y-6">
+        <TabsContent value="faq" className="space-y-8">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <Input
               placeholder="Pesquisar nas perguntas frequentes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-12 h-12 text-lg focus:ring-2 focus:ring-blue-500 border-gray-200 shadow-sm"
             />
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5" />
+          <Card className="shadow-xl border-0">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <MessageCircle className="h-6 w-6 text-blue-600" />
                 Perguntas Frequentes
+                <Badge className="bg-blue-100 text-blue-600">{filteredFAQ.length} perguntas</Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
+            <CardContent className="p-6">
+              <Accordion type="single" collapsible className="w-full space-y-2">
                 {filteredFAQ.map((faq, index) => (
-                  <AccordionItem key={index} value={`faq-${index}`}>
-                    <AccordionTrigger className="text-left">
-                      {faq.question}
+                  <AccordionItem key={index} value={`faq-${index}`} className="border rounded-lg px-4 hover:shadow-md transition-shadow">
+                    <AccordionTrigger className="text-left py-4 hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 flex-1">
+                          <Star className="h-4 w-4 text-yellow-500" />
+                          <span className="font-medium">{faq.question}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {faq.popularity}% útil
+                        </Badge>
+                      </div>
                     </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground">
-                      {faq.answer}
+                    <AccordionContent className="text-gray-700 leading-relaxed pb-4">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
+                        <p>{faq.answer}</p>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
                 ))}
               </Accordion>
               
               {filteredFAQ.length === 0 && searchTerm && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p>Nenhuma pergunta encontrada para "{searchTerm}"</p>
-                  <Button className="mt-4" onClick={() => setSearchTerm("")}>
+                <div className="text-center py-12">
+                  <MessageCircle className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-medium text-gray-700 mb-2">Nenhuma pergunta encontrada</h3>
+                  <p className="text-gray-500 mb-6">Não encontramos perguntas para "{searchTerm}"</p>
+                  <Button onClick={() => setSearchTerm("")} variant="outline">
                     Ver todas as perguntas
                   </Button>
                 </div>
@@ -315,82 +444,72 @@ const Help = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="contact" className="space-y-6">
+        <TabsContent value="contact" className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="text-center hover:shadow-lg transition-all duration-300 hover:scale-105">
-              <CardContent className="p-6">
-                <div className="p-3 bg-blue-100 rounded-full w-fit mx-auto mb-4">
-                  <Mail className="h-8 w-8 text-blue-600" />
-                </div>
-                <h3 className="font-semibold mb-2">Email</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Resposta em até 24 horas
-                </p>
-                <p className="text-sm font-medium mb-4">suporte@tastyhub.com</p>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Enviar Email
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-all duration-300 hover:scale-105">
-              <CardContent className="p-6">
-                <div className="p-3 bg-green-100 rounded-full w-fit mx-auto mb-4">
-                  <MessageCircle className="h-8 w-8 text-green-600" />
-                </div>
-                <h3 className="font-semibold mb-2">Chat Online</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Segunda a Sexta: 9h às 18h
-                </p>
-                <Badge className="mb-4" variant="secondary">
-                  Suporte ao vivo
-                </Badge>
-                <Button variant="outline" size="sm" className="w-full">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Iniciar Chat
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-all duration-300 hover:scale-105">
-              <CardContent className="p-6">
-                <div className="p-3 bg-purple-100 rounded-full w-fit mx-auto mb-4">
-                  <Phone className="h-8 w-8 text-purple-600" />
-                </div>
-                <h3 className="font-semibold mb-2">Telefone</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Ligação gratuita para todo Brasil
-                </p>
-                <p className="text-sm font-medium mb-4">(11) 9999-9999</p>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Ligar Agora
-                </Button>
-              </CardContent>
-            </Card>
+            {[
+              {
+                icon: Mail,
+                title: "Email",
+                subtitle: "Resposta em até 24 horas",
+                contact: "suporte@tastyhub.com",
+                action: "Enviar Email",
+                color: "from-blue-500 to-blue-600"
+              },
+              {
+                icon: MessageCircle,
+                title: "Chat Online",
+                subtitle: "Segunda a Sexta: 9h às 18h",
+                contact: "Suporte ao vivo",
+                action: "Iniciar Chat",
+                color: "from-green-500 to-green-600"
+              },
+              {
+                icon: Phone,
+                title: "Telefone",
+                subtitle: "Ligação gratuita",
+                contact: "(11) 9999-9999",
+                action: "Ligar Agora",
+                color: "from-purple-500 to-purple-600"
+              }
+            ].map((contact, index) => (
+              <Card key={index} className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg overflow-hidden">
+                <CardContent className="p-8 text-center">
+                  <div className={`p-4 bg-gradient-to-r ${contact.color} rounded-full w-fit mx-auto mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                    <contact.icon className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="font-bold text-xl mb-2 text-gray-800">{contact.title}</h3>
+                  <p className="text-gray-600 mb-4">{contact.subtitle}</p>
+                  <p className="font-medium text-lg mb-6 text-gray-700">{contact.contact}</p>
+                  <Button className={`w-full bg-gradient-to-r ${contact.color} hover:shadow-lg transition-shadow`}>
+                    <contact.icon className="h-4 w-4 mr-2" />
+                    {contact.action}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
-          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-100 rounded-full flex-shrink-0">
-                  <BookOpen className="h-8 w-8 text-blue-600" />
+          <Card className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-blue-200 shadow-xl">
+            <CardContent className="p-8">
+              <div className="flex items-start gap-6">
+                <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex-shrink-0">
+                  <BookOpen className="h-10 w-10 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-2">Base de Conhecimento</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <h3 className="font-bold text-2xl text-gray-900 mb-3">Base de Conhecimento</h3>
+                  <p className="text-gray-700 mb-6 leading-relaxed">
                     Acesse nossa base de conhecimento completa com artigos detalhados, 
                     tutoriais passo a passo e dicas avançadas para otimizar seu uso do TastyHub.
                   </p>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <Badge variant="secondary">Tutoriais</Badge>
-                    <Badge variant="secondary">Guias</Badge>
-                    <Badge variant="secondary">Melhores Práticas</Badge>
-                    <Badge variant="secondary">Dicas & Truques</Badge>
+                  <div className="flex flex-wrap gap-3 mb-6">
+                    {['Tutoriais', 'Guias Avançados', 'Melhores Práticas', 'Dicas & Truques', 'Casos de Uso'].map((item) => (
+                      <Badge key={item} variant="secondary" className="bg-white/70 text-blue-700 hover:bg-white transition-colors">
+                        {item}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
-                <Button variant="outline">
+                <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Acessar
                 </Button>

@@ -54,14 +54,12 @@ export const useUserManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Query para buscar usuários
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async (): Promise<UserWithDetails[]> => {
       try {
         console.log("Iniciando busca de usuários...");
         
-        // Buscar todos os perfis
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("*");
@@ -78,12 +76,10 @@ export const useUserManagement = () => {
           return [];
         }
 
-        // Para cada perfil, buscar email do auth e estatísticas
         const usersWithDetails: UserWithDetails[] = [];
 
         for (const profile of profilesData) {
           try {
-            // Buscar email do usuário
             const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(profile.id);
             
             if (authError) {
@@ -91,7 +87,11 @@ export const useUserManagement = () => {
               continue;
             }
 
-            // Buscar estatísticas
+            if (!authUser?.user) {
+              console.warn(`Usuário auth não encontrado para perfil ${profile.id}`);
+              continue;
+            }
+
             const [salesResult, productsResult, ordersResult] = await Promise.allSettled([
               supabase.from("sales").select("id", { count: 'exact' }).eq("user_id", profile.id),
               supabase.from("products").select("id", { count: 'exact' }).eq("user_id", profile.id),
@@ -100,7 +100,7 @@ export const useUserManagement = () => {
 
             const userWithDetails: UserWithDetails = {
               id: profile.id,
-              email: authUser?.user?.email || 'Email não encontrado',
+              email: authUser.user.email || 'Email não encontrado',
               created_at: profile.created_at,
               updated_at: profile.updated_at,
               store_name: profile.store_name,
@@ -131,7 +131,6 @@ export const useUserManagement = () => {
     }
   });
 
-  // Filtrar usuários com base no termo de pesquisa
   const filteredUsers = useMemo(() => {
     if (!searchTerm) return users;
     
@@ -142,7 +141,6 @@ export const useUserManagement = () => {
     );
   }, [users, searchTerm]);
 
-  // Contar usuários bloqueados e ativos
   const blockedCount = useMemo(() => 
     users.filter(user => user.is_blocked).length
   , [users]);
@@ -151,7 +149,6 @@ export const useUserManagement = () => {
     users.filter(user => !user.is_blocked).length
   , [users]);
 
-  // Mutation para bloquear/desbloquear usuário
   const blockUnblockMutation = useMutation({
     mutationFn: async ({ userId, isBlocked }: { userId: string; isBlocked: boolean }) => {
       const { error } = await supabase
@@ -182,10 +179,8 @@ export const useUserManagement = () => {
     }
   });
 
-  // Mutation para deletar usuário permanentemente
   const permanentDeleteMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // Primeiro, registrar no log de remoção
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       
       if (currentUser) {
@@ -198,7 +193,6 @@ export const useUserManagement = () => {
           }]);
       }
 
-      // Deletar usuário do auth (isso irá cascatear para profiles devido ao ON DELETE CASCADE)
       const { error: authError } = await supabase.auth.admin.deleteUser(userId);
       if (authError) throw authError;
     },
@@ -222,7 +216,6 @@ export const useUserManagement = () => {
     setSelectedUser(user);
     setUserProfile(user);
     
-    // Buscar estatísticas detalhadas do usuário
     try {
       const [orders, sales, ingredients, recipes, packaging, products, customers] = await Promise.all([
         supabase.from("orders").select("total_amount, created_at").eq("user_id", user.id),
@@ -239,7 +232,6 @@ export const useUserManagement = () => {
       const totalSpent = (orders?.data?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0) +
                         (sales?.data?.reduce((sum, sale) => sum + (sale.total_amount || 0), 0) || 0);
 
-      // Última atividade (mais recente entre orders e sales)
       const allActivities = [
         ...(orders?.data?.map(o => o.created_at) || []),
         ...(sales?.data?.map(s => s.created_at) || [])
@@ -257,7 +249,7 @@ export const useUserManagement = () => {
         totalPackaging: packaging?.data?.length || 0,
         totalProducts: products?.data?.length || 0,
         totalSales,
-        totalResales: 0, // Implementar quando houver tabela de revendas
+        totalResales: 0,
         totalCustomers: customers?.data?.length || 0
       });
     } catch (error) {

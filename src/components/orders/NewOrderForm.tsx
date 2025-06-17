@@ -65,21 +65,16 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
     }
   });
 
-  // Atualizar customer selecionado quando customerId muda
   useEffect(() => {
     if (customerId) {
       const customer = customers.find(c => c.id === customerId);
       setSelectedCustomer(customer);
-      
-      // Se o customer tem endereços e é delivery, limpar o campo para forçar seleção
-      if (customer?.addresses?.length > 0 && deliveryType === "delivery") {
-        setDeliveryAddress("");
-      }
+      setDeliveryAddress("");
     } else {
       setSelectedCustomer(null);
       setDeliveryAddress("");
     }
-  }, [customerId, customers, deliveryType]);
+  }, [customerId, customers]);
 
   const addItem = () => {
     setItems([...items, { productId: "", quantity: 1, price: 0, total: 0 }]);
@@ -173,194 +168,196 @@ const NewOrderForm: React.FC<NewOrderFormProps> = ({ onOrderCreated, onCancel })
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="customer">Cliente *</Label>
-          <Select value={customerId} onValueChange={setCustomerId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione um cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              {customers.map((customer) => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="customer">Cliente *</Label>
+            <Select value={customerId} onValueChange={setCustomerId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="deliveryType">Tipo de Entrega *</Label>
-          <Select value={deliveryType} onValueChange={setDeliveryType}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="delivery">Entrega</SelectItem>
-              <SelectItem value="pickup">Retirada</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {deliveryType === "delivery" && (
-        <div className="space-y-2">
-          <Label htmlFor="deliveryAddress">Endereço de Entrega *</Label>
-          {selectedCustomer?.addresses?.length > 0 ? (
-            <CustomerAddressSelector
-              addresses={selectedCustomer.addresses}
-              value={deliveryAddress}
-              onValueChange={setDeliveryAddress}
-              placeholder="Selecione um endereço cadastrado"
-            />
-          ) : (
-            <Textarea
-              id="deliveryAddress"
-              value={deliveryAddress}
-              onChange={(e) => setDeliveryAddress(e.target.value)}
-              placeholder="Digite o endereço de entrega"
-              rows={2}
-            />
-          )}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="scheduledDate">Data de Entrega</Label>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              id="scheduledDate"
-              type="date"
-              value={scheduledDate}
-              onChange={(e) => setScheduledDate(e.target.value)}
-              className="pl-10"
-            />
+          <div className="space-y-2">
+            <Label htmlFor="deliveryType">Tipo de Entrega *</Label>
+            <Select value={deliveryType} onValueChange={setDeliveryType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="delivery">Entrega</SelectItem>
+                <SelectItem value="pickup">Retirada</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="scheduledTime">Horário</Label>
-          <div className="relative">
-            <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              id="scheduledTime"
-              type="time"
-              value={scheduledTime}
-              onChange={(e) => setScheduledTime(e.target.value)}
-              className="pl-10"
-            />
+        {deliveryType === "delivery" && (
+          <div className="space-y-2">
+            <Label htmlFor="deliveryAddress">Endereço de Entrega *</Label>
+            {selectedCustomer?.addresses?.length > 0 ? (
+              <CustomerAddressSelector
+                addresses={selectedCustomer.addresses}
+                value={deliveryAddress}
+                onValueChange={setDeliveryAddress}
+                placeholder="Selecione um endereço cadastrado"
+              />
+            ) : (
+              <Textarea
+                id="deliveryAddress"
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
+                placeholder="Digite o endereço de entrega"
+                rows={2}
+              />
+            )}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="scheduledDate">Data de Entrega</Label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                id="scheduledDate"
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="scheduledTime">Horário</Label>
+            <div className="relative">
+              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                id="scheduledTime"
+                type="time"
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="text-lg">Itens do Pedido</CardTitle>
-          <Button type="button" onClick={addItem} size="sm" variant="outline">
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Item
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {items.map((item, index) => (
-            <div key={index} className="grid grid-cols-12 gap-4 items-end">
-              <div className="col-span-4">
-                <Label>Produto</Label>
-                <Select
-                  value={item.productId}
-                  onValueChange={(value) => updateItem(index, 'productId', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="col-span-2">
-                <Label>Qtd.</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
-                />
-              </div>
-              
-              <div className="col-span-2">
-                <Label>Preço Unit.</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={item.price}
-                  onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
-                />
-              </div>
-              
-              <div className="col-span-3">
-                <Label>Total</Label>
-                <Input
-                  value={formatCurrency(item.total)}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              
-              <div className="col-span-1">
-                {items.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeItem(index)}
-                    className="text-red-600 hover:text-red-700"
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle className="text-lg">Itens do Pedido</CardTitle>
+            <Button type="button" onClick={addItem} size="sm" variant="outline">
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar Item
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {items.map((item, index) => (
+              <div key={index} className="grid grid-cols-12 gap-4 items-end">
+                <div className="col-span-4">
+                  <Label>Produto</Label>
+                  <Select
+                    value={item.productId}
+                    onValueChange={(value) => updateItem(index, 'productId', value)}
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((product) => (
+                        <SelectItem key={product.id} value={product.id}>
+                          {product.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="col-span-2">
+                  <Label>Qtd.</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                  />
+                </div>
+                
+                <div className="col-span-2">
+                  <Label>Preço Unit.</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={item.price}
+                    onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                
+                <div className="col-span-3">
+                  <Label>Total</Label>
+                  <Input
+                    value={formatCurrency(item.total)}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                
+                <div className="col-span-1">
+                  {items.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeItem(index)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            <div className="flex justify-end pt-4 border-t">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Total do Pedido</p>
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(totalAmount)}</p>
               </div>
             </div>
-          ))}
-          
-          <div className="flex justify-end pt-4 border-t">
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Total do Pedido</p>
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(totalAmount)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <div className="space-y-2">
-        <Label htmlFor="notes">Observações</Label>
-        <Textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Observações adicionais sobre o pedido..."
-          rows={3}
-        />
-      </div>
+        <div className="space-y-2">
+          <Label htmlFor="notes">Observações</Label>
+          <Textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Observações adicionais sobre o pedido..."
+            rows={3}
+          />
+        </div>
 
-      <div className="flex gap-4 justify-end">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Criando..." : "Criar Pedido"}
-        </Button>
-      </div>
-    </form>
+        <div className="flex gap-4 justify-end">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Criando..." : "Criar Pedido"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 };
 
