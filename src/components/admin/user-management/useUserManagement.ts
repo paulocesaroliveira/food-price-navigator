@@ -61,7 +61,7 @@ export const useUserManagement = () => {
       try {
         console.log("Iniciando busca de usuários...");
         
-        // Buscar perfis dos usuários
+        // Buscar todos os perfis
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("*");
@@ -71,51 +71,36 @@ export const useUserManagement = () => {
           throw profilesError;
         }
 
-        // Buscar emails dos usuários do auth
-        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-        
-        if (authError) {
-          console.error("Erro ao buscar usuários auth:", authError);
-          throw authError;
-        }
-
         console.log("Perfis encontrados:", profilesData?.length || 0);
-        console.log("Usuários auth encontrados:", authData?.users?.length || 0);
 
-        // Validar se temos dados
-        if (!profilesData || !Array.isArray(profilesData)) {
-          console.warn("Nenhum perfil encontrado ou dados inválidos");
+        if (!profilesData || profilesData.length === 0) {
+          console.warn("Nenhum perfil encontrado");
           return [];
         }
 
-        if (!authData?.users || !Array.isArray(authData.users)) {
-          console.warn("Nenhum usuário auth encontrado ou dados inválidos");
-          return [];
-        }
-
-        // Combinar dados e adicionar contadores
-        const combinedUsers: UserWithDetails[] = [];
+        // Para cada perfil, buscar email do auth e estatísticas
+        const usersWithDetails: UserWithDetails[] = [];
 
         for (const profile of profilesData) {
           try {
-            // Encontrar usuário correspondente no auth
-            const authUser = authData.users.find((user: any) => user.id === profile.id);
+            // Buscar email do usuário
+            const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(profile.id);
             
-            if (!authUser) {
-              console.warn(`Usuário auth não encontrado para perfil ${profile.id}`);
+            if (authError) {
+              console.warn(`Erro ao buscar dados auth do usuário ${profile.id}:`, authError);
               continue;
             }
 
-            // Buscar estatísticas para cada usuário
-            const [salesResult, productsResult, ordersResult] = await Promise.all([
-              supabase.from("sales").select("id").eq("user_id", profile.id),
-              supabase.from("products").select("id").eq("user_id", profile.id),
-              supabase.from("orders").select("id").eq("user_id", profile.id)
+            // Buscar estatísticas
+            const [salesResult, productsResult, ordersResult] = await Promise.allSettled([
+              supabase.from("sales").select("id", { count: 'exact' }).eq("user_id", profile.id),
+              supabase.from("products").select("id", { count: 'exact' }).eq("user_id", profile.id),
+              supabase.from("orders").select("id", { count: 'exact' }).eq("user_id", profile.id)
             ]);
 
             const userWithDetails: UserWithDetails = {
               id: profile.id,
-              email: authUser.email || 'N/A',
+              email: authUser?.user?.email || 'Email não encontrado',
               created_at: profile.created_at,
               updated_at: profile.updated_at,
               store_name: profile.store_name,
@@ -123,22 +108,21 @@ export const useUserManagement = () => {
               address: profile.address,
               avatar_url: profile.avatar_url,
               is_blocked: profile.is_blocked,
-              salesCount: salesResult.data?.length || 0,
-              productsCount: productsResult.data?.length || 0,
-              ordersCount: ordersResult.data?.length || 0,
+              salesCount: salesResult.status === 'fulfilled' ? (salesResult.value.count || 0) : 0,
+              productsCount: productsResult.status === 'fulfilled' ? (productsResult.value.count || 0) : 0,
+              ordersCount: ordersResult.status === 'fulfilled' ? (ordersResult.value.count || 0) : 0,
             };
 
-            combinedUsers.push(userWithDetails);
+            usersWithDetails.push(userWithDetails);
 
           } catch (error) {
             console.error(`Erro ao processar usuário ${profile.id}:`, error);
-            // Continuar com o próximo usuário em caso de erro
             continue;
           }
         }
 
-        console.log("Usuários processados com sucesso:", combinedUsers.length);
-        return combinedUsers;
+        console.log("Usuários processados com sucesso:", usersWithDetails.length);
+        return usersWithDetails;
 
       } catch (error) {
         console.error("Erro geral na query de usuários:", error);
