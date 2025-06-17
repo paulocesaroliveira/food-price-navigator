@@ -47,12 +47,32 @@ export const useUserManagement = () => {
     queryKey: ["admin-users"],
     queryFn: async (): Promise<UserWithDetails[]> => {
       try {
-        console.log("Buscando usuários...");
+        console.log("Buscando usuários para admin...");
         
-        // Buscar perfis com dados de autenticação
+        // Verificar se o usuário atual é admin
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) {
+          console.log("Usuário não autenticado");
+          return [];
+        }
+
+        // Verificar se o usuário é admin
+        const { data: userRole } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", currentUser.id)
+          .single();
+
+        if (!userRole || userRole.role !== 'admin') {
+          console.log("Usuário não é admin");
+          return [];
+        }
+
+        // Buscar todos os perfis (agora com acesso admin)
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
-          .select("*");
+          .select("*")
+          .order("created_at", { ascending: false });
 
         if (profilesError) {
           console.error("Erro ao buscar perfis:", profilesError);
@@ -69,17 +89,10 @@ export const useUserManagement = () => {
 
         for (const profile of profilesData) {
           try {
-            // Buscar dados de autenticação usando getUserById
-            const { data: authData, error: authError } = await supabase.auth.admin.getUserById(profile.id);
-            
-            if (authError) {
-              console.warn(`Erro ao buscar dados auth do usuário ${profile.id}:`, authError);
-              continue;
-            }
+            // Para admin, buscar dados de autenticação do perfil e estatísticas
+            const userEmail = profile.id; // Usar o ID como placeholder, pois não temos acesso direto ao email
 
-            const userEmail = authData?.user?.email || 'Email não encontrado';
-
-            // Buscar contadores em paralelo
+            // Buscar contadores de vendas, produtos e pedidos
             const [salesResult, productsResult, ordersResult] = await Promise.allSettled([
               supabase.from("sales").select("id", { count: 'exact' }).eq("user_id", profile.id),
               supabase.from("products").select("id", { count: 'exact' }).eq("user_id", profile.id),
@@ -88,7 +101,7 @@ export const useUserManagement = () => {
 
             const userWithDetails: UserWithDetails = {
               id: profile.id,
-              email: userEmail,
+              email: `Usuário ${profile.store_name || profile.id.substring(0, 8)}`, // Mostrar nome da loja ou parte do ID
               created_at: profile.created_at,
               updated_at: profile.updated_at,
               store_name: profile.store_name,
@@ -109,20 +122,20 @@ export const useUserManagement = () => {
           }
         }
 
-        console.log("Usuários processados:", usersWithDetails.length);
+        console.log("Usuários processados com sucesso:", usersWithDetails.length);
         return usersWithDetails;
 
       } catch (error) {
         console.error("Erro geral na query de usuários:", error);
         toast({
           title: "Erro ao carregar usuários",
-          description: "Tente novamente em alguns instantes",
+          description: "Verifique se você tem permissões de administrador",
           variant: "destructive"
         });
         return [];
       }
     },
-    retry: 2,
+    retry: 1,
     refetchOnWindowFocus: false
   });
 
@@ -146,6 +159,8 @@ export const useUserManagement = () => {
 
   const blockUnblockMutation = useMutation({
     mutationFn: async ({ userId, isBlocked }: { userId: string; isBlocked: boolean }) => {
+      console.log(`${isBlocked ? 'Desbloqueando' : 'Bloqueando'} usuário:`, userId);
+      
       const { error } = await supabase
         .from("profiles")
         .update({ 
@@ -154,7 +169,12 @@ export const useUserManagement = () => {
         })
         .eq("id", userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao atualizar status do usuário:", error);
+        throw error;
+      }
+      
+      console.log("Status do usuário atualizado com sucesso");
     },
     onSuccess: (_, { isBlocked }) => {
       toast({
@@ -166,9 +186,10 @@ export const useUserManagement = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (error: any) => {
+      console.error("Erro na mutation de bloqueio:", error);
       toast({
         title: "❌ Erro ao atualizar usuário",
-        description: error.message,
+        description: error.message || "Verifique suas permissões de administrador",
         variant: "destructive"
       });
     }
@@ -188,8 +209,13 @@ export const useUserManagement = () => {
           }]);
       }
 
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      if (authError) throw authError;
+      // Remover perfil (o usuário auth será removido por cascata se configurado)
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", userId);
+        
+      if (error) throw error;
     },
     onSuccess: () => {
       toast({

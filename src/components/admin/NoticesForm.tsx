@@ -52,36 +52,61 @@ const NoticesForm: React.FC<NoticesFormProps> = ({ notice, onSave, onCancel }) =
 
   const saveMutation = useMutation({
     mutationFn: async (data: Notice) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log("Salvando aviso:", data);
       
-      if (notice?.id) {
-        // Atualizar
-        const { error } = await supabase
-          .from("notices")
-          .update({
-            title: data.title,
-            content: data.content,
-            status: data.status,
-            priority: data.priority,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", notice.id);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
         
-        if (error) throw error;
-      } else {
-        // Criar novo
-        const { error } = await supabase
-          .from("notices")
-          .insert([{
-            title: data.title,
-            content: data.content,
-            status: data.status,
-            priority: data.priority,
-            published_at: data.status === 'active' ? new Date().toISOString() : null,
-            created_by: user?.id
-          }]);
-        
-        if (error) throw error;
+        if (!user) {
+          throw new Error("Usuário não autenticado");
+        }
+
+        if (notice?.id) {
+          // Atualizar aviso existente
+          const { data: updatedNotice, error } = await supabase
+            .from("notices")
+            .update({
+              title: data.title,
+              content: data.content,
+              status: data.status,
+              priority: data.priority,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", notice.id)
+            .select()
+            .single();
+          
+          if (error) {
+            console.error("Erro ao atualizar aviso:", error);
+            throw error;
+          }
+          
+          console.log("Aviso atualizado:", updatedNotice);
+        } else {
+          // Criar novo aviso
+          const { data: newNotice, error } = await supabase
+            .from("notices")
+            .insert([{
+              title: data.title,
+              content: data.content,
+              status: data.status,
+              priority: data.priority,
+              published_at: data.status === 'active' ? new Date().toISOString() : null,
+              created_by: user.id
+            }])
+            .select()
+            .single();
+          
+          if (error) {
+            console.error("Erro ao criar aviso:", error);
+            throw error;
+          }
+          
+          console.log("Aviso criado:", newNotice);
+        }
+      } catch (error) {
+        console.error("Erro geral ao salvar aviso:", error);
+        throw error;
       }
     },
     onSuccess: () => {
@@ -93,9 +118,10 @@ const NoticesForm: React.FC<NoticesFormProps> = ({ notice, onSave, onCancel }) =
       onSave();
     },
     onError: (error: any) => {
+      console.error("Erro na mutation:", error);
       toast({
         title: "Erro ao salvar aviso",
-        description: error.message,
+        description: error.message || "Ocorreu um erro inesperado",
         variant: "destructive"
       });
     }
@@ -113,6 +139,7 @@ const NoticesForm: React.FC<NoticesFormProps> = ({ notice, onSave, onCancel }) =
       return;
     }
 
+    console.log("Enviando formulário:", formData);
     saveMutation.mutate(formData);
   };
 
