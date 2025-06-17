@@ -4,17 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface UserProfile {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  is_blocked: boolean;
-  avatar_url?: string | null;
-  store_name?: string | null;
-  phone?: string | null;
-  address?: string | null;
-}
-
 interface UserWithDetails {
   id: string;
   email: string;
@@ -58,8 +47,9 @@ export const useUserManagement = () => {
     queryKey: ["admin-users"],
     queryFn: async (): Promise<UserWithDetails[]> => {
       try {
-        console.log("Iniciando busca de usuários...");
+        console.log("Buscando usuários...");
         
+        // Buscar perfis com dados de autenticação
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("*");
@@ -72,7 +62,6 @@ export const useUserManagement = () => {
         console.log("Perfis encontrados:", profilesData?.length || 0);
 
         if (!profilesData || profilesData.length === 0) {
-          console.warn("Nenhum perfil encontrado");
           return [];
         }
 
@@ -80,18 +69,17 @@ export const useUserManagement = () => {
 
         for (const profile of profilesData) {
           try {
-            const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(profile.id);
+            // Buscar dados de autenticação usando getUserById
+            const { data: authData, error: authError } = await supabase.auth.admin.getUserById(profile.id);
             
             if (authError) {
               console.warn(`Erro ao buscar dados auth do usuário ${profile.id}:`, authError);
               continue;
             }
 
-            if (!authUser?.user) {
-              console.warn(`Usuário auth não encontrado para perfil ${profile.id}`);
-              continue;
-            }
+            const userEmail = authData?.user?.email || 'Email não encontrado';
 
+            // Buscar contadores em paralelo
             const [salesResult, productsResult, ordersResult] = await Promise.allSettled([
               supabase.from("sales").select("id", { count: 'exact' }).eq("user_id", profile.id),
               supabase.from("products").select("id", { count: 'exact' }).eq("user_id", profile.id),
@@ -100,14 +88,14 @@ export const useUserManagement = () => {
 
             const userWithDetails: UserWithDetails = {
               id: profile.id,
-              email: authUser.user.email || 'Email não encontrado',
+              email: userEmail,
               created_at: profile.created_at,
               updated_at: profile.updated_at,
               store_name: profile.store_name,
               phone: profile.phone,
               address: profile.address,
               avatar_url: profile.avatar_url,
-              is_blocked: profile.is_blocked,
+              is_blocked: profile.is_blocked || false,
               salesCount: salesResult.status === 'fulfilled' ? (salesResult.value.count || 0) : 0,
               productsCount: productsResult.status === 'fulfilled' ? (productsResult.value.count || 0) : 0,
               ordersCount: ordersResult.status === 'fulfilled' ? (ordersResult.value.count || 0) : 0,
@@ -121,14 +109,21 @@ export const useUserManagement = () => {
           }
         }
 
-        console.log("Usuários processados com sucesso:", usersWithDetails.length);
+        console.log("Usuários processados:", usersWithDetails.length);
         return usersWithDetails;
 
       } catch (error) {
         console.error("Erro geral na query de usuários:", error);
-        throw error;
+        toast({
+          title: "Erro ao carregar usuários",
+          description: "Tente novamente em alguns instantes",
+          variant: "destructive"
+        });
+        return [];
       }
-    }
+    },
+    retry: 2,
+    refetchOnWindowFocus: false
   });
 
   const filteredUsers = useMemo(() => {
