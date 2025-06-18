@@ -1,5 +1,4 @@
-
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 export const PerformanceOptimizer = () => {
   useEffect(() => {
