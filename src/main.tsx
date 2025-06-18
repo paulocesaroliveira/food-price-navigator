@@ -3,7 +3,6 @@ import * as React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import PerformanceOptimizer from "./components/PerformanceOptimizer";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
@@ -16,7 +15,6 @@ const root = createRoot(rootElement);
 // Renderizar com otimizações de performance
 root.render(
   <React.StrictMode>
-    <PerformanceOptimizer />
     <App />
   </React.StrictMode>
 );
