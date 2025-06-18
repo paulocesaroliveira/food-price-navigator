@@ -51,11 +51,12 @@ export const PackagingForm = ({
       console.log("Updating form with packaging data:", packaging);
       form.reset({
         name: packaging.name || "",
-        bulkQuantity: packaging.bulkQuantity || 0,
-        bulkPrice: packaging.bulkPrice || 0,
+        bulkQuantity: packaging.bulkQuantity || packaging.bulk_quantity || 0,
+        bulkPrice: packaging.bulkPrice || packaging.bulk_price || 0,
         notes: packaging.notes || "",
       });
     } else {
+      console.log("Resetting form for new packaging");
       form.reset({
         name: "",
         bulkQuantity: 0,

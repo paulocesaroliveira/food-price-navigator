@@ -25,7 +25,7 @@ import { RecipeSelector } from "./RecipeSelector";
 import { PackagingSelector } from "./PackagingSelector";
 import { ProductCostSummary } from "./ProductCostSummary";
 import { Product, ProductCategory, Recipe, Packaging } from "@/types";
-import { Plus, Settings } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -241,17 +241,6 @@ export const ProductForm = ({
 
   return (
     <div className="space-y-6">
-      {/* Mobile header with category button */}
-      <div className="flex items-center justify-between lg:hidden">
-        <h3 className="text-lg font-medium">
-          {product ? 'Editar Produto' : 'Novo Produto'}
-        </h3>
-        <Button variant="outline" size="sm">
-          <Settings className="h-4 w-4 mr-2" />
-          Categorias
-        </Button>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <Form {...form}>

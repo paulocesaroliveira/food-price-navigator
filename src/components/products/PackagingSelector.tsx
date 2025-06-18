@@ -75,7 +75,7 @@ export const PackagingSelector = ({
                               <div className="flex flex-col">
                                 <span>{pkg.name}</span>
                                 <span className="text-xs text-muted-foreground">
-                                  {formatCurrency(pkg.unitCost || 0)}/un
+                                  {formatCurrency(pkg.unitCost || pkg.unit_cost || 0)}/un
                                 </span>
                               </div>
                             </SelectItem>
@@ -105,7 +105,7 @@ export const PackagingSelector = ({
 
                     {pkg && (
                       <div className="text-xs text-muted-foreground">
-                        {formatCurrency(pkg.unitCost || 0)} × {item.quantity || 1} = {formatCurrency(item.cost || 0)}
+                        {formatCurrency(pkg.unitCost || pkg.unit_cost || 0)} × {item.quantity || 1} = {formatCurrency(item.cost || 0)}
                       </div>
                     )}
 
@@ -156,7 +156,7 @@ export const PackagingSelector = ({
                               <div className="flex items-center gap-2">
                                 <span>{pkg.name}</span>
                                 <span className="text-xs text-muted-foreground">
-                                  {formatCurrency(pkg.unitCost || 0)}/un
+                                  {formatCurrency(pkg.unitCost || pkg.unit_cost || 0)}/un
                                 </span>
                               </div>
                             </SelectItem>
@@ -183,7 +183,7 @@ export const PackagingSelector = ({
                       </div>
                       {pkg && (
                         <div className="text-xs text-muted-foreground">
-                          {formatCurrency(pkg.unitCost || 0)} × {item.quantity || 1}
+                          {formatCurrency(pkg.unitCost || pkg.unit_cost || 0)} × {item.quantity || 1}
                         </div>
                       )}
                     </div>
