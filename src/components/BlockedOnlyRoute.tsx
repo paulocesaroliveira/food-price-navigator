@@ -5,7 +5,7 @@ import { useProfileBlocked } from "@/hooks/useProfileBlocked";
 
 /**
  * Componente que gerencia o acesso baseado no status de bloqueio do usuário.
- * - Se bloqueado: só pode acessar /dashboard
+ * - Se bloqueado: só pode acessar /dashboard e /suporte
  * - Se não bloqueado: acesso normal a todas as rotas
  */
 export const BlockedOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,13 +23,16 @@ export const BlockedOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Se o usuário está bloqueado
   if (isBlocked) {
-    // Só permite acesso ao dashboard
-    if (location.pathname !== "/dashboard") {
+    // Só permite acesso ao dashboard e suporte
+    const allowedRoutes = ["/dashboard", "/suporte"];
+    const isAllowedRoute = allowedRoutes.some(route => location.pathname.startsWith(route));
+    
+    if (!isAllowedRoute) {
       console.log("Usuário bloqueado tentando acessar:", location.pathname, "- Redirecionando para /dashboard");
       return <Navigate to="/dashboard" replace />;
     }
   }
 
-  // Se não está bloqueado ou está acessando o dashboard (permitido para bloqueados), renderiza os filhos
+  // Se não está bloqueado ou está acessando uma rota permitida para bloqueados, renderiza os filhos
   return <>{children}</>;
 };

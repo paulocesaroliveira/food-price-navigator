@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,7 +67,7 @@ export const useUserManagement = () => {
           return [];
         }
 
-        // Buscar todos os perfis (agora com acesso admin)
+        // Buscar todos os perfis usando acesso admin
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("*")
@@ -85,12 +84,21 @@ export const useUserManagement = () => {
           return [];
         }
 
+        // Buscar dados de usuários do sistema de auth via admin API
+        const { data: authUsersData, error: authError } = await supabase.auth.admin.listUsers();
+        
+        if (authError) {
+          console.error("Erro ao buscar usuários auth:", authError);
+          // Se não conseguir acessar dados de auth, continuar sem emails
+        }
+
         const usersWithDetails: UserWithDetails[] = [];
 
         for (const profile of profilesData) {
           try {
-            // Para admin, buscar dados de autenticação do perfil e estatísticas
-            const userEmail = profile.id; // Usar o ID como placeholder, pois não temos acesso direto ao email
+            // Buscar email do usuário através da API admin
+            const authUser = authUsersData?.users?.find(u => u.id === profile.id);
+            const userEmail = authUser?.email || `user-${profile.id.substring(0, 8)}@sistema.local`;
 
             // Buscar contadores de vendas, produtos e pedidos
             const [salesResult, productsResult, ordersResult] = await Promise.allSettled([
@@ -101,7 +109,7 @@ export const useUserManagement = () => {
 
             const userWithDetails: UserWithDetails = {
               id: profile.id,
-              email: `Usuário ${profile.store_name || profile.id.substring(0, 8)}`, // Mostrar nome da loja ou parte do ID
+              email: userEmail,
               created_at: profile.created_at,
               updated_at: profile.updated_at,
               store_name: profile.store_name,
@@ -184,6 +192,7 @@ export const useUserManagement = () => {
           : "O usuário só poderá acessar Dashboard e Suporte."
       });
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["profile-blocked"] });
     },
     onError: (error: any) => {
       console.error("Erro na mutation de bloqueio:", error);

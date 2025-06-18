@@ -13,10 +13,12 @@ import { getRecentOrders } from "@/services/dashboard/ordersService";
 import { getSalesData } from "@/services/dashboard/salesService";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { useProfileBlocked } from "@/hooks/useProfileBlocked";
+import { AlertTriangle } from "lucide-react";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { isBlocked } = useProfileBlocked();
   const [filters, setFilters] = useState<DashboardFilters>({
     period: 'today',
   });
@@ -44,29 +46,6 @@ const Dashboard = () => {
     setFilters({ ...filters, period: 'custom', [field]: value });
   };
 
-  // Check if user profile is blocked
-  const [isBlocked, setIsBlocked] = useState(false);
-
-  React.useEffect(() => {
-    const checkBlockedStatus = async () => {
-      if (!user) return;
-      
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_blocked')
-          .eq('id', user.id)
-          .single();
-        
-        setIsBlocked(profile?.is_blocked || false);
-      } catch (error) {
-        console.error('Error checking blocked status:', error);
-      }
-    };
-
-    checkBlockedStatus();
-  }, [user]);
-
   if (!user) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -78,11 +57,29 @@ const Dashboard = () => {
   return (
     <div className="space-y-4 p-6">
       <h1 className="text-3xl font-bold">Dashboard</h1>
+      
+      {/* Notificação de bloqueio - aparece apenas para usuários bloqueados */}
       {isBlocked && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-4 rounded-md mb-4 text-lg font-semibold text-center shadow">
-          <span>Seu acesso foi <b>bloqueado</b> pelo administrador do sistema.<br/>Atualmente você só pode visualizar o seu dashboard e acessar o suporte.</span>
-        </div>
+        <Card className="bg-red-50 border-red-200 mb-6">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-6 w-6 text-red-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-800">
+                  Conta Bloqueada
+                </h3>
+                <p className="text-red-700 mt-1">
+                  Seu acesso foi restrito pelo administrador do sistema. Você pode visualizar apenas o Dashboard e acessar o Suporte.
+                </p>
+                <p className="text-red-600 text-sm mt-2">
+                  Para resolver esta situação, entre em contato através da página de Suporte.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
+
       <DashboardNotices />
       <DashboardHeader
         filters={filters}
