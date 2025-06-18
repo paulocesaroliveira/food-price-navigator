@@ -85,19 +85,20 @@ export const useUserManagement = () => {
         }
 
         // Buscar dados de usuários do sistema de auth via admin API
-        const { data: authUsersData, error: authError } = await supabase.auth.admin.listUsers();
+        const { data: authUsersResponse, error: authError } = await supabase.auth.admin.listUsers();
         
         if (authError) {
           console.error("Erro ao buscar usuários auth:", authError);
           // Se não conseguir acessar dados de auth, continuar sem emails
         }
 
+        const authUsers = authUsersResponse?.users || [];
         const usersWithDetails: UserWithDetails[] = [];
 
         for (const profile of profilesData) {
           try {
             // Buscar email do usuário através da API admin
-            const authUser = authUsersData?.users?.find(u => u.id === profile.id);
+            const authUser = authUsers.find(u => u.id === profile.id);
             const userEmail = authUser?.email || `user-${profile.id.substring(0, 8)}@sistema.local`;
 
             // Buscar contadores de vendas, produtos e pedidos
