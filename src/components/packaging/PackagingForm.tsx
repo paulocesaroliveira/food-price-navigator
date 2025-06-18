@@ -38,21 +38,29 @@ export const PackagingForm = ({
   const form = useForm<z.infer<typeof packagingSchema>>({
     resolver: zodResolver(packagingSchema),
     defaultValues: {
-      name: packaging?.name || "",
-      bulkQuantity: packaging?.bulkQuantity || 0,
-      bulkPrice: packaging?.bulkPrice || 0,
-      notes: packaging?.notes || "",
+      name: "",
+      bulkQuantity: 0,
+      bulkPrice: 0,
+      notes: "",
     },
   });
 
   // Update form when packaging prop changes
   useEffect(() => {
     if (packaging) {
+      console.log("Updating form with packaging data:", packaging);
       form.reset({
         name: packaging.name || "",
         bulkQuantity: packaging.bulkQuantity || 0,
         bulkPrice: packaging.bulkPrice || 0,
         notes: packaging.notes || "",
+      });
+    } else {
+      form.reset({
+        name: "",
+        bulkQuantity: 0,
+        bulkPrice: 0,
+        notes: "",
       });
     }
   }, [packaging, form]);
@@ -63,6 +71,7 @@ export const PackagingForm = ({
   const unitCost = bulkQuantity && bulkPrice ? bulkPrice / bulkQuantity : 0;
 
   const handleFormSubmit = async (values: z.infer<typeof packagingSchema>) => {
+    console.log("Submitting packaging form:", values);
     onSubmit({
       ...values,
       bulkQuantity: Number(values.bulkQuantity),

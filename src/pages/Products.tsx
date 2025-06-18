@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Search, Plus, Package, DollarSign, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductForm } from "@/components/products/ProductForm";
+import { ProductCategoryModal } from "@/components/products/ProductCategoryModal";
 import { formatCurrency } from "@/utils/calculations";
 import { toast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -17,6 +17,7 @@ import { Product, ProductCategory, Recipe, Packaging } from "@/types";
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const queryClient = useQueryClient();
@@ -37,6 +38,7 @@ const Products = () => {
         .order('name');
       
       if (error) throw error;
+      console.log("Loaded products:", data);
       return data || [];
     }
   });
@@ -185,6 +187,7 @@ const Products = () => {
     : 0;
 
   const handleEdit = (product: Product) => {
+    console.log("Editing product:", product);
     setEditingProduct(product);
     setShowForm(true);
   };
@@ -325,6 +328,7 @@ const Products = () => {
               variant="outline"
               className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm"
               size="sm"
+              onClick={() => setShowCategoryModal(true)}
             >
               <Settings className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               Categorias
@@ -373,6 +377,11 @@ const Products = () => {
           />
         </DialogContent>
       </Dialog>
+
+      <ProductCategoryModal 
+        open={showCategoryModal} 
+        onOpenChange={setShowCategoryModal} 
+      />
     </div>
   );
 };

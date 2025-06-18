@@ -64,16 +64,57 @@ export const ProductForm = ({
   packaging,
 }: ProductFormProps) => {
   const { user } = useAuth();
+  
+  // Initialize form with proper default values
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      name: product?.name || "",
-      categoryId: product?.categoryId || "",
-      sellingPrice: product?.sellingPrice || 0,
-      items: product?.items || [],
-      packagingItems: product?.packagingItems || [],
+      name: "",
+      categoryId: "",
+      sellingPrice: 0,
+      items: [],
+      packagingItems: [],
     },
   });
+
+  // Update form when product prop changes
+  useEffect(() => {
+    if (product) {
+      console.log("Updating product form with data:", product);
+      
+      // Map existing product items to form format
+      const formattedItems = product.items?.map(item => ({
+        recipeId: item.recipeId || "",
+        quantity: item.quantity || 1,
+        cost: item.cost || 0,
+      })) || [];
+
+      // Map existing packaging items to form format
+      const formattedPackagingItems = product.packagingItems?.map(item => ({
+        packagingId: item.packagingId || "",
+        quantity: item.quantity || 1,
+        cost: item.cost || 0,
+        isPrimary: item.isPrimary || false,
+      })) || [];
+
+      form.reset({
+        name: product.name || "",
+        categoryId: product.categoryId || "",
+        sellingPrice: product.sellingPrice || 0,
+        items: formattedItems.length > 0 ? formattedItems : [{ recipeId: "", quantity: 1, cost: 0 }],
+        packagingItems: formattedPackagingItems,
+      });
+    } else {
+      // Reset for new product
+      form.reset({
+        name: "",
+        categoryId: "",
+        sellingPrice: 0,
+        items: [{ recipeId: "", quantity: 1, cost: 0 }],
+        packagingItems: [],
+      });
+    }
+  }, [product, form]);
 
   // Watch form values for cost calculations
   const watchedItems = form.watch("items");
@@ -89,7 +130,7 @@ export const ProductForm = ({
       if (item.recipeId && item.quantity) {
         const recipe = recipes.find(r => r.id === item.recipeId);
         if (recipe) {
-          const newCost = recipe.unitCost * item.quantity;
+          const newCost = (recipe.unitCost || 0) * item.quantity;
           if (item.cost !== newCost) {
             hasChanges = true;
             return { ...item, cost: newCost };
@@ -113,7 +154,7 @@ export const ProductForm = ({
       if (item.packagingId && item.quantity) {
         const pkg = packaging.find(p => p.id === item.packagingId);
         if (pkg) {
-          const newCost = pkg.unitCost * item.quantity;
+          const newCost = (pkg.unitCost || 0) * item.quantity;
           if (item.cost !== newCost) {
             hasChanges = true;
             return { ...item, cost: newCost };
@@ -166,7 +207,7 @@ export const ProductForm = ({
     if ((field === 'recipeId' || field === 'quantity') && currentItems[index].recipeId && currentItems[index].quantity) {
       const recipe = recipes.find(r => r.id === currentItems[index].recipeId);
       if (recipe) {
-        currentItems[index].cost = recipe.unitCost * currentItems[index].quantity;
+        currentItems[index].cost = (recipe.unitCost || 0) * currentItems[index].quantity;
       }
     }
     
@@ -181,7 +222,7 @@ export const ProductForm = ({
     if ((field === 'packagingId' || field === 'quantity') && currentPackaging[index].packagingId && currentPackaging[index].quantity) {
       const pkg = packaging.find(p => p.id === currentPackaging[index].packagingId);
       if (pkg) {
-        currentPackaging[index].cost = pkg.unitCost * currentPackaging[index].quantity;
+        currentPackaging[index].cost = (pkg.unitCost || 0) * currentPackaging[index].quantity;
       }
     }
     
@@ -194,6 +235,7 @@ export const ProductForm = ({
       ...values,
       userId: user?.id, // Adicionar user_id do usuário autenticado
     };
+    console.log("Submitting product form:", productData);
     onSubmit(productData);
   };
 
@@ -237,7 +279,7 @@ export const ProductForm = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Categoria (opcional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione uma categoria" />
