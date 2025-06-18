@@ -105,18 +105,7 @@ export const useUserManagement = () => {
           try {
             // Buscar email do usuário através dos dados de auth
             const authUser = authUsers.find(u => u.id === profile.id);
-            let userEmail = authUser?.email;
-            
-            // Se não encontrou via admin API, tentar buscar de outra forma
-            if (!userEmail) {
-              try {
-                // Tentar buscar email via função RPC se disponível
-                const { data: emailData } = await supabase.rpc('get_user_email', { user_id: profile.id });
-                userEmail = emailData || `user-${profile.id.substring(0, 8)}@sistema.local`;
-              } catch {
-                userEmail = `user-${profile.id.substring(0, 8)}@sistema.local`;
-              }
-            }
+            let userEmail = authUser?.email || `user-${profile.id.substring(0, 8)}@sistema.local`;
 
             console.log(`Processando usuário ${profile.id} - Email: ${userEmail}`);
 
