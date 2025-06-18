@@ -1,378 +1,342 @@
 
-import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getIngredientCategories } from "@/services/categoryService";
-import { toast } from "@/hooks/use-toast";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { ImageUpload } from "./ImageUpload";
-import { useFileUpload } from "@/hooks/useFileUpload";
+import { toast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
-interface Ingredient {
-  id?: string;
-  name: string;
-  category_id?: string;
-  unit: string;
-  brand: string;
-  supplier?: string;
-  package_quantity: number;
-  package_price: number;
-  unit_cost: number;
-  image_url?: string;
-}
+const ingredientSchema = z.object({
+  name: z.string().min(2, { message: "Nome é obrigatório" }),
+  brand: z.string().min(1, { message: "Marca é obrigatória" }),
+  categoryId: z.string().optional(),
+  unit: z.string().min(1, { message: "Unidade é obrigatória" }),
+  packageQuantity: z.coerce.number().positive({ message: "Quantidade deve ser maior que 0" }),
+  packagePrice: z.coerce.number().positive({ message: "Preço deve ser maior que 0" }),
+  supplier: z.string().optional(),
+  notes: z.string().optional(),
+});
 
 interface IngredientFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  ingredient?: Ingredient | null;
-  onSuccess?: () => void;
+  onSuccess: () => void;
+  ingredient?: any;
 }
 
-export const IngredientForm: React.FC<IngredientFormProps> = ({
+export const IngredientForm = ({
   open,
   onOpenChange,
+  onSuccess,
   ingredient,
-  onSuccess
-}) => {
-  const [formData, setFormData] = useState<Ingredient>({
-    name: "",
-    category_id: "",
-    unit: "",
-    brand: "",
-    supplier: "",
-    package_quantity: 0,
-    package_price: 0,
-    unit_cost: 0,
-    image_url: ""
-  });
-
-  const queryClient = useQueryClient();
-  const { uploadFile, isUploading } = useFileUpload();
+}: IngredientFormProps) => {
+  const [isLoading, setIsLoading] = useState(false);
 
   const { data: categories = [] } = useQuery({
     queryKey: ['ingredient-categories'],
-    queryFn: getIngredientCategories
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { data, error } = await supabase
+        .from('ingredient_categories')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    }
   });
 
-  // Populate form when editing
-  useEffect(() => {
-    if (ingredient && open) {
-      setFormData({
-        name: ingredient.name || "",
-        category_id: ingredient.category_id || "",
-        unit: ingredient.unit || "",
-        brand: ingredient.brand || "",
-        supplier: ingredient.supplier || "",
-        package_quantity: ingredient.package_quantity || 0,
-        package_price: ingredient.package_price || 0,
-        unit_cost: ingredient.unit_cost || 0,
-        image_url: ingredient.image_url || ""
-      });
-    } else if (!ingredient && open) {
-      setFormData({
-        name: "",
-        category_id: "",
-        unit: "",
-        brand: "",
-        supplier: "",
-        package_quantity: 0,
-        package_price: 0,
-        unit_cost: 0,
-        image_url: ""
-      });
-    }
-  }, [ingredient, open]);
+  const form = useForm<z.infer<typeof ingredientSchema>>({
+    resolver: zodResolver(ingredientSchema),
+    defaultValues: {
+      name: ingredient?.name || "",
+      brand: ingredient?.brand || "",
+      categoryId: ingredient?.category_id || "",
+      unit: ingredient?.unit || "",
+      packageQuantity: ingredient?.package_quantity || 0,
+      packagePrice: ingredient?.package_price || 0,
+      supplier: ingredient?.supplier || "",
+      notes: ingredient?.notes || "",
+    },
+  });
 
-  // Calculate unit cost when package data changes
-  useEffect(() => {
-    if (formData.package_quantity > 0 && formData.package_price > 0) {
-      const unitCost = formData.package_price / formData.package_quantity;
-      setFormData(prev => ({ ...prev, unit_cost: Number(unitCost.toFixed(4)) }));
-    }
-  }, [formData.package_quantity, formData.package_price]);
+  const packageQuantity = form.watch("packageQuantity");
+  const packagePrice = form.watch("packagePrice");
+  const unitCost = packageQuantity && packagePrice ? packagePrice / packageQuantity : 0;
 
-  const handleImageUpload = async (file: File) => {
+  const handleSubmit = async (values: z.infer<typeof ingredientSchema>) => {
+    setIsLoading(true);
     try {
-      const result = await uploadFile(file, "ingredients");
-      if (result?.url) {
-        setFormData(prev => ({ ...prev, image_url: result.url }));
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const ingredientData = {
+        name: values.name,
+        brand: values.brand,
+        category_id: values.categoryId || null,
+        unit: values.unit,
+        package_quantity: values.packageQuantity,
+        package_price: values.packagePrice,
+        unit_cost: unitCost,
+        supplier: values.supplier || null,
+        notes: values.notes || null,
+        user_id: user.id,
+      };
+
+      if (ingredient) {
+        const { error } = await supabase
+          .from('ingredients')
+          .update(ingredientData)
+          .eq('id', ingredient.id);
+
+        if (error) throw error;
+
         toast({
-          title: "Sucesso",
-          description: "Imagem enviada com sucesso!"
+          title: "Ingrediente atualizado",
+          description: "O ingrediente foi atualizado com sucesso.",
+        });
+      } else {
+        const { error } = await supabase
+          .from('ingredients')
+          .insert(ingredientData);
+
+        if (error) throw error;
+
+        toast({
+          title: "Ingrediente criado",
+          description: "O ingrediente foi criado com sucesso.",
         });
       }
-    } catch (error) {
+
+      onSuccess();
+      form.reset();
+    } catch (error: any) {
       toast({
         title: "Erro",
-        description: "Erro ao enviar imagem",
-        variant: "destructive"
+        description: error.message,
+        variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const formatCurrency = (value: string): string => {
-    const numericValue = value.replace(/\D/g, '');
-    const numberValue = parseFloat(numericValue) / 100;
-    return numberValue.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    });
-  };
-
-  const parseCurrency = (value: string): number => {
-    const numericValue = value.replace(/[^\d]/g, '');
-    return parseFloat(numericValue) / 100;
-  };
-
-  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCurrency(e.target.value);
-    const numericValue = parseCurrency(e.target.value);
-    setFormData(prev => ({ ...prev, package_price: numericValue }));
-    e.target.value = formatted;
-  };
-
-  const createMutation = useMutation({
-    mutationFn: async (data: Ingredient) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      const { data: result, error } = await supabase
-        .from('ingredients')
-        .insert([{
-          user_id: user.id,
-          name: data.name,
-          category_id: data.category_id || null,
-          unit: data.unit,
-          brand: data.brand,
-          supplier: data.supplier,
-          package_quantity: data.package_quantity,
-          package_price: data.package_price,
-          unit_cost: data.unit_cost,
-          image_url: data.image_url
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return result;
-    },
-    onSuccess: () => {
-      toast({ title: "Sucesso", description: "Ingrediente criado com sucesso!" });
-      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
-      queryClient.invalidateQueries({ queryKey: ['ingredient-categories'] });
-      onSuccess?.();
-      onOpenChange(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: `Erro ao criar ingrediente: ${error.message}`,
-        variant: "destructive"
-      });
-    }
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: Ingredient) => {
-      if (!ingredient?.id) throw new Error('ID do ingrediente não encontrado');
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-      
-      const { data: result, error } = await supabase
-        .from('ingredients')
-        .update({
-          name: data.name,
-          category_id: data.category_id || null,
-          unit: data.unit,
-          brand: data.brand,
-          supplier: data.supplier,
-          package_quantity: data.package_quantity,
-          package_price: data.package_price,
-          unit_cost: data.unit_cost,
-          image_url: data.image_url
-        })
-        .eq('id', ingredient.id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return result;
-    },
-    onSuccess: () => {
-      toast({ title: "Sucesso", description: "Ingrediente atualizado com sucesso!" });
-      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
-      onSuccess?.();
-      onOpenChange(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: `Erro ao atualizar ingrediente: ${error.message}`,
-        variant: "destructive"
-      });
-    }
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.name.trim()) {
-      toast({
-        title: "Erro",
-        description: "Nome é obrigatório",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (ingredient) {
-      updateMutation.mutate(formData);
-    } else {
-      createMutation.mutate(formData);
-    }
-  };
-
-  const isLoading = createMutation.isPending || updateMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-            {ingredient ? 'Editar' : 'Novo'} Ingrediente
+          <DialogTitle>
+            {ingredient ? 'Editar Ingrediente' : 'Novo Ingrediente'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Nome do ingrediente"
-                required
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Farinha de Trigo" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="brand"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Marca</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Dona Benta" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="category">Categoria</Label>
-              <Select 
-                value={formData.category_id} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category: any) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="categoryId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria (opcional)</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma categoria" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <div className="space-y-2">
-              <Label htmlFor="unit">Unidade *</Label>
-              <Select 
-                value={formData.unit} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a unidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="g">Grama (g)</SelectItem>
-                  <SelectItem value="ml">Mililitro (ml)</SelectItem>
-                  <SelectItem value="unidade">Unidade</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="brand">Marca *</Label>
-              <Input
-                id="brand"
-                value={formData.brand}
-                onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
-                placeholder="Marca do ingrediente"
-                required
+              <FormField
+                control={form.control}
+                name="unit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unidade de Medida</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a unidade" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="kg">Quilograma (kg)</SelectItem>
+                        <SelectItem value="g">Grama (g)</SelectItem>
+                        <SelectItem value="l">Litro (l)</SelectItem>
+                        <SelectItem value="ml">Mililitro (ml)</SelectItem>
+                        <SelectItem value="un">Unidade (un)</SelectItem>
+                        <SelectItem value="cx">Caixa (cx)</SelectItem>
+                        <SelectItem value="pct">Pacote (pct)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="supplier">Fornecedor</Label>
-              <Input
-                id="supplier"
-                value={formData.supplier}
-                onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
-                placeholder="Fornecedor"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="packageQuantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantidade por Pacote</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Ex: 1"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="packagePrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preço do Pacote</FormLabel>
+                    <FormControl>
+                      <CurrencyInput
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="R$ 0,00"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="package_quantity">Quantidade da Embalagem *</Label>
-              <Input
-                id="package_quantity"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.package_quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, package_quantity: parseFloat(e.target.value) || 0 }))}
-                placeholder="Ex: 1000"
-                required
-              />
+            <div className="p-4 border rounded-md bg-muted/50">
+              <p className="text-sm font-medium">Custo Unitário (calculado)</p>
+              <p className="text-xl font-bold mt-1">
+                {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                }).format(unitCost)}
+              </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="package_price">Preço da Embalagem (R$) *</Label>
-              <Input
-                id="package_price"
-                type="text"
-                defaultValue={formData.package_price > 0 ? formatCurrency(formData.package_price.toString()) : ""}
-                onChange={handlePriceChange}
-                placeholder="R$ 0,00"
-                required
-              />
+            <FormField
+              control={form.control}
+              name="supplier"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fornecedor (opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nome do fornecedor" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Observações (opcional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Observações sobre o ingrediente"
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Salvando..." : ingredient ? "Atualizar" : "Criar"} Ingrediente
+              </Button>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="unit_cost">Custo Unitário (R$)</Label>
-              <Input
-                id="unit_cost"
-                type="text"
-                value={formData.unit_cost > 0 ? formData.unit_cost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "R$ 0,00"}
-                readOnly
-                className="bg-gray-100"
-              />
-              <p className="text-xs text-gray-500">Calculado automaticamente</p>
-            </div>
-          </div>
-
-          <ImageUpload
-            currentImageUrl={formData.image_url || null}
-            onImageUpload={handleImageUpload}
-            isUploading={isUploading}
-          />
-
-          <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isLoading || isUploading}>
-              {isLoading ? 'Salvando...' : (ingredient ? 'Atualizar' : 'Criar')}
-            </Button>
-          </div>
-        </form>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

@@ -1,10 +1,11 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Plus, Package, DollarSign, TrendingUp } from "lucide-react";
+import { Search, Plus, Package, DollarSign, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductForm } from "@/components/products/ProductForm";
 import { formatCurrency } from "@/utils/calculations";
@@ -319,13 +320,24 @@ const Products = () => {
           { icon: DollarSign, text: `Preço médio: ${formatCurrency(avgPrice)}` }
         ]}
         actions={
-          <Button 
-            onClick={() => setShowForm(true)}
-            className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Produto
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm"
+              size="sm"
+            >
+              <Settings className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              Categorias
+            </Button>
+            <Button 
+              onClick={() => setShowForm(true)}
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm"
+              size="sm"
+            >
+              <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              Novo
+            </Button>
+          </div>
         }
       />
 

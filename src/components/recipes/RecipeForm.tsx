@@ -47,7 +47,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   const [categoryId, setCategoryId] = useState(editingRecipe?.category?.id || "");
   const [portions, setPortions] = useState(editingRecipe?.portions?.toString() || "1");
   const [notes, setNotes] = useState(editingRecipe?.notes || "");
-  const [image, setImage] = useState(editingRecipe?.image_url || "");
 
   // Ingredientes base (custo único para toda a receita)
   const [baseIngredients, setBaseIngredients] = useState<RecipeIngredient[]>([]);
@@ -218,7 +217,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         total_cost: totalCost,
         unit_cost: unitCost,
         notes,
-        image_url: image,
         user_id: user.id
       };
 
@@ -293,7 +291,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       setCategoryId("");
       setPortions("1");
       setNotes("");
-      setImage("");
       setBaseIngredients([]);
       setPortionIngredients([]);
 
@@ -366,15 +363,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="image">URL da Imagem</Label>
-                  <Input
-                    id="image"
-                    value={image}
-                    onChange={(e) => setImage(e.target.value)}
-                    placeholder="https://..."
-                  />
-                </div>
               </div>
 
               <div className="space-y-2">
@@ -393,13 +381,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           {/* Ingredientes Base */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Ingredientes Base (Custo Único)
-                <Button type="button" onClick={addBaseIngredient} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar
-                </Button>
-              </CardTitle>
+              <CardTitle>Ingredientes Base (Custo Único)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -456,6 +438,11 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                     </div>
                   </div>
                 ))}
+                
+                <Button type="button" onClick={addBaseIngredient} size="sm" className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Ingrediente Base
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -463,13 +450,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           {/* Ingredientes por Porção */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Ingredientes por Porção (Custo Multiplicado)
-                <Button type="button" onClick={addPortionIngredient} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar
-                </Button>
-              </CardTitle>
+              <CardTitle>Ingredientes por Porção (Custo Multiplicado)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -526,6 +507,11 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                     </div>
                   </div>
                 ))}
+                
+                <Button type="button" onClick={addPortionIngredient} size="sm" className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Ingrediente por Porção
+                </Button>
               </div>
             </CardContent>
           </Card>

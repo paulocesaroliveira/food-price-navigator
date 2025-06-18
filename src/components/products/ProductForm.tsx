@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -24,7 +25,7 @@ import { RecipeSelector } from "./RecipeSelector";
 import { PackagingSelector } from "./PackagingSelector";
 import { ProductCostSummary } from "./ProductCostSummary";
 import { Product, ProductCategory, Recipe, Packaging } from "@/types";
-import { Plus } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -197,133 +198,161 @@ export const ProductForm = ({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome do Produto</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Bolo de Chocolate Premium" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Categoria (opcional)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma categoria" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="sellingPrice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor de Venda</FormLabel>
-                  <FormControl>
-                    <CurrencyInput
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="R$ 0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base">Receitas</CardTitle>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addRecipe}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Receita
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <RecipeSelector
-                  recipes={recipes}
-                  selectedItems={watchedItems || []}
-                  onItemChange={handleItemChange}
-                  onRemoveItem={removeRecipe}
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base">Embalagens (opcional)</CardTitle>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addPackaging}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Embalagem
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <PackagingSelector
-                  packaging={packaging}
-                  selectedItems={watchedPackagingItems || []}
-                  onItemChange={handlePackagingChange}
-                  onRemoveItem={removePackaging}
-                />
-              </CardContent>
-            </Card>
-            
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancelar
-              </Button>
-              <Button type="submit">
-                {product ? "Atualizar Produto" : "Criar Produto"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+    <div className="space-y-6">
+      {/* Mobile header with category button */}
+      <div className="flex items-center justify-between lg:hidden">
+        <h3 className="text-lg font-medium">
+          {product ? 'Editar Produto' : 'Novo Produto'}
+        </h3>
+        <Button variant="outline" size="sm">
+          <Settings className="h-4 w-4 mr-2" />
+          Categorias
+        </Button>
       </div>
 
-      <div className="lg:col-span-1">
-        <ProductCostSummary
-          totalRecipeCost={totalRecipeCost}
-          totalPackagingCost={totalPackagingCost}
-          sellingPrice={watchedSellingPrice || 0}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+              {/* Basic Info - Mobile Optimized */}
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome do Produto</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Bolo de Chocolate Premium" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Categoria (opcional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione uma categoria" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="sellingPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Valor de Venda</FormLabel>
+                        <FormControl>
+                          <CurrencyInput
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="R$ 0,00"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Recipes Section */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
+                    <CardTitle className="text-base">Receitas</CardTitle>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addRecipe}
+                      className="w-full sm:w-auto"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Receita
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <RecipeSelector
+                    recipes={recipes}
+                    selectedItems={watchedItems || []}
+                    onItemChange={handleItemChange}
+                    onRemoveItem={removeRecipe}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Packaging Section */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
+                    <CardTitle className="text-base">Embalagens (opcional)</CardTitle>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addPackaging}
+                      className="w-full sm:w-auto"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Embalagem
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <PackagingSelector
+                    packaging={packaging}
+                    selectedItems={watchedPackagingItems || []}
+                    onItemChange={handlePackagingChange}
+                    onRemoveItem={removePackaging}
+                  />
+                </CardContent>
+              </Card>
+              
+              {/* Mobile Buttons */}
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
+                  Cancelar
+                </Button>
+                <Button type="submit" className="w-full sm:w-auto">
+                  {product ? "Atualizar Produto" : "Criar Produto"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
+
+        {/* Cost Summary - Hidden on mobile, shown in a separate card */}
+        <div className="lg:col-span-1">
+          <div className="lg:sticky lg:top-4">
+            <ProductCostSummary
+              totalRecipeCost={totalRecipeCost}
+              totalPackagingCost={totalPackagingCost}
+              sellingPrice={watchedSellingPrice || 0}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

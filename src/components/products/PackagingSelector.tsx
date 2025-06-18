@@ -58,21 +58,89 @@ export const PackagingSelector = ({
             return (
               <Card key={index} className={item.isPrimary ? "ring-2 ring-primary" : ""}>
                 <CardContent className="p-4">
-                  <div className="grid grid-cols-12 gap-3 items-center">
-                    <div className="col-span-1">
-                      {pkg?.imageUrl ? (
-                        <img
-                          src={pkg.imageUrl}
-                          alt={pkg.name}
-                          className="w-10 h-10 rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
-                          <Package className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
+                  {/* Mobile Layout */}
+                  <div className="block sm:hidden space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground">Embalagem</Label>
+                      <Select
+                        value={item.packagingId || ""}
+                        onValueChange={(value) => onItemChange(index, 'packagingId', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma embalagem" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {packaging.map((pkg) => (
+                            <SelectItem key={pkg.id} value={pkg.id}>
+                              <div className="flex flex-col">
+                                <span>{pkg.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatCurrency(pkg.unitCost || 0)}/un
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground">Quantidade</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={item.quantity || 1}
+                          onChange={(e) => onItemChange(index, 'quantity', Number(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground">Custo Total</Label>
+                        <div className="text-sm font-medium text-green-600 py-2">
+                          {formatCurrency(item.cost || 0)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {pkg && (
+                      <div className="text-xs text-muted-foreground">
+                        {formatCurrency(pkg.unitCost || 0)} × {item.quantity || 1} = {formatCurrency(item.cost || 0)}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePrimaryChange(index)}
+                        className={item.isPrimary ? "text-yellow-600" : "text-muted-foreground"}
+                      >
+                        <Star className={`h-4 w-4 mr-2 ${item.isPrimary ? "fill-current" : ""}`} />
+                        {item.isPrimary ? "Principal" : "Marcar como Principal"}
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onRemoveItem(index)}
+                        className="text-destructive hover:text-destructive"
+                        disabled={item.isPrimary && selectedItems.length === 1}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {item.isPrimary && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Star className="h-3 w-3 mr-1" />
+                        Embalagem Principal
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Desktop Layout */}
+                  <div className="hidden sm:grid sm:grid-cols-12 gap-3 items-center">
                     <div className="col-span-5">
                       <Label className="text-sm text-muted-foreground">Embalagem</Label>
                       <Select
@@ -102,12 +170,13 @@ export const PackagingSelector = ({
                       <Input
                         type="number"
                         min="1"
+                        step="1"
                         value={item.quantity || 1}
                         onChange={(e) => onItemChange(index, 'quantity', Number(e.target.value))}
                       />
                     </div>
 
-                    <div className="col-span-2">
+                    <div className="col-span-3">
                       <Label className="text-sm text-muted-foreground">Custo Total</Label>
                       <div className="text-sm font-medium text-green-600">
                         {formatCurrency(item.cost || 0)}
@@ -144,7 +213,7 @@ export const PackagingSelector = ({
                   </div>
                   
                   {item.isPrimary && (
-                    <div className="mt-2">
+                    <div className="mt-2 hidden sm:block">
                       <Badge variant="secondary" className="text-xs">
                         <Star className="h-3 w-3 mr-1" />
                         Embalagem Principal

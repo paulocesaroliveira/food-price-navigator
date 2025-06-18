@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/utils/calculations";
-import { Trash2, FileText } from "lucide-react";
+import { Trash2, ChefHat } from "lucide-react";
 
 interface RecipeSelectorProps {
   recipes: Recipe[];
@@ -31,10 +31,10 @@ export const RecipeSelector = ({
       {selectedItems.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-8">
-            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+            <ChefHat className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground text-center">
               Nenhuma receita adicionada.<br />
-              Clique em "Adicionar Receita" para começar.
+              Adicione pelo menos uma receita.
             </p>
           </CardContent>
         </Card>
@@ -45,21 +45,70 @@ export const RecipeSelector = ({
             return (
               <Card key={index}>
                 <CardContent className="p-4">
-                  <div className="grid grid-cols-12 gap-3 items-center">
-                    <div className="col-span-1">
-                      {recipe?.image ? (
-                        <img
-                          src={recipe.image}
-                          alt={recipe.name}
-                          className="w-10 h-10 rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
-                          <FileText className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
+                  {/* Mobile Layout */}
+                  <div className="block sm:hidden space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground">Receita</Label>
+                      <Select
+                        value={item.recipeId || ""}
+                        onValueChange={(value) => onItemChange(index, 'recipeId', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma receita" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {recipes.map((recipe) => (
+                            <SelectItem key={recipe.id} value={recipe.id}>
+                              <div className="flex flex-col">
+                                <span>{recipe.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatCurrency(recipe.unitCost || 0)}/porção
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground">Quantidade</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={item.quantity || 1}
+                          onChange={(e) => onItemChange(index, 'quantity', Number(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground">Custo Total</Label>
+                        <div className="text-sm font-medium text-green-600 py-2">
+                          {formatCurrency(item.cost || 0)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {recipe && (
+                      <div className="text-xs text-muted-foreground">
+                        {formatCurrency(recipe.unitCost || 0)} × {item.quantity || 1} = {formatCurrency(item.cost || 0)}
+                      </div>
+                    )}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onRemoveItem(index)}
+                      className="w-full text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Remover
+                    </Button>
+                  </div>
+
+                  {/* Desktop Layout */}
+                  <div className="hidden sm:grid sm:grid-cols-12 gap-3 items-center">
                     <div className="col-span-6">
                       <Label className="text-sm text-muted-foreground">Receita</Label>
                       <Select
@@ -75,7 +124,7 @@ export const RecipeSelector = ({
                               <div className="flex items-center gap-2">
                                 <span>{recipe.name}</span>
                                 <span className="text-xs text-muted-foreground">
-                                  {formatCurrency(recipe.unit_cost || 0)}/porção
+                                  {formatCurrency(recipe.unitCost || 0)}/porção
                                 </span>
                               </div>
                             </SelectItem>
@@ -89,19 +138,20 @@ export const RecipeSelector = ({
                       <Input
                         type="number"
                         min="1"
+                        step="1"
                         value={item.quantity || 1}
                         onChange={(e) => onItemChange(index, 'quantity', Number(e.target.value))}
                       />
                     </div>
 
-                    <div className="col-span-2">
+                    <div className="col-span-3">
                       <Label className="text-sm text-muted-foreground">Custo Total</Label>
                       <div className="text-sm font-medium text-green-600">
                         {formatCurrency(item.cost || 0)}
                       </div>
                       {recipe && (
                         <div className="text-xs text-muted-foreground">
-                          {formatCurrency(recipe.unit_cost || 0)} × {item.quantity || 1}
+                          {formatCurrency(recipe.unitCost || 0)} × {item.quantity || 1}
                         </div>
                       )}
                     </div>

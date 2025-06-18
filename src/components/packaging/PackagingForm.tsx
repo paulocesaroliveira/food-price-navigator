@@ -15,17 +15,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { ImageUpload } from "@/components/ingredients/ImageUpload";
-import { useFileUpload } from "@/hooks/useFileUpload";
 import { Packaging } from "@/types";
-import { toast } from "@/hooks/use-toast";
 
 const packagingSchema = z.object({
   name: z.string().min(2, { message: "Nome é obrigatório" }),
   bulkQuantity: z.coerce.number().positive({ message: "Quantidade deve ser maior que 0" }),
   bulkPrice: z.coerce.number().positive({ message: "Preço deve ser maior que 0" }),
   notes: z.string().optional(),
-  imageUrl: z.string().optional(),
 });
 
 type PackagingFormProps = {
@@ -39,11 +35,6 @@ export const PackagingForm = ({
   onSubmit,
   onCancel,
 }: PackagingFormProps) => {
-  const [imageUrl, setImageUrl] = useState<string | null>(
-    packaging?.imageUrl || null
-  );
-  const { uploadFile, isUploading, setUploading } = useFileUpload();
-
   const form = useForm<z.infer<typeof packagingSchema>>({
     resolver: zodResolver(packagingSchema),
     defaultValues: {
@@ -51,34 +42,25 @@ export const PackagingForm = ({
       bulkQuantity: packaging?.bulkQuantity || 0,
       bulkPrice: packaging?.bulkPrice || 0,
       notes: packaging?.notes || "",
-      imageUrl: packaging?.imageUrl || "",
     },
   });
+
+  // Update form when packaging prop changes
+  useEffect(() => {
+    if (packaging) {
+      form.reset({
+        name: packaging.name || "",
+        bulkQuantity: packaging.bulkQuantity || 0,
+        bulkPrice: packaging.bulkPrice || 0,
+        notes: packaging.notes || "",
+      });
+    }
+  }, [packaging, form]);
 
   // Calculate unit cost
   const bulkQuantity = form.watch("bulkQuantity");
   const bulkPrice = form.watch("bulkPrice");
   const unitCost = bulkQuantity && bulkPrice ? bulkPrice / bulkQuantity : 0;
-
-  const handleImageUpload = async (file: File): Promise<void> => {
-    try {
-      setUploading(true);
-      const result = await uploadFile(file, "packaging");
-      if (result?.url) {
-        setImageUrl(result.url);
-        form.setValue("imageUrl", result.url);
-      }
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      toast({
-        title: "Erro ao fazer upload",
-        description: "Não foi possível fazer o upload da imagem.",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleFormSubmit = async (values: z.infer<typeof packagingSchema>) => {
     onSubmit({
@@ -91,115 +73,93 @@ export const PackagingForm = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome da Embalagem</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Caixa para Doces" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <div className="space-y-6">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome da Embalagem</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: Caixa para Doces" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={form.control}
-              name="bulkQuantity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantidade por Fardo</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min="1"
-                      placeholder="Ex: 100"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="bulkQuantity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Quantidade por Fardo</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Ex: 100"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={form.control}
-              name="bulkPrice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Preço do Fardo</FormLabel>
-                  <FormControl>
-                    <CurrencyInput
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="R$ 0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="bulkPrice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Preço do Fardo</FormLabel>
+                <FormControl>
+                  <CurrencyInput
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="R$ 0,00"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <div className="p-4 border rounded-md bg-muted/50">
-              <p className="text-sm font-medium">Custo Unitário (calculado)</p>
-              <p className="text-xl font-bold mt-1">
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(unitCost)}
-              </p>
-            </div>
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Observações</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Observações sobre a embalagem"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <div className="p-4 border rounded-md bg-muted/50">
+            <p className="text-sm font-medium">Custo Unitário (calculado)</p>
+            <p className="text-xl font-bold mt-1">
+              {new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              }).format(unitCost)}
+            </p>
           </div>
-          
-          <div>
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Imagem da Embalagem (opcional)</FormLabel>
-                  <FormControl>
-                    <ImageUpload
-                      currentImageUrl={imageUrl}
-                      onImageUpload={handleImageUpload}
-                      isUploading={isUploading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Observações</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Observações sobre a embalagem"
+                    className="resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
         
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex flex-col sm:flex-row justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <Button type="submit" disabled={isUploading}>
-            {packaging ? "Atualizar Embalagem" : "Adicionar Embalagem"}
+          <Button type="submit" className="w-full sm:w-auto">
+            {packaging ? "Atualizar Embalagem" : "Criar Embalagem"}
           </Button>
         </div>
       </form>
