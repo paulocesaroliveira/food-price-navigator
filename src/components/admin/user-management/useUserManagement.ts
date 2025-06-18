@@ -67,7 +67,7 @@ export const useUserManagement = () => {
           return [];
         }
 
-        // Buscar todos os perfis usando acesso admin
+        // Buscar todos os perfis
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("*")
@@ -84,22 +84,41 @@ export const useUserManagement = () => {
           return [];
         }
 
-        // Buscar dados de usuários do sistema de auth via admin API
-        const { data: authUsersResponse, error: authError } = await supabase.auth.admin.listUsers();
-        
-        if (authError) {
-          console.error("Erro ao buscar usuários auth:", authError);
-          // Se não conseguir acessar dados de auth, continuar sem emails
+        // Buscar emails dos usuários usando admin API
+        let authUsers: any[] = [];
+        try {
+          const { data: authResponse, error: authError } = await supabase.auth.admin.listUsers();
+          
+          if (authError) {
+            console.error("Erro ao buscar dados de auth:", authError);
+          } else {
+            authUsers = authResponse?.users || [];
+            console.log("Usuários auth encontrados:", authUsers.length);
+          }
+        } catch (error) {
+          console.error("Erro na API admin:", error);
         }
 
-        const authUsers = authUsersResponse?.users || [];
         const usersWithDetails: UserWithDetails[] = [];
 
         for (const profile of profilesData) {
           try {
-            // Buscar email do usuário através da API admin
+            // Buscar email do usuário através dos dados de auth
             const authUser = authUsers.find(u => u.id === profile.id);
-            const userEmail = authUser?.email || `user-${profile.id.substring(0, 8)}@sistema.local`;
+            let userEmail = authUser?.email;
+            
+            // Se não encontrou via admin API, tentar buscar de outra forma
+            if (!userEmail) {
+              try {
+                // Tentar buscar email via função RPC se disponível
+                const { data: emailData } = await supabase.rpc('get_user_email', { user_id: profile.id });
+                userEmail = emailData || `user-${profile.id.substring(0, 8)}@sistema.local`;
+              } catch {
+                userEmail = `user-${profile.id.substring(0, 8)}@sistema.local`;
+              }
+            }
+
+            console.log(`Processando usuário ${profile.id} - Email: ${userEmail}`);
 
             // Buscar contadores de vendas, produtos e pedidos
             const [salesResult, productsResult, ordersResult] = await Promise.allSettled([
@@ -145,7 +164,8 @@ export const useUserManagement = () => {
       }
     },
     retry: 1,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    staleTime: 30000, // Cache por 30 segundos
   });
 
   const filteredUsers = useMemo(() => {
@@ -219,7 +239,7 @@ export const useUserManagement = () => {
           }]);
       }
 
-      // Remover perfil (o usuário auth será removido por cascata se configurado)
+      // Remover perfil
       const { error } = await supabase
         .from("profiles")
         .delete()

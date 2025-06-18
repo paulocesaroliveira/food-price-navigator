@@ -3,53 +3,58 @@ import { useEffect } from 'react';
 
 export const PerformanceOptimizer = () => {
   useEffect(() => {
-    // Otimizar carregamento de recursos
+    // Otimizar carregamento de recursos críticos
     const optimizeResources = () => {
-      // Adicionar preload para fontes críticas
+      // Preload de fontes críticas com display swap
       const linkFont = document.createElement('link');
       linkFont.rel = 'preload';
       linkFont.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap';
       linkFont.as = 'style';
+      linkFont.crossOrigin = 'anonymous';
       linkFont.onload = () => {
         linkFont.rel = 'stylesheet';
       };
       document.head.appendChild(linkFont);
 
-      // Adicionar prefetch para recursos importantes
-      const linkPrefetch = document.createElement('link');
-      linkPrefetch.rel = 'prefetch';
-      linkPrefetch.href = '/favicon.ico';
-      document.head.appendChild(linkPrefetch);
+      // Prefetch recursos importantes
+      const resources = ['/favicon.ico'];
+      resources.forEach(href => {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = href;
+        document.head.appendChild(link);
+      });
 
-      // Otimizar imagens lazy loading
+      // Lazy loading de imagens
       if ('loading' in HTMLImageElement.prototype) {
         const images = document.querySelectorAll('img[data-src]');
         images.forEach((img: any) => {
           img.src = img.dataset.src;
+          img.loading = 'lazy';
           img.removeAttribute('data-src');
         });
       }
     };
 
-    // Implementar debounce para scroll events
+    // Debounce para eventos de scroll
     let scrollTimeout: NodeJS.Timeout;
     const handleScroll = () => {
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         // Lógica de scroll otimizada
-      }, 10);
+      }, 16); // ~60fps
     };
 
-    // Otimizar eventos de resize
+    // Throttle para eventos de resize
     let resizeTimeout: NodeJS.Timeout;
     const handleResize = () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
         // Lógica de resize otimizada
-      }, 150);
+      }, 250);
     };
 
-    // Configurar observers para performance
+    // Intersection Observer para lazy loading
     if ('IntersectionObserver' in window) {
       const imageObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -57,11 +62,15 @@ export const PerformanceOptimizer = () => {
             const img = entry.target as HTMLImageElement;
             if (img.dataset.src) {
               img.src = img.dataset.src;
+              img.loading = 'lazy';
               img.removeAttribute('data-src');
               imageObserver.unobserve(img);
             }
           }
         });
+      }, {
+        rootMargin: '50px 0px',
+        threshold: 0.01
       });
 
       // Observar imagens lazy
@@ -73,10 +82,11 @@ export const PerformanceOptimizer = () => {
     // Executar otimizações
     optimizeResources();
 
-    // Adicionar event listeners otimizados
+    // Event listeners otimizados
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', handleResize, { passive: true });
 
+    // Cleanup
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);

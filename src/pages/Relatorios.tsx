@@ -14,7 +14,7 @@ const Relatorios = () => {
         icon={BarChart3}
         gradient="from-indigo-500 to-purple-600"
         actions={
-          <Button className="btn-gradient">
+          <Button className="btn-gradient" loading="lazy">
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </Button>
@@ -55,7 +55,7 @@ const Relatorios = () => {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+            <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" loading="lazy" />
             <p>Nenhum dado disponível ainda.</p>
             <p className="text-sm">Comece fazendo vendas para gerar relatórios!</p>
           </div>

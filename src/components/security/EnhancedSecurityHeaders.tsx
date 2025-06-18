@@ -26,7 +26,7 @@ export const EnhancedSecurityHeaders = () => {
       tag.content = content;
     };
 
-    // Enhanced Content Security Policy
+    // Enhanced Content Security Policy para melhor performance
     setHttpEquivTag('Content-Security-Policy', 
       "default-src 'self'; " +
       `script-src 'self' 'nonce-${nonce}' https://cdn.gpteng.co https://jbkuvytrvfywsnslvjos.supabase.co; ` +
@@ -40,13 +40,13 @@ export const EnhancedSecurityHeaders = () => {
       "upgrade-insecure-requests;"
     );
 
-    // Security headers
+    // Headers de segurança para performance
     setHttpEquivTag('X-Frame-Options', 'DENY');
     setHttpEquivTag('X-Content-Type-Options', 'nosniff');
     setHttpEquivTag('X-XSS-Protection', '1; mode=block');
     setHttpEquivTag('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     
-    // Referrer Policy
+    // Referrer Policy otimizada
     setMetaTag('referrer', 'strict-origin-when-cross-origin');
 
     // Enhanced Permissions Policy
@@ -56,15 +56,17 @@ export const EnhancedSecurityHeaders = () => {
       'bluetooth=(), midi=(), push=(), notifications=()'
     );
 
-    // Generate and store CSRF token
+    // CSRF token seguro
     const csrfToken = 'csrf-' + crypto.getRandomValues(new Uint32Array(4)).join('-');
     sessionStorage.setItem('csrf-token', csrfToken);
     setMetaTag('csrf-token', csrfToken);
 
-    // Set security flags for cookies
-    document.cookie = "__Secure-SessionId=; Secure; HttpOnly; SameSite=Strict; Path=/";
+    // Resource hints para performance
+    setMetaTag('dns-prefetch', 'https://fonts.googleapis.com');
+    setMetaTag('dns-prefetch', 'https://fonts.gstatic.com');
+    setMetaTag('preconnect', 'https://jbkuvytrvfywsnslvjos.supabase.co');
 
-    console.log('Enhanced security headers configured with nonce:', nonce);
+    console.log('Enhanced security headers configured with performance optimizations');
   }, []);
 
   return null;
