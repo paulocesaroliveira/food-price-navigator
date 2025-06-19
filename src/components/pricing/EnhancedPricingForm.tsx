@@ -199,7 +199,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 <Label>{cost.label}</Label>
               </div>
               <div>
-                <Select value={cost.type} onValueChange={cost.setType}>
+                <Select value={cost.type} onValueChange={(value) => cost.setType(value as 'fixed' | 'percentage')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
