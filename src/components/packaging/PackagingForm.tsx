@@ -6,7 +6,6 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -21,7 +20,6 @@ const packagingSchema = z.object({
   name: z.string().min(2, { message: "Nome é obrigatório" }),
   bulkQuantity: z.coerce.number().positive({ message: "Quantidade deve ser maior que 0" }),
   bulkPrice: z.coerce.number().positive({ message: "Preço deve ser maior que 0" }),
-  notes: z.string().optional(),
 });
 
 type PackagingFormProps = {
@@ -41,7 +39,6 @@ export const PackagingForm = ({
       name: "",
       bulkQuantity: 0,
       bulkPrice: 0,
-      notes: "",
     },
   });
 
@@ -53,7 +50,6 @@ export const PackagingForm = ({
         name: packaging.name || "",
         bulkQuantity: packaging.bulkQuantity || packaging.bulk_quantity || 0,
         bulkPrice: packaging.bulkPrice || packaging.bulk_price || 0,
-        notes: packaging.notes || "",
       });
     } else {
       console.log("Resetting form for new packaging");
@@ -61,7 +57,6 @@ export const PackagingForm = ({
         name: "",
         bulkQuantity: 0,
         bulkPrice: 0,
-        notes: "",
       });
     }
   }, [packaging, form]);
@@ -144,24 +139,6 @@ export const PackagingForm = ({
               }).format(unitCost)}
             </p>
           </div>
-
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Observações</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Observações sobre a embalagem"
-                    className="resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
         
         <div className="flex flex-col sm:flex-row justify-end gap-2">

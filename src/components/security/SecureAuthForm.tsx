@@ -8,7 +8,6 @@ import { Eye, EyeOff, Shield, Mail, Lock } from "lucide-react";
 import { useSecureAuth } from "@/hooks/useSecureAuth";
 import { useNavigate } from "react-router-dom";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
-import { sanitizeEmail } from "./InputSanitizer";
 import { useRateLimit } from "@/hooks/useRateLimit";
 
 const SecureAuthForm: React.FC = () => {
@@ -30,8 +29,7 @@ const SecureAuthForm: React.FC = () => {
   });
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const sanitizedEmail = sanitizeEmail(e.target.value);
-    setEmail(sanitizedEmail);
+    setEmail(e.target.value);
   };
   
   const handleSubmit = async (e: React.FormEvent) => {

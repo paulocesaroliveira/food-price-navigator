@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Packaging } from "@/types";
 import { toast } from "@/hooks/use-toast";
@@ -22,7 +21,7 @@ export const getPackagingList = async (): Promise<Packaging[]> => {
     return (data || []).map((item) => ({
       id: item.id,
       name: item.name,
-      type: item.type,
+      type: item.type || 'default',
       bulkQuantity: item.bulk_quantity,
       bulkPrice: item.bulk_price,
       unitCost: item.unit_cost,
@@ -52,12 +51,12 @@ export const createPackaging = async (packaging: Omit<Packaging, "id">): Promise
       .insert({
         user_id: user.id,
         name: packaging.name,
-        type: packaging.type,
+        type: 'default', // Valor padrão fixo
         bulk_quantity: packaging.bulkQuantity,
         bulk_price: packaging.bulkPrice,
         unit_cost: packaging.bulkQuantity > 0 ? packaging.bulkPrice / packaging.bulkQuantity : 0,
         image_url: packaging.imageUrl || null,
-        notes: packaging.notes,
+        notes: packaging.notes || null,
       })
       .select()
       .single();
@@ -125,7 +124,7 @@ export const updatePackaging = async (id: string, packaging: Partial<Omit<Packag
 
     const updateData: any = {
       name: packaging.name,
-      type: packaging.type,
+      type: packaging.type || 'default',
       bulk_quantity: packaging.bulkQuantity,
       bulk_price: packaging.bulkPrice,
       unit_cost: unitCost,
