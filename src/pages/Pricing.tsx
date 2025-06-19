@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Calculator, Package, DollarSign, TrendingUp, ArrowRight, Settings } from "lucide-react";
+import { Search, Calculator, Package, DollarSign, TrendingUp, ArrowRight, Settings, Target, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/utils/calculations";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -64,7 +64,6 @@ const Pricing = () => {
   const avgCost = products.length > 0 
     ? products.reduce((acc, product) => acc + (product.total_cost || 0), 0) / products.length 
     : 0;
-
   const totalConfigurations = configurations.length;
 
   const handleProductSelect = (product: Product) => {
@@ -79,11 +78,53 @@ const Pricing = () => {
     setSelectedProduct(null);
   };
 
+  // Função para calcular dados de precificação do card
+  const getCardPricingData = (product: Product) => {
+    const config = configurations.find(config => config.product_id === product.id);
+    
+    if (!config) {
+      return {
+        costWithoutTaxes: product.total_cost || 0,
+        totalTaxes: 0,
+        finalPrice: 0,
+        profit: 0,
+        hasConfiguration: false
+      };
+    }
+
+    const baseCost = config.base_cost || 0;
+    const packagingCost = config.packaging_cost || 0;
+    const laborCost = config.labor_cost || 0;
+    const overheadCost = config.overhead_cost || 0;
+    const marketingCost = config.marketing_cost || 0;
+    const deliveryCost = config.delivery_cost || 0;
+    const otherCosts = config.other_costs || 0;
+    
+    const productionCost = baseCost + packagingCost;
+    const totalIndirectCosts = laborCost + overheadCost + marketingCost + deliveryCost + otherCosts;
+    const costWithWastage = (productionCost + totalIndirectCosts) * (1 + (config.wastage_percentage || 5) / 100);
+    
+    const idealPrice = costWithWastage * (1 + (config.margin_percentage || 30) / 100);
+    const priceWithPlatformFee = idealPrice * (1 + (config.platform_fee_percentage || 0) / 100);
+    const finalPrice = priceWithPlatformFee * (1 + (config.tax_percentage || 0) / 100);
+    
+    const totalTaxes = totalIndirectCosts + (costWithWastage - productionCost) + (priceWithPlatformFee - idealPrice) + (finalPrice - priceWithPlatformFee);
+    const profit = finalPrice - costWithWastage;
+
+    return {
+      costWithoutTaxes: productionCost,
+      totalTaxes,
+      finalPrice,
+      profit,
+      hasConfiguration: true
+    };
+  };
+
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
-        title="Precificação"
-        subtitle="Configure preços inteligentes para seus produtos"
+        title="Precificação Inteligente"
+        subtitle="Configure preços profissionais para seus produtos com análise completa de custos"
         icon={Calculator}
         gradient="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600"
         badges={[
@@ -97,7 +138,7 @@ const Pricing = () => {
       <div className="flex items-center space-x-2 max-w-md">
         <Search className="h-4 w-4 text-gray-400 shrink-0" />
         <Input
-          placeholder="Buscar produtos..."
+          placeholder="Buscar produtos para precificar..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full input-focus"
@@ -105,7 +146,7 @@ const Pricing = () => {
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredProducts.length === 0 ? (
           <div className="col-span-full text-center py-12">
             <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -116,58 +157,105 @@ const Pricing = () => {
           </div>
         ) : (
           filteredProducts.map((product) => {
-            const hasConfiguration = configurations.some(config => config.product_id === product.id);
+            const pricingData = getCardPricingData(product);
             
             return (
-              <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-purple-200">
-                <CardHeader className="pb-3">
+              <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-purple-200 bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg font-semibold truncate">{product.name}</CardTitle>
+                      <CardTitle className="text-lg font-bold truncate text-gray-800">{product.name}</CardTitle>
                       {product.category && (
-                        <Badge variant="secondary" className="mt-1 text-xs">
+                        <Badge variant="secondary" className="mt-2 text-xs bg-blue-100 text-blue-800">
                           {product.category.name}
                         </Badge>
                       )}
                     </div>
-                    {hasConfiguration && (
-                      <Badge className="bg-green-100 text-green-800 text-xs">
+                    {pricingData.hasConfiguration && (
+                      <Badge className="bg-green-100 text-green-800 text-xs font-semibold">
+                        <Zap className="h-3 w-3 mr-1" />
                         Configurado
                       </Badge>
                     )}
                   </div>
                 </CardHeader>
                 
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Custo Total:</span>
-                      <span className="font-semibold text-blue-600">
-                        {formatCurrency(product.total_cost || 0)}
-                      </span>
-                    </div>
-                    
-                    {hasConfiguration && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Status:</span>
-                        <Badge variant="outline" className="text-xs">
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                          Precificado
-                        </Badge>
+                <CardContent className="space-y-6">
+                  {pricingData.hasConfiguration ? (
+                    <>
+                      {/* Informações de Precificação */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="text-xs text-blue-600 font-medium mb-1">Custo sem Taxas</p>
+                          <p className="text-sm font-bold text-blue-800">
+                            {formatCurrency(pricingData.costWithoutTaxes)}
+                          </p>
+                        </div>
+                        
+                        <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-200">
+                          <p className="text-xs text-purple-600 font-medium mb-1">Total das Taxas</p>
+                          <p className="text-sm font-bold text-purple-800">
+                            {formatCurrency(pricingData.totalTaxes)}
+                          </p>
+                        </div>
+                        
+                        <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                          <p className="text-xs text-green-600 font-medium mb-1">Preço Final</p>
+                          <p className="text-sm font-bold text-green-800">
+                            {formatCurrency(pricingData.finalPrice)}
+                          </p>
+                        </div>
+                        
+                        <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
+                          <p className="text-xs text-amber-600 font-medium mb-1">Lucro</p>
+                          <p className="text-sm font-bold text-amber-800">
+                            {formatCurrency(pricingData.profit)}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                  </div>
 
+                      {/* Status de Rentabilidade */}
+                      <div className="flex justify-center">
+                        {pricingData.profit > 0 ? (
+                          <Badge className="bg-green-100 text-green-800 px-3 py-1">
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                            Rentável
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="px-3 py-1">
+                            <Target className="h-3 w-3 mr-1" />
+                            Revisar Preços
+                          </Badge>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Produto sem configuração */}
+                      <div className="text-center p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <Calculator className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm text-gray-600 mb-1">Produto não precificado</p>
+                        <div className="text-center">
+                          <span className="text-xs text-gray-500">Custo Base:</span>
+                          <p className="font-semibold text-blue-600">
+                            {formatCurrency(product.total_cost || 0)}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Botão de Ação */}
                   <Button
                     onClick={() => handleProductSelect(product)}
                     className={`w-full group-hover:shadow-md transition-all duration-300 ${
-                      hasConfiguration 
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600' 
+                      pricingData.hasConfiguration 
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'
                         : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'
                     }`}
                   >
                     <Calculator className="h-4 w-4 mr-2" />
-                    {hasConfiguration ? 'Reconfigurar' : 'Precificar'}
+                    {pricingData.hasConfiguration ? 'Reconfigurar Preços' : 'Criar Precificação'}
                     <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </CardContent>
@@ -179,10 +267,11 @@ const Pricing = () => {
 
       {/* Pricing Dialog */}
       <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl">
-              Precificação - {selectedProduct?.name}
+            <DialogTitle className="text-xl flex items-center gap-3">
+              <Calculator className="h-6 w-6 text-purple-600" />
+              Precificação Profissional - {selectedProduct?.name}
             </DialogTitle>
           </DialogHeader>
           {selectedProduct && (
