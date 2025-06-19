@@ -2,24 +2,21 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, Calculator, Settings, DollarSign, TrendingUp } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Search, Calculator, Package, DollarSign, TrendingUp, ArrowRight, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import ProductSelector from "@/components/pricing/ProductSelector";
-import PricingCalculator from "@/components/pricing/PricingCalculator";
-import PricingConfigsList from "@/components/pricing/PricingConfigsList";
-import { DynamicPricingForm } from "@/components/pricing/DynamicPricingForm";
 import { formatCurrency } from "@/utils/calculations";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Product, PricingConfiguration } from "@/types";
+import PricingCalculator from "@/components/pricing/PricingCalculator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Pricing = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [showDynamicForm, setShowDynamicForm] = useState(false);
+  const [showPricingDialog, setShowPricingDialog] = useState(false);
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
@@ -33,23 +30,6 @@ const Pricing = () => {
           *,
           category:product_categories(id, name)
         `)
-        .eq('user_id', user.id)
-        .order('name');
-      
-      if (error) throw error;
-      return data || [];
-    }
-  });
-
-  const { data: categories = [] } = useQuery({
-    queryKey: ['product-categories'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      const { data, error } = await supabase
-        .from('product_categories')
-        .select('*')
         .eq('user_id', user.id)
         .order('name');
       
@@ -75,121 +55,145 @@ const Pricing = () => {
     }
   });
 
-  const handleProductSelect = (product: Product) => {
-    setSelectedProduct(product);
-  };
+  const filteredProducts = products.filter(product =>
+    product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handlePricingChange = (sellingPrice: number, marginPercentage: number) => {
-    console.log('Pricing changed:', { sellingPrice, marginPercentage });
-  };
-
-  const avgMargin = configurations.length > 0 
-    ? configurations.reduce((acc, config) => acc + (config.actual_margin || 0), 0) / configurations.length 
+  const totalProducts = products.length;
+  const avgCost = products.length > 0 
+    ? products.reduce((acc, product) => acc + (product.total_cost || 0), 0) / products.length 
     : 0;
 
-  const totalConfigs = configurations.length;
+  const totalConfigurations = configurations.length;
+
+  const handleProductSelect = (product: Product) => {
+    setSelectedProduct(product);
+    setShowPricingDialog(true);
+  };
+
+  const handleSavePricing = async (pricingData: any) => {
+    console.log('Salvando configuração de preço:', pricingData);
+    // TODO: Implementar salvamento da configuração
+    setShowPricingDialog(false);
+    setSelectedProduct(null);
+  };
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
         title="Precificação"
-        subtitle="Configure e gerencie preços dos seus produtos"
+        subtitle="Configure preços inteligentes para seus produtos"
         icon={Calculator}
-        gradient="bg-gradient-to-br from-purple-500 via-violet-500 to-indigo-500"
+        gradient="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600"
         badges={[
-          { icon: Settings, text: `${totalConfigs} configurações` },
-          { icon: TrendingUp, text: `Margem média: ${avgMargin.toFixed(1)}%` }
+          { icon: Package, text: `${totalProducts} produtos` },
+          { icon: Settings, text: `${totalConfigurations} configurações` },
+          { icon: DollarSign, text: `Custo médio: ${formatCurrency(avgCost)}` }
         ]}
-        actions={
-          <Button 
-            onClick={() => setShowDynamicForm(true)}
-            className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Configuração
-          </Button>
-        }
       />
 
-      <Tabs defaultValue="calculator" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="calculator">Calculadora</TabsTrigger>
-          <TabsTrigger value="configurations">Configurações</TabsTrigger>
-          <TabsTrigger value="dynamic">Precificação Dinâmica</TabsTrigger>
-        </TabsList>
+      {/* Search Bar */}
+      <div className="flex items-center space-x-2 max-w-md">
+        <Search className="h-4 w-4 text-gray-400 shrink-0" />
+        <Input
+          placeholder="Buscar produtos..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full input-focus"
+        />
+      </div>
 
-        <TabsContent value="calculator" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Selecionar Produto</h3>
-                <ProductSelector
-                  products={products}
-                  categories={categories}
-                  onProductSelect={handleProductSelect}
-                  selectedProduct={selectedProduct}
-                />
-              </CardContent>
-            </Card>
-
-            {selectedProduct && (
-              <PricingCalculator 
-                product={selectedProduct}
-                onSave={async (config) => {
-                  console.log('Saving configuration:', config);
-                }}
-              />
-            )}
+      {/* Products Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredProducts.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-medium">Nenhum produto encontrado</h3>
+            <p className="text-muted-foreground">
+              {searchTerm ? "Tente alterar os termos de busca" : "Cadastre produtos para começar a precificação"}
+            </p>
           </div>
-        </TabsContent>
+        ) : (
+          filteredProducts.map((product) => {
+            const hasConfiguration = configurations.some(config => config.product_id === product.id);
+            
+            return (
+              <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-purple-200">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg font-semibold truncate">{product.name}</CardTitle>
+                      {product.category && (
+                        <Badge variant="secondary" className="mt-1 text-xs">
+                          {product.category.name}
+                        </Badge>
+                      )}
+                    </div>
+                    {hasConfiguration && (
+                      <Badge className="bg-green-100 text-green-800 text-xs">
+                        Configurado
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Custo Total:</span>
+                      <span className="font-semibold text-blue-600">
+                        {formatCurrency(product.total_cost || 0)}
+                      </span>
+                    </div>
+                    
+                    {hasConfiguration && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Status:</span>
+                        <Badge variant="outline" className="text-xs">
+                          <TrendingUp className="h-3 w-3 mr-1" />
+                          Precificado
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
 
-        <TabsContent value="configurations" className="space-y-6">
-          <div className="flex items-center space-x-2">
-            <Search className="h-4 w-4 text-gray-400 shrink-0" />
-            <Input
-              placeholder="Buscar configurações..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
+                  <Button
+                    onClick={() => handleProductSelect(product)}
+                    className={`w-full group-hover:shadow-md transition-all duration-300 ${
+                      hasConfiguration 
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600' 
+                        : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'
+                    }`}
+                  >
+                    <Calculator className="h-4 w-4 mr-2" />
+                    {hasConfiguration ? 'Reconfigurar' : 'Precificar'}
+                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+      </div>
+
+      {/* Pricing Dialog */}
+      <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              Precificação - {selectedProduct?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedProduct && (
+            <PricingCalculator
+              product={selectedProduct}
+              onSave={handleSavePricing}
+              existingConfig={configurations.find(config => config.product_id === selectedProduct.id)}
             />
-          </div>
-          
-          <PricingConfigsList 
-            configs={configurations}
-            onView={(id) => console.log('View config:', id)}
-            onEdit={(id) => console.log('Edit config:', id)}
-            onDuplicate={(id) => console.log('Duplicate config:', id)}
-            onDelete={(id) => console.log('Delete config:', id)}
-          />
-        </TabsContent>
-
-        <TabsContent value="dynamic" className="space-y-6">
-          <DynamicPricingForm 
-            totalCost={selectedProduct?.total_cost || 0}
-            onPricingChange={handlePricingChange}
-          />
-        </TabsContent>
-      </Tabs>
-
-      {showDynamicForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Nova Configuração de Preço</h2>
-              <Button
-                variant="ghost"
-                onClick={() => setShowDynamicForm(false)}
-              >
-                ×
-              </Button>
-            </div>
-            <DynamicPricingForm 
-              totalCost={selectedProduct?.total_cost || 0}
-              onPricingChange={handlePricingChange}
-            />
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
