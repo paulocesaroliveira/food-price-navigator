@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency, calculateMargin, formatPercentage } from "@/utils/calculations";
+import { formatCurrency, formatPercentage } from "@/utils/calculations";
 
 interface ProductCostSummaryProps {
   totalRecipeCost: number;
@@ -16,7 +16,9 @@ export const ProductCostSummary = ({
 }: ProductCostSummaryProps) => {
   const totalCost = totalRecipeCost + totalPackagingCost;
   const grossProfit = sellingPrice - totalCost;
-  const margin = calculateMargin(sellingPrice, totalCost);
+  
+  // Calculate margin inline since we have the values
+  const margin = sellingPrice > 0 ? ((sellingPrice - totalCost) / sellingPrice) * 100 : 0;
   const markup = totalCost > 0 ? ((sellingPrice - totalCost) / totalCost) * 100 : 0;
 
   return (
