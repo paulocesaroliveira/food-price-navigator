@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/utils/calculations";
-import { Calculator, DollarSign, TrendingUp, Percent, Target, AlertCircle } from "lucide-react";
+import { Calculator, DollarSign, TrendingUp, Percent, Target } from "lucide-react";
 
 interface EnhancedPricingFormProps {
   totalCost?: number;
@@ -47,12 +47,9 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   
   // Estados para preços
   const [sellingPrice, setSellingPrice] = useState(0);
-  const [minimumPrice, setMinimumPrice] = useState(0);
-  const [maximumPrice, setMaximumPrice] = useState(0);
-  const [competitorPrice, setCompetitorPrice] = useState(0);
   const [notes, setNotes] = useState("");
 
-  // Atualizar custo base quando totalCost mudar
+  // Atualizar custo base quando totalCost mudar (dinâmico)
   useEffect(() => {
     if (totalCost > 0) {
       setBaseCost(totalCost);
@@ -74,9 +71,6 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       setPlatformFeePercentage(initialData.platformFeePercentage || 0);
       setTaxPercentage(initialData.taxPercentage || 0);
       setSellingPrice(initialData.sellingPrice || 0);
-      setMinimumPrice(initialData.minimumPrice || 0);
-      setMaximumPrice(initialData.maximumPrice || 0);
-      setCompetitorPrice(initialData.competitorPrice || 0);
       setNotes(initialData.notes || "");
     }
   }, [initialData, totalCost]);
@@ -120,9 +114,6 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       platformFeePercentage,
       taxPercentage,
       sellingPrice: finalPrice,
-      minimumPrice,
-      maximumPrice,
-      competitorPrice,
       notes,
       calculations: {
         productionCost,
@@ -139,7 +130,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   }, [
     baseCost, packagingCost, laborCost, overheadCost, marketingCost, deliveryCost, otherCosts,
     wastagePercentage, targetMarginPercentage, platformFeePercentage, taxPercentage,
-    minimumPrice, maximumPrice, competitorPrice, notes, onPricingChange
+    notes, onPricingChange
   ]);
 
   return (
@@ -161,8 +152,9 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 type="number"
                 step="0.01"
                 value={baseCost}
-                onChange={(e) => setBaseCost(Number(e.target.value))}
-                className="text-lg font-semibold"
+                readOnly
+                disabled
+                className="text-lg font-semibold bg-gray-100 cursor-not-allowed"
               />
               <p className="text-sm text-muted-foreground mt-1">
                 Este valor é calculado automaticamente com base no produto selecionado
@@ -314,56 +306,13 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               <p className="text-xl font-bold text-amber-600">{formatCurrency(profit)}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Análise Competitiva */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5" />
-            Análise Competitiva (Opcional)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="minPrice">Preço Mínimo</Label>
-              <Input
-                id="minPrice"
-                type="number"
-                step="0.01"
-                value={minimumPrice}
-                onChange={(e) => setMinimumPrice(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="maxPrice">Preço Máximo</Label>
-              <Input
-                id="maxPrice"
-                type="number"
-                step="0.01"
-                value={maximumPrice}
-                onChange={(e) => setMaximumPrice(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="competitorPrice">Preço do Concorrente</Label>
-              <Input
-                id="competitorPrice"
-                type="number"
-                step="0.01"
-                value={competitorPrice}
-                onChange={(e) => setCompetitorPrice(Number(e.target.value))}
-              />
-            </div>
-          </div>
-          
-          <div>
+          {/* Observações */}
+          <div className="mt-6">
             <Label htmlFor="notes">Observações</Label>
             <textarea
               id="notes"
-              className="w-full p-3 border rounded-lg resize-none"
+              className="w-full p-3 border rounded-lg resize-none mt-2"
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
