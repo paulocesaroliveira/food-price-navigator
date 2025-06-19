@@ -102,8 +102,7 @@ const Products = () => {
       const product = {
         name: productData.name,
         category_id: productData.categoryId || null,
-        selling_price: productData.sellingPrice,
-        total_cost: productData.items?.reduce((sum: number, item: any) => sum + (item.cost || 0), 0) || 0,
+        total_cost: productData.totalCost || 0,
         packaging_cost: productData.packagingItems?.reduce((sum: number, item: any) => sum + (item.cost || 0), 0) || 0,
         user_id: user.id,
         created_at: new Date().toISOString(),
@@ -142,8 +141,7 @@ const Products = () => {
       const product = {
         name: productData.name,
         category_id: productData.categoryId || null,
-        selling_price: productData.sellingPrice,
-        total_cost: productData.items?.reduce((sum: number, item: any) => sum + (item.cost || 0), 0) || 0,
+        total_cost: productData.totalCost || 0,
         packaging_cost: productData.packagingItems?.reduce((sum: number, item: any) => sum + (item.cost || 0), 0) || 0,
         updated_at: new Date().toISOString()
       };
@@ -182,8 +180,8 @@ const Products = () => {
   );
 
   const totalProducts = products.length;
-  const avgPrice = products.length > 0 
-    ? products.reduce((acc, product) => acc + (product.selling_price || 0), 0) / products.length 
+  const avgCost = products.length > 0 
+    ? products.reduce((acc, product) => acc + (product.total_cost || 0), 0) / products.length 
     : 0;
 
   const handleEdit = (product: Product) => {
@@ -235,10 +233,7 @@ const Products = () => {
                   <p className="text-sm text-orange-600">{product.category.name}</p>
                 )}
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-green-600 font-medium">
-                    {formatCurrency(product.selling_price || 0)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm text-blue-600 font-medium">
                     Custo: {formatCurrency(product.total_cost || 0)}
                   </span>
                 </div>
@@ -270,7 +265,7 @@ const Products = () => {
             </div>
           </Card>
         ))
-      ) : filteredProducts.length === 0 ? (
+      ) : filteredProducts.length ===0 ? (
         <div className="text-center py-12">
           <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
           <h3 className="text-lg font-medium">Nenhum produto encontrado</h3>
@@ -289,10 +284,7 @@ const Products = () => {
                     <p className="text-sm text-orange-600">{product.category.name}</p>
                   )}
                 </div>
-                <div className="text-sm font-medium text-green-600 min-w-0">
-                  {formatCurrency(product.selling_price || 0)}
-                </div>
-                <div className="text-sm text-muted-foreground min-w-0">
+                <div className="text-sm font-medium text-blue-600 min-w-0">
                   Custo: {formatCurrency(product.total_cost || 0)}
                 </div>
               </div>
@@ -315,12 +307,12 @@ const Products = () => {
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
         title="Produtos"
-        subtitle="Gerencie seus produtos e preços"
+        subtitle="Gerencie seus produtos e custos"
         icon={Package}
         gradient="bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500"
         badges={[
           { icon: Package, text: `${totalProducts} produtos` },
-          { icon: DollarSign, text: `Preço médio: ${formatCurrency(avgPrice)}` }
+          { icon: DollarSign, text: `Custo médio: ${formatCurrency(avgCost)}` }
         ]}
         actions={
           <div className="flex gap-2">

@@ -68,11 +68,14 @@ export const PackagingForm = ({
 
   const handleFormSubmit = async (values: z.infer<typeof packagingSchema>) => {
     console.log("Submitting packaging form:", values);
-    onSubmit({
+    // Garantir que o tipo seja sempre enviado
+    const dataWithType = {
       ...values,
+      type: 'default', // Tipo padrão sempre definido
       bulkQuantity: Number(values.bulkQuantity),
       bulkPrice: Number(values.bulkPrice),
-    });
+    };
+    onSubmit(dataWithType);
   };
 
   return (

@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Form,
   FormControl,
@@ -32,7 +31,6 @@ import { useAuth } from "@/hooks/useAuth";
 const productSchema = z.object({
   name: z.string().min(2, { message: "Nome é obrigatório" }),
   categoryId: z.string().optional(),
-  sellingPrice: z.coerce.number().min(0, { message: "Valor deve ser maior ou igual a 0" }),
   items: z.array(z.object({
     recipeId: z.string(),
     quantity: z.coerce.number().positive(),
@@ -71,7 +69,6 @@ export const ProductForm = ({
     defaultValues: {
       name: "",
       categoryId: "",
-      sellingPrice: 0,
       items: [],
       packagingItems: [],
     },
@@ -100,7 +97,6 @@ export const ProductForm = ({
       form.reset({
         name: product.name || "",
         categoryId: product.categoryId || "",
-        sellingPrice: product.sellingPrice || 0,
         items: formattedItems.length > 0 ? formattedItems : [{ recipeId: "", quantity: 1, cost: 0 }],
         packagingItems: formattedPackagingItems,
       });
@@ -109,7 +105,6 @@ export const ProductForm = ({
       form.reset({
         name: "",
         categoryId: "",
-        sellingPrice: 0,
         items: [{ recipeId: "", quantity: 1, cost: 0 }],
         packagingItems: [],
       });
@@ -119,7 +114,6 @@ export const ProductForm = ({
   // Watch form values for cost calculations
   const watchedItems = form.watch("items");
   const watchedPackagingItems = form.watch("packagingItems");
-  const watchedSellingPrice = form.watch("sellingPrice");
 
   // Calculate individual item costs automatically
   useEffect(() => {
@@ -230,10 +224,12 @@ export const ProductForm = ({
   };
 
   const handleFormSubmit = async (values: z.infer<typeof productSchema>) => {
-    // Garantir que o user_id seja incluído nos dados
+    // Incluir o custo total calculado
+    const totalCost = totalRecipeCost + totalPackagingCost;
     const productData = {
       ...values,
-      userId: user?.id, // Adicionar user_id do usuário autenticado
+      totalCost,
+      userId: user?.id,
     };
     console.log("Submitting product form:", productData);
     onSubmit(productData);
@@ -261,50 +257,30 @@ export const ProductForm = ({
                   )}
                 />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="categoryId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Categoria (opcional)</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma categoria" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="sellingPrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Valor de Venda</FormLabel>
+                <FormField
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Categoria (opcional)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <CurrencyInput
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="R$ 0,00"
-                          />
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma categoria" />
+                          </SelectTrigger>
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {/* Recipes Section */}
@@ -380,7 +356,6 @@ export const ProductForm = ({
             <ProductCostSummary
               totalRecipeCost={totalRecipeCost}
               totalPackagingCost={totalPackagingCost}
-              sellingPrice={watchedSellingPrice || 0}
             />
           </div>
         </div>
