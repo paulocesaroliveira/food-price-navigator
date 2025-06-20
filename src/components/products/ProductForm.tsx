@@ -355,7 +355,7 @@ export const ProductForm = ({
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={addRec ipe}
+                      onClick={addRecipe}
                       className="w-full sm:w-auto"
                     >
                       <Plus className="h-4 w-4 mr-2" />
