@@ -77,18 +77,18 @@ export const ProductForm = ({
     console.log("ProductForm - product changed:", product);
     
     if (product) {
-      // Simular dados das receitas e embalagens já que não temos essas relações implementadas
-      const formattedItems = product.recipe_items?.map(item => ({
-        recipeId: item.recipe_id || "",
+      // Use the correct property names from the Product interface
+      const formattedItems = product.items?.map(item => ({
+        recipeId: item.recipeId || "",
         quantity: item.quantity || 1,
-        cost: item.total_cost || 0,
+        cost: item.cost || 0,
       })) || [{ recipeId: "", quantity: 1, cost: 0 }];
 
-      const formattedPackagingItems = product.packaging_items?.map(item => ({
-        packagingId: item.packaging_id || "",
+      const formattedPackagingItems = product.packagingItems?.map(item => ({
+        packagingId: item.packagingId || "",
         quantity: item.quantity || 1,
-        cost: item.total_cost || 0,
-        isPrimary: item.is_primary || false,
+        cost: item.cost || 0,
+        isPrimary: item.isPrimary || false,
       })) || [];
 
       console.log("ProductForm - setting form values:", {
