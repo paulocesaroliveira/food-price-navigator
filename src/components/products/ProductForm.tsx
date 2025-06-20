@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -75,29 +74,38 @@ export const ProductForm = ({
 
   // Update form when product prop changes
   useEffect(() => {
+    console.log("ProductForm - product changed:", product);
+    
     if (product) {
-      console.log("Updating product form with data:", product);
-      
-      const formattedItems = product.items?.map(item => ({
-        recipeId: item.recipeId || "",
+      // Simular dados das receitas e embalagens já que não temos essas relações implementadas
+      const formattedItems = product.recipe_items?.map(item => ({
+        recipeId: item.recipe_id || "",
         quantity: item.quantity || 1,
-        cost: item.cost || 0,
+        cost: item.total_cost || 0,
       })) || [{ recipeId: "", quantity: 1, cost: 0 }];
 
-      const formattedPackagingItems = product.packagingItems?.map(item => ({
-        packagingId: item.packagingId || "",
+      const formattedPackagingItems = product.packaging_items?.map(item => ({
+        packagingId: item.packaging_id || "",
         quantity: item.quantity || 1,
-        cost: item.cost || 0,
-        isPrimary: item.isPrimary || false,
+        cost: item.total_cost || 0,
+        isPrimary: item.is_primary || false,
       })) || [];
+
+      console.log("ProductForm - setting form values:", {
+        name: product.name || "",
+        categoryId: product.category_id || "",
+        items: formattedItems,
+        packagingItems: formattedPackagingItems,
+      });
 
       form.reset({
         name: product.name || "",
-        categoryId: product.categoryId || "",
+        categoryId: product.category_id || "",
         items: formattedItems,
         packagingItems: formattedPackagingItems,
       });
     } else {
+      console.log("ProductForm - resetting form for new product");
       form.reset({
         name: "",
         categoryId: "",
@@ -188,6 +196,8 @@ export const ProductForm = ({
   };
 
   const handleFormSubmit = async (values: z.infer<typeof productSchema>) => {
+    console.log("ProductForm - submitting form with values:", values);
+    
     // Recalcular todos os custos antes do submit
     const updatedItems = values.items.map(item => ({
       ...item,
@@ -211,7 +221,7 @@ export const ProductForm = ({
       userId: user?.id,
     };
     
-    console.log("Submitting product form:", productData);
+    console.log("ProductForm - final product data:", productData);
     onSubmit(productData);
   };
 

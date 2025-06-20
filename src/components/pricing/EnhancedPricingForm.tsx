@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/utils/calculations";
-import { Calculator, DollarSign, TrendingUp, Percent, Target } from "lucide-react";
+import { Calculator, DollarSign, TrendingUp, Target } from "lucide-react";
 
 interface EnhancedPricingFormProps {
   totalCost?: number;
@@ -24,8 +24,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   initialData
 }) => {
   // Estados para custos base
-  const [baseCost, setBaseCost] = useState(totalCost || 0);
-  const [packagingCost, setPackagingCost] = useState(0);
+  const [productCost, setProductCost] = useState(totalCost || 0);
   
   // Estados para custos indiretos
   const [laborCost, setLaborCost] = useState(0);
@@ -46,31 +45,33 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   const [taxPercentage, setTaxPercentage] = useState(0);
   
   // Estados para preços
-  const [sellingPrice, setSellingPrice] = useState(0);
   const [notes, setNotes] = useState("");
 
-  // Atualizar custo base quando totalCost mudar (dinâmico)
+  // Atualizar custo do produto quando totalCost mudar (dinâmico)
   useEffect(() => {
     if (totalCost > 0) {
-      setBaseCost(totalCost);
+      setProductCost(totalCost);
     }
   }, [totalCost]);
 
   // Carregar dados iniciais
   useEffect(() => {
     if (initialData) {
-      setBaseCost(initialData.baseCost || totalCost || 0);
-      setPackagingCost(initialData.packagingCost || 0);
+      setProductCost(initialData.productCost || totalCost || 0);
       setLaborCost(initialData.laborCost || 0);
+      setLaborCostType(initialData.laborCostType || 'fixed');
       setOverheadCost(initialData.overheadCost || 0);
+      setOverheadCostType(initialData.overheadCostType || 'fixed');
       setMarketingCost(initialData.marketingCost || 0);
+      setMarketingCostType(initialData.marketingCostType || 'fixed');
       setDeliveryCost(initialData.deliveryCost || 0);
+      setDeliveryCostType(initialData.deliveryCostType || 'fixed');
       setOtherCosts(initialData.otherCosts || 0);
+      setOtherCostType(initialData.otherCostType || 'fixed');
       setWastagePercentage(initialData.wastagePercentage || 5);
       setTargetMarginPercentage(initialData.targetMarginPercentage || 30);
       setPlatformFeePercentage(initialData.platformFeePercentage || 0);
       setTaxPercentage(initialData.taxPercentage || 0);
-      setSellingPrice(initialData.sellingPrice || 0);
       setNotes(initialData.notes || "");
     }
   }, [initialData, totalCost]);
@@ -81,34 +82,36 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   };
 
   // Cálculos principais
-  const productionCost = baseCost + packagingCost;
-  
-  const totalLaborCost = calculateIndirectCost(laborCost, laborCostType, productionCost);
-  const totalOverheadCost = calculateIndirectCost(overheadCost, overheadCostType, productionCost);
-  const totalMarketingCost = calculateIndirectCost(marketingCost, marketingCostType, productionCost);
-  const totalDeliveryCost = calculateIndirectCost(deliveryCost, deliveryCostType, productionCost);
-  const totalOtherCosts = calculateIndirectCost(otherCosts, otherCostType, productionCost);
+  const totalLaborCost = calculateIndirectCost(laborCost, laborCostType, productCost);
+  const totalOverheadCost = calculateIndirectCost(overheadCost, overheadCostType, productCost);
+  const totalMarketingCost = calculateIndirectCost(marketingCost, marketingCostType, productCost);
+  const totalDeliveryCost = calculateIndirectCost(deliveryCost, deliveryCostType, productCost);
+  const totalOtherCosts = calculateIndirectCost(otherCosts, otherCostType, productCost);
   
   const totalIndirectCosts = totalLaborCost + totalOverheadCost + totalMarketingCost + totalDeliveryCost + totalOtherCosts;
   
-  const costWithWastage = (productionCost + totalIndirectCosts) * (1 + wastagePercentage / 100);
+  const costWithWastage = (productCost + totalIndirectCosts) * (1 + wastagePercentage / 100);
   const idealPrice = costWithWastage * (1 + targetMarginPercentage / 100);
   const priceWithPlatformFee = idealPrice * (1 + platformFeePercentage / 100);
   const finalPrice = priceWithPlatformFee * (1 + taxPercentage / 100);
   
-  const totalTaxes = totalIndirectCosts + (costWithWastage - productionCost) + (priceWithPlatformFee - idealPrice) + (finalPrice - priceWithPlatformFee);
+  const totalTaxes = totalIndirectCosts + (costWithWastage - productCost) + (priceWithPlatformFee - idealPrice) + (finalPrice - priceWithPlatformFee);
   const profit = finalPrice - costWithWastage;
 
   // Notificar mudanças
   useEffect(() => {
     const pricingData = {
-      baseCost,
-      packagingCost,
+      productCost,
       laborCost,
+      laborCostType,
       overheadCost,
+      overheadCostType,
       marketingCost,
+      marketingCostType,
       deliveryCost,
+      deliveryCostType,
       otherCosts,
+      otherCostType,
       wastagePercentage,
       targetMarginPercentage,
       platformFeePercentage,
@@ -116,7 +119,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       sellingPrice: finalPrice,
       notes,
       calculations: {
-        productionCost,
+        productCost,
         totalIndirectCosts,
         costWithWastage,
         idealPrice,
@@ -128,9 +131,10 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
     
     onPricingChange(pricingData);
   }, [
-    baseCost, packagingCost, laborCost, overheadCost, marketingCost, deliveryCost, otherCosts,
-    wastagePercentage, targetMarginPercentage, platformFeePercentage, taxPercentage,
-    notes, onPricingChange
+    productCost, laborCost, laborCostType, overheadCost, overheadCostType, 
+    marketingCost, marketingCostType, deliveryCost, deliveryCostType, 
+    otherCosts, otherCostType, wastagePercentage, targetMarginPercentage, 
+    platformFeePercentage, taxPercentage, notes, onPricingChange
   ]);
 
   return (
@@ -146,24 +150,23 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="baseCost">Custo Total do Produto</Label>
+              <Label htmlFor="productCost">Custo Total do Produto</Label>
               <Input
-                id="baseCost"
+                id="productCost"
                 type="number"
                 step="0.01"
-                value={baseCost}
-                readOnly
-                disabled
-                className="text-lg font-semibold bg-gray-100 cursor-not-allowed"
+                value={productCost}
+                onChange={(e) => setProductCost(Number(e.target.value))}
+                className="text-lg font-semibold"
               />
               <p className="text-sm text-muted-foreground mt-1">
-                Este valor é calculado automaticamente com base no produto selecionado
+                Valor baseado no produto selecionado, mas pode ser editado
               </p>
             </div>
             <div className="flex items-center justify-center">
               <div className="text-center p-4 bg-white rounded-lg border">
                 <p className="text-sm text-muted-foreground">Custo de Produção</p>
-                <p className="text-2xl font-bold text-blue-600">{formatCurrency(productionCost)}</p>
+                <p className="text-2xl font-bold text-blue-600">{formatCurrency(productCost)}</p>
               </div>
             </div>
           </div>
@@ -291,7 +294,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-white rounded-lg border">
               <p className="text-sm text-muted-foreground">Custo sem Taxas</p>
-              <p className="text-xl font-bold text-blue-600">{formatCurrency(productionCost)}</p>
+              <p className="text-xl font-bold text-blue-600">{formatCurrency(productCost)}</p>
             </div>
             <div className="text-center p-4 bg-white rounded-lg border">
               <p className="text-sm text-muted-foreground">Total das Taxas</p>
