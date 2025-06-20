@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -26,6 +27,7 @@ import { Product, ProductCategory, Recipe, Packaging } from "@/types";
 import { Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const productSchema = z.object({
   name: z.string().min(2, { message: "Nome é obrigatório" }),
@@ -72,40 +74,69 @@ export const ProductForm = ({
     },
   });
 
+  // Estado para carregar dados relacionados do produto
+  const [productItems, setProductItems] = useState<any[]>([]);
+  const [productPackaging, setProductPackaging] = useState<any[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+
+  // Função para carregar dados relacionados do produto
+  const loadProductData = async (productId: string) => {
+    setIsLoadingData(true);
+    try {
+      console.log("Loading product data for ID:", productId);
+
+      // Carregar itens do produto (receitas)
+      const { data: items, error: itemsError } = await supabase
+        .from('product_items')
+        .select('*')
+        .eq('product_id', productId);
+
+      if (itemsError) {
+        console.error("Error loading product items:", itemsError);
+      } else {
+        console.log("Loaded product items:", items);
+        setProductItems(items || []);
+      }
+
+      // Carregar embalagens do produto
+      const { data: packagingItems, error: packagingError } = await supabase
+        .from('product_packaging')
+        .select('*')
+        .eq('product_id', productId);
+
+      if (packagingError) {
+        console.error("Error loading product packaging:", packagingError);
+      } else {
+        console.log("Loaded product packaging:", packagingItems);
+        setProductPackaging(packagingItems || []);
+      }
+
+    } catch (error) {
+      console.error("Error loading product data:", error);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
   // Update form when product prop changes
   useEffect(() => {
     console.log("ProductForm - product changed:", product);
     
     if (product) {
-      // Use the correct property names from the Product interface
-      const formattedItems = product.items?.map(item => ({
-        recipeId: item.recipeId || "",
-        quantity: item.quantity || 1,
-        cost: item.cost || 0,
-      })) || [{ recipeId: "", quantity: 1, cost: 0 }];
+      // Carregar dados relacionados do banco
+      loadProductData(product.id);
 
-      const formattedPackagingItems = product.packagingItems?.map(item => ({
-        packagingId: item.packagingId || "",
-        quantity: item.quantity || 1,
-        cost: item.cost || 0,
-        isPrimary: item.isPrimary || false,
-      })) || [];
-
-      console.log("ProductForm - setting form values:", {
-        name: product.name || "",
-        categoryId: product.category_id || "",
-        items: formattedItems,
-        packagingItems: formattedPackagingItems,
-      });
-
+      // Configurar valores básicos do formulário
       form.reset({
         name: product.name || "",
         categoryId: product.category_id || "",
-        items: formattedItems,
-        packagingItems: formattedPackagingItems,
+        items: [{ recipeId: "", quantity: 1, cost: 0 }], // Será atualizado após carregar os dados
+        packagingItems: [], // Será atualizado após carregar os dados
       });
     } else {
       console.log("ProductForm - resetting form for new product");
+      setProductItems([]);
+      setProductPackaging([]);
       form.reset({
         name: "",
         categoryId: "",
@@ -114,6 +145,40 @@ export const ProductForm = ({
       });
     }
   }, [product, form]);
+
+  // Atualizar formulário quando os dados relacionados forem carregados
+  useEffect(() => {
+    if (product && !isLoadingData) {
+      console.log("Updating form with loaded data - items:", productItems, "packaging:", productPackaging);
+      
+      // Formatar itens (receitas)
+      const formattedItems = productItems.length > 0 
+        ? productItems.map(item => ({
+            recipeId: item.recipe_id || "",
+            quantity: item.quantity || 1,
+            cost: item.cost || 0,
+          }))
+        : [{ recipeId: "", quantity: 1, cost: 0 }];
+
+      // Formatar embalagens
+      const formattedPackagingItems = productPackaging.map(item => ({
+        packagingId: item.packaging_id || "",
+        quantity: item.quantity || 1,
+        cost: item.cost || 0,
+        isPrimary: item.is_primary || false,
+      }));
+
+      console.log("Setting form values:", {
+        name: product.name || "",
+        categoryId: product.category_id || "",
+        items: formattedItems,
+        packagingItems: formattedPackagingItems,
+      });
+
+      form.setValue("items", formattedItems);
+      form.setValue("packagingItems", formattedPackagingItems);
+    }
+  }, [productItems, productPackaging, isLoadingData, product, form]);
 
   // Watch form values for cost calculations
   const watchedItems = form.watch("items");
@@ -273,6 +338,14 @@ export const ProductForm = ({
                 />
               </div>
 
+              {/* Loading indicator */}
+              {isLoadingData && (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-sm text-gray-600">Carregando dados do produto...</span>
+                </div>
+              )}
+
               {/* Recipes Section */}
               <Card>
                 <CardHeader className="pb-3">
@@ -282,7 +355,7 @@ export const ProductForm = ({
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={addRecipe}
+                      onClick={addRec ipe}
                       className="w-full sm:w-auto"
                     >
                       <Plus className="h-4 w-4 mr-2" />

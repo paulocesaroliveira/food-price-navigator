@@ -23,7 +23,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   onPricingChange,
   initialData
 }) => {
-  // Estados para custos base
+  // Estado para custo do produto (editável)
   const [productCost, setProductCost] = useState(totalCost || 0);
   
   // Estados para custos indiretos
@@ -139,7 +139,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Custo do Produto */}
+      {/* Custo do Produto - SIMPLIFICADO */}
       <Card className="border-blue-200 bg-blue-50">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3 text-blue-800">
@@ -147,8 +147,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
             Custo do Produto
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent>
+          <div className="space-y-4">
             <div>
               <Label htmlFor="productCost">Custo Total do Produto</Label>
               <Input
@@ -160,14 +160,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 className="text-lg font-semibold"
               />
               <p className="text-sm text-muted-foreground mt-1">
-                Valor baseado no produto selecionado, mas pode ser editado
+                Valor carregado do cadastro do produto, mas pode ser editado
               </p>
-            </div>
-            <div className="flex items-center justify-center">
-              <div className="text-center p-4 bg-white rounded-lg border">
-                <p className="text-sm text-muted-foreground">Custo de Produção</p>
-                <p className="text-2xl font-bold text-blue-600">{formatCurrency(productCost)}</p>
-              </div>
             </div>
           </div>
         </CardContent>
