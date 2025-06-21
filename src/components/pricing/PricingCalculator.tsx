@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Product, PricingConfiguration } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
   const [pricingData, setPricingData] = useState<any>(null);
 
   const handlePricingChange = (data: any) => {
-    console.log('Pricing data received:', data);
+    console.log('PricingCalculator - Pricing data received:', data);
     setPricingData(data);
   };
 
@@ -32,7 +32,7 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       return;
     }
     
-    console.log('Saving pricing data:', pricingData);
+    console.log('PricingCalculator - Saving pricing data:', pricingData);
     
     try {
       await onSave(pricingData);
@@ -40,6 +40,9 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       console.error('Error saving pricing:', error);
     }
   };
+
+  console.log('PricingCalculator - Product received:', product);
+  console.log('PricingCalculator - Product totalCost:', product.totalCost || product.total_cost);
 
   return (
     <div className="space-y-8">
@@ -52,7 +55,9 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
             </div>
             <div>
               <CardTitle className="text-2xl">{product.name}</CardTitle>
-              <p className="text-gray-600">Configuração de precificação inteligente</p>
+              <p className="text-gray-600">
+                Configuração de precificação inteligente - Custo: {product.totalCost || product.total_cost || 0}
+              </p>
             </div>
           </div>
         </CardHeader>
@@ -60,11 +65,12 @@ const PricingCalculator: React.FC<PricingCalculatorProps> = ({
 
       {/* Enhanced Pricing Form */}
       <EnhancedPricingForm
-        totalCost={product.totalCost}
+        totalCost={product.totalCost || product.total_cost || 0}
         productName={product.name}
         productId={product.id}
         onPricingChange={handlePricingChange}
         initialData={existingConfig ? {
+          productCost: product.totalCost || product.total_cost || 0,
           baseCost: existingConfig.base_cost || 0,
           packagingCost: existingConfig.packaging_cost || 0,
           laborCost: existingConfig.labor_cost || 0,

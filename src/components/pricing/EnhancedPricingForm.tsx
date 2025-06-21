@@ -23,7 +23,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   onPricingChange,
   initialData
 }) => {
-  // Estado para custo do produto (agora sempre usa o totalCost recebido)
+  // Estado para custo do produto
   const [productCost, setProductCost] = useState(0);
   
   // Estados para custos indiretos
@@ -47,18 +47,12 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   // Estados para preços
   const [notes, setNotes] = useState("");
 
-  // Atualizar custo do produto quando totalCost mudar
+  // Inicializar com o totalCost ou dados iniciais
   useEffect(() => {
-    console.log("EnhancedPricingForm - totalCost changed:", totalCost);
-    if (totalCost > 0) {
-      setProductCost(totalCost);
-    }
-  }, [totalCost]);
-
-  // Carregar dados iniciais
-  useEffect(() => {
+    console.log("EnhancedPricingForm - Initializing with:", { totalCost, initialData });
+    
     if (initialData) {
-      // Se tem dados iniciais, usar eles, senão usar o totalCost
+      // Usar dados iniciais se disponíveis
       setProductCost(initialData.productCost || totalCost || 0);
       setLaborCost(initialData.laborCost || 0);
       setLaborCostType(initialData.laborCostType || 'fixed');
@@ -75,11 +69,12 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       setPlatformFeePercentage(initialData.platformFeePercentage || 0);
       setTaxPercentage(initialData.taxPercentage || 0);
       setNotes(initialData.notes || "");
-    } else if (totalCost > 0) {
-      // Se não tem dados iniciais mas tem totalCost, usar ele
-      setProductCost(totalCost);
+    } else {
+      // Usar totalCost do produto se não há dados iniciais
+      console.log("Using totalCost from product:", totalCost);
+      setProductCost(totalCost || 0);
     }
-  }, [initialData, totalCost]);
+  }, [totalCost, initialData]);
 
   // Função para calcular custo indireto
   const calculateIndirectCost = (value: number, type: 'fixed' | 'percentage', baseValue: number) => {
@@ -134,6 +129,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       }
     };
     
+    console.log("EnhancedPricingForm - Sending pricing data:", pricingData);
     onPricingChange(pricingData);
   }, [
     productCost, laborCost, laborCostType, overheadCost, overheadCostType, 
@@ -144,7 +140,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Custo do Produto - SIMPLIFICADO */}
+      {/* Custo do Produto */}
       <Card className="border-blue-200 bg-blue-50">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3 text-blue-800">
@@ -165,7 +161,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
                 className="text-lg font-semibold"
               />
               <p className="text-sm text-muted-foreground mt-1">
-                Valor carregado do cadastro do produto, mas pode ser editado
+                Custo carregado automaticamente do produto: {formatCurrency(totalCost || 0)}
               </p>
             </div>
           </div>

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Product, PricingConfiguration } from "@/types";
 import PricingCalculator from "@/components/pricing/PricingCalculator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getProductList } from "@/services/productService";
 
 const Pricing = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,22 +21,7 @@ const Pricing = () => {
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          category:product_categories(id, name)
-        `)
-        .eq('user_id', user.id)
-        .order('name'); // Ordenação alfabética
-      
-      if (error) throw error;
-      return data || [];
-    }
+    queryFn: getProductList
   });
 
   const { data: configurations = [] } = useQuery({
@@ -54,13 +41,17 @@ const Pricing = () => {
     }
   });
 
-  // Ordenar produtos filtrados alfabeticamente
+  // Filtrar e ordenar produtos alfabeticamente
   const filteredProducts = products
     .filter(product =>
       product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     )
-    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
+    .sort((a, b) => {
+      const nameA = (a.name || '').toLowerCase();
+      const nameB = (b.name || '').toLowerCase();
+      return nameA.localeCompare(nameB, 'pt-BR');
+    });
 
   const totalProducts = products.length;
   const avgCost = products.length > 0 
@@ -69,6 +60,7 @@ const Pricing = () => {
   const totalConfigurations = configurations.length;
 
   const handleProductSelect = (product: Product) => {
+    console.log("Selected product for pricing:", product);
     setSelectedProduct(product);
     setShowPricingDialog(true);
   };

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -25,8 +26,7 @@ import { ProductCostSummary } from "./ProductCostSummary";
 import { Product, ProductCategory, Recipe, Packaging } from "@/types";
 import { Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { getProductById } from "@/services/productService";
 
 const productSchema = z.object({
   name: z.string().min(2, { message: "Nome é obrigatório" }),
@@ -61,7 +61,7 @@ export const ProductForm = ({
   recipes,
   packaging,
 }: ProductFormProps) => {
-  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -73,109 +73,52 @@ export const ProductForm = ({
     },
   });
 
-  // Estados para carregar dados relacionados do produto
-  const [productItems, setProductItems] = useState<any[]>([]);
-  const [productPackaging, setProductPackaging] = useState<any[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(false);
-
-  // Função para carregar dados relacionados do produto
-  const loadProductData = async (productId: string) => {
-    setIsLoadingData(true);
-    try {
-      console.log("Loading product data for ID:", productId);
-
-      // Carregar itens do produto (receitas)
-      const { data: items, error: itemsError } = await supabase
-        .from('product_items')
-        .select('*')
-        .eq('product_id', productId);
-
-      if (itemsError) {
-        console.error("Error loading product items:", itemsError);
-      } else {
-        console.log("Loaded product items:", items);
-        setProductItems(items || []);
-      }
-
-      // Carregar embalagens do produto
-      const { data: packagingItems, error: packagingError } = await supabase
-        .from('product_packaging')
-        .select('*')
-        .eq('product_id', productId);
-
-      if (packagingError) {
-        console.error("Error loading product packaging:", packagingError);
-      } else {
-        console.log("Loaded product packaging:", packagingItems);
-        setProductPackaging(packagingItems || []);
-      }
-
-    } catch (error) {
-      console.error("Error loading product data:", error);
-    } finally {
-      setIsLoadingData(false);
-    }
-  };
-
-  // Update form when product prop changes
+  // Carregar dados do produto quando em modo de edição
   useEffect(() => {
-    console.log("ProductForm - product changed:", product);
-    
-    if (product) {
-      // Configurar valores básicos do formulário primeiro
-      form.reset({
-        name: product.name || "",
-        categoryId: product.category_id || "",
-        items: [{ recipeId: "", quantity: 1, cost: 0 }], // Será atualizado após carregar os dados
-        packagingItems: [], // Será atualizado após carregar os dados
-      });
+    const loadProductData = async () => {
+      if (product?.id) {
+        setIsLoading(true);
+        try {
+          console.log("Loading product data for:", product.id);
+          const fullProduct = await getProductById(product.id);
+          console.log("Loaded product data:", fullProduct);
+          
+          // Configurar valores do formulário
+          form.reset({
+            name: fullProduct.name || "",
+            categoryId: fullProduct.category_id || "",
+            items: fullProduct.items && fullProduct.items.length > 0 
+              ? fullProduct.items.map((item: any) => ({
+                  recipeId: item.recipe_id || "",
+                  quantity: item.quantity || 1,
+                  cost: item.cost || 0,
+                }))
+              : [{ recipeId: "", quantity: 1, cost: 0 }],
+            packagingItems: fullProduct.packagingItems?.map((item: any) => ({
+              packagingId: item.packaging_id || "",
+              quantity: item.quantity || 1,
+              cost: item.cost || 0,
+              isPrimary: item.is_primary || false,
+            })) || [],
+          });
+        } catch (error) {
+          console.error("Error loading product data:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        // Novo produto - limpar formulário
+        form.reset({
+          name: "",
+          categoryId: "",
+          items: [{ recipeId: "", quantity: 1, cost: 0 }],
+          packagingItems: [],
+        });
+      }
+    };
 
-      // Carregar dados relacionados do banco
-      loadProductData(product.id);
-    } else {
-      console.log("ProductForm - resetting form for new product");
-      setProductItems([]);
-      setProductPackaging([]);
-      form.reset({
-        name: "",
-        categoryId: "",
-        items: [{ recipeId: "", quantity: 1, cost: 0 }],
-        packagingItems: [],
-      });
-    }
-  }, [product?.id, form]); // Mudança importante: watch apenas product.id
-
-  // Atualizar formulário quando os dados relacionados forem carregados
-  useEffect(() => {
-    if (product && !isLoadingData && (productItems.length > 0 || productPackaging.length > 0)) {
-      console.log("Updating form with loaded data - items:", productItems, "packaging:", productPackaging);
-      
-      // Formatar itens (receitas)
-      const formattedItems = productItems.length > 0 
-        ? productItems.map(item => ({
-            recipeId: item.recipe_id || "",
-            quantity: item.quantity || 1,
-            cost: item.cost || 0,
-          }))
-        : [{ recipeId: "", quantity: 1, cost: 0 }];
-
-      // Formatar embalagens
-      const formattedPackagingItems = productPackaging.map(item => ({
-        packagingId: item.packaging_id || "",
-        quantity: item.quantity || 1,
-        cost: item.cost || 0,
-        isPrimary: item.is_primary || false,
-      }));
-
-      console.log("Setting form values:", {
-        items: formattedItems,
-        packagingItems: formattedPackagingItems,
-      });
-
-      form.setValue("items", formattedItems);
-      form.setValue("packagingItems", formattedPackagingItems);
-    }
-  }, [productItems, productPackaging, isLoadingData, product?.id, form]);
+    loadProductData();
+  }, [product?.id, form]);
 
   // Watch form values for cost calculations
   const watchedItems = form.watch("items");
@@ -280,12 +223,20 @@ export const ProductForm = ({
       items: updatedItems,
       packagingItems: updatedPackagingItems,
       totalCost,
-      userId: user?.id,
     };
     
     console.log("ProductForm - final product data:", productData);
     onSubmit(productData);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-3">Carregando dados do produto...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -334,14 +285,6 @@ export const ProductForm = ({
                   )}
                 />
               </div>
-
-              {/* Loading indicator */}
-              {isLoadingData && (
-                <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                  <span className="ml-2 text-sm text-gray-600">Carregando dados do produto...</span>
-                </div>
-              )}
 
               {/* Recipes Section */}
               <Card>
