@@ -12,11 +12,11 @@ export const getProductList = async () => {
       category:product_categories(id, name)
     `)
     .eq('user_id', user.id)
-    .order('name');
+    .order('name'); // Ordenação alfabética
   
   if (error) throw error;
   return data?.map(product => ({
     ...product,
     calculatedPrice: product.selling_price || 0
-  })) || [];
+  })).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')) || []; // Dupla ordenação para garantir
 };

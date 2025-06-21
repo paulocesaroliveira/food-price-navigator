@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -74,7 +73,7 @@ export const ProductForm = ({
     },
   });
 
-  // Estado para carregar dados relacionados do produto
+  // Estados para carregar dados relacionados do produto
   const [productItems, setProductItems] = useState<any[]>([]);
   const [productPackaging, setProductPackaging] = useState<any[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -123,16 +122,16 @@ export const ProductForm = ({
     console.log("ProductForm - product changed:", product);
     
     if (product) {
-      // Carregar dados relacionados do banco
-      loadProductData(product.id);
-
-      // Configurar valores básicos do formulário
+      // Configurar valores básicos do formulário primeiro
       form.reset({
         name: product.name || "",
         categoryId: product.category_id || "",
         items: [{ recipeId: "", quantity: 1, cost: 0 }], // Será atualizado após carregar os dados
         packagingItems: [], // Será atualizado após carregar os dados
       });
+
+      // Carregar dados relacionados do banco
+      loadProductData(product.id);
     } else {
       console.log("ProductForm - resetting form for new product");
       setProductItems([]);
@@ -144,11 +143,11 @@ export const ProductForm = ({
         packagingItems: [],
       });
     }
-  }, [product, form]);
+  }, [product?.id, form]); // Mudança importante: watch apenas product.id
 
   // Atualizar formulário quando os dados relacionados forem carregados
   useEffect(() => {
-    if (product && !isLoadingData) {
+    if (product && !isLoadingData && (productItems.length > 0 || productPackaging.length > 0)) {
       console.log("Updating form with loaded data - items:", productItems, "packaging:", productPackaging);
       
       // Formatar itens (receitas)
@@ -169,8 +168,6 @@ export const ProductForm = ({
       }));
 
       console.log("Setting form values:", {
-        name: product.name || "",
-        categoryId: product.category_id || "",
         items: formattedItems,
         packagingItems: formattedPackagingItems,
       });
@@ -178,7 +175,7 @@ export const ProductForm = ({
       form.setValue("items", formattedItems);
       form.setValue("packagingItems", formattedPackagingItems);
     }
-  }, [productItems, productPackaging, isLoadingData, product, form]);
+  }, [productItems, productPackaging, isLoadingData, product?.id, form]);
 
   // Watch form values for cost calculations
   const watchedItems = form.watch("items");

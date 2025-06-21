@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,7 @@ const Pricing = () => {
           category:product_categories(id, name)
         `)
         .eq('user_id', user.id)
-        .order('name');
+        .order('name'); // Ordenação alfabética
       
       if (error) throw error;
       return data || [];
@@ -55,10 +54,13 @@ const Pricing = () => {
     }
   });
 
-  const filteredProducts = products.filter(product =>
-    product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Ordenar produtos filtrados alfabeticamente
+  const filteredProducts = products
+    .filter(product =>
+      product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
 
   const totalProducts = products.length;
   const avgCost = products.length > 0 

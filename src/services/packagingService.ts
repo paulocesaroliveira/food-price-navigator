@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Packaging } from "@/types";
 import { toast } from "@/hooks/use-toast";
@@ -11,14 +12,14 @@ export const getPackagingList = async (): Promise<Packaging[]> => {
       .from("packaging")
       .select("*")
       .eq('user_id', user.id)
-      .order("name", { ascending: true });
+      .order("name", { ascending: true }); // Ordenação alfabética
 
     if (error) {
       console.error("Erro ao buscar embalagens:", error);
       throw new Error(error.message);
     }
 
-    return (data || []).map((item) => ({
+    return ((data || []).map((item) => ({
       id: item.id,
       name: item.name,
       type: item.type || 'default',
@@ -27,7 +28,7 @@ export const getPackagingList = async (): Promise<Packaging[]> => {
       unitCost: item.unit_cost,
       imageUrl: item.image_url,
       notes: item.notes,
-    }));
+    }))).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')); // Dupla ordenação para garantir
   } catch (error: any) {
     console.error("Erro ao buscar embalagens:", error.message);
     toast({

@@ -35,7 +35,7 @@ const Products = () => {
           category:product_categories(id, name)
         `)
         .eq('user_id', user.id)
-        .order('name');
+        .order('name'); // Já estava ordenado alfabeticamente
       
       if (error) throw error;
       console.log("Loaded products:", data);
@@ -53,7 +53,7 @@ const Products = () => {
         .from('product_categories')
         .select('*')
         .eq('user_id', user.id)
-        .order('name');
+        .order('name'); // Já estava ordenado alfabeticamente
       
       if (error) throw error;
       return data || [];
@@ -70,7 +70,7 @@ const Products = () => {
         .from('recipes')
         .select('*')
         .eq('user_id', user.id)
-        .order('name');
+        .order('name'); // Já estava ordenado alfabeticamente
       
       if (error) throw error;
       return data || [];
@@ -87,7 +87,7 @@ const Products = () => {
         .from('packaging')
         .select('*')
         .eq('user_id', user.id)
-        .order('name');
+        .order('name'); // Já estava ordenado alfabeticamente
       
       if (error) throw error;
       return data || [];
@@ -174,10 +174,13 @@ const Products = () => {
     }
   });
 
-  const filteredProducts = products.filter(product =>
-    product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Ordenar produtos filtrados alfabeticamente
+  const filteredProducts = products
+    .filter(product =>
+      product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
 
   const totalProducts = products.length;
   const avgCost = products.length > 0 

@@ -23,8 +23,8 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   onPricingChange,
   initialData
 }) => {
-  // Estado para custo do produto (editável)
-  const [productCost, setProductCost] = useState(totalCost || 0);
+  // Estado para custo do produto (agora sempre usa o totalCost recebido)
+  const [productCost, setProductCost] = useState(0);
   
   // Estados para custos indiretos
   const [laborCost, setLaborCost] = useState(0);
@@ -47,8 +47,9 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   // Estados para preços
   const [notes, setNotes] = useState("");
 
-  // Atualizar custo do produto quando totalCost mudar (dinâmico)
+  // Atualizar custo do produto quando totalCost mudar
   useEffect(() => {
+    console.log("EnhancedPricingForm - totalCost changed:", totalCost);
     if (totalCost > 0) {
       setProductCost(totalCost);
     }
@@ -57,6 +58,7 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
   // Carregar dados iniciais
   useEffect(() => {
     if (initialData) {
+      // Se tem dados iniciais, usar eles, senão usar o totalCost
       setProductCost(initialData.productCost || totalCost || 0);
       setLaborCost(initialData.laborCost || 0);
       setLaborCostType(initialData.laborCostType || 'fixed');
@@ -73,6 +75,9 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
       setPlatformFeePercentage(initialData.platformFeePercentage || 0);
       setTaxPercentage(initialData.taxPercentage || 0);
       setNotes(initialData.notes || "");
+    } else if (totalCost > 0) {
+      // Se não tem dados iniciais mas tem totalCost, usar ele
+      setProductCost(totalCost);
     }
   }, [initialData, totalCost]);
 
