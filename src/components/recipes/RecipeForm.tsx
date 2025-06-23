@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -43,10 +42,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   ingredients,
   editingRecipe
 }) => {
-  const [name, setName] = useState(editingRecipe?.name || "");
-  const [categoryId, setCategoryId] = useState(editingRecipe?.category?.id || "");
-  const [portions, setPortions] = useState(editingRecipe?.portions?.toString() || "1");
-  const [notes, setNotes] = useState(editingRecipe?.notes || "");
+  const [name, setName] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [portions, setPortions] = useState("1");
+  const [notes, setNotes] = useState("");
 
   // Ingredientes base (custo único para toda a receita)
   const [baseIngredients, setBaseIngredients] = useState<RecipeIngredient[]>([]);
@@ -56,19 +55,35 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
 
   const [isLoading, setIsLoading] = useState(false);
 
+  // Reset form when dialog opens/closes or editingRecipe changes
   useEffect(() => {
-    if (editingRecipe) {
-      loadRecipeIngredients();
-    } else {
-      setBaseIngredients([]);
-      setPortionIngredients([]);
+    if (open) {
+      if (editingRecipe) {
+        console.log('Loading recipe for edit:', editingRecipe);
+        setName(editingRecipe.name || "");
+        setCategoryId(editingRecipe.category?.id || "");
+        setPortions(editingRecipe.portions?.toString() || "1");
+        setNotes(editingRecipe.notes || "");
+        loadRecipeIngredients();
+      } else {
+        console.log('Opening form for new recipe');
+        // Reset form for new recipe
+        setName("");
+        setCategoryId("");
+        setPortions("1");
+        setNotes("");
+        setBaseIngredients([]);
+        setPortionIngredients([]);
+      }
     }
-  }, [editingRecipe]);
+  }, [open, editingRecipe]);
 
   const loadRecipeIngredients = async () => {
     if (!editingRecipe?.id) return;
 
     try {
+      console.log('Loading ingredients for recipe:', editingRecipe.id);
+      
       // Carregar ingredientes base
       const { data: baseData, error: baseError } = await supabase
         .from('recipe_base_ingredients')
@@ -90,6 +105,9 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         .eq('recipe_id', editingRecipe.id);
 
       if (portionError) throw portionError;
+
+      console.log('Base ingredients loaded:', baseData);
+      console.log('Portion ingredients loaded:', portionData);
 
       setBaseIngredients(baseData?.map(item => ({
         id: item.id,
@@ -285,14 +303,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       
       onSuccess();
       onOpenChange(false);
-      
-      // Reset form
-      setName("");
-      setCategoryId("");
-      setPortions("1");
-      setNotes("");
-      setBaseIngredients([]);
-      setPortionIngredients([]);
 
     } catch (error: any) {
       console.error('Erro ao salvar receita:', error);
@@ -554,7 +564,12 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           <Separator />
 
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)} 
+              disabled={isLoading}
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>

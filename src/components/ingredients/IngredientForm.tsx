@@ -86,6 +86,31 @@ export const IngredientForm = ({
     },
   });
 
+  // Reset form when ingredient changes
+  React.useEffect(() => {
+    if (ingredient) {
+      form.reset({
+        name: ingredient.name || "",
+        brand: ingredient.brand || "",
+        categoryId: ingredient.category_id || "",
+        unit: ingredient.unit || "",
+        packageQuantity: ingredient.package_quantity || 0,
+        packagePrice: ingredient.package_price || 0,
+        supplier: ingredient.supplier || "",
+      });
+    } else {
+      form.reset({
+        name: "",
+        brand: "",
+        categoryId: "",
+        unit: "",
+        packageQuantity: 0,
+        packagePrice: 0,
+        supplier: "",
+      });
+    }
+  }, [ingredient, form]);
+
   const packageQuantity = form.watch("packageQuantity");
   const packagePrice = form.watch("packagePrice");
   const unitCost = packageQuantity && packagePrice ? packagePrice / packageQuantity : 0;
@@ -135,10 +160,12 @@ export const IngredientForm = ({
 
       onSuccess();
       form.reset();
+      onOpenChange(false);
     } catch (error: any) {
+      console.error('Erro ao salvar ingrediente:', error);
       toast({
         title: "Erro",
-        description: error.message,
+        description: error.message || "Erro ao salvar ingrediente",
         variant: "destructive",
       });
     } finally {
@@ -194,7 +221,7 @@ export const IngredientForm = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Categoria (opcional)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione uma categoria" />
@@ -219,20 +246,16 @@ export const IngredientForm = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Unidade de Medida</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione a unidade" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="kg">Quilograma (kg)</SelectItem>
                         <SelectItem value="g">Grama (g)</SelectItem>
-                        <SelectItem value="l">Litro (l)</SelectItem>
                         <SelectItem value="ml">Mililitro (ml)</SelectItem>
                         <SelectItem value="un">Unidade (un)</SelectItem>
-                        <SelectItem value="cx">Caixa (cx)</SelectItem>
-                        <SelectItem value="pct">Pacote (pct)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -306,7 +329,14 @@ export const IngredientForm = ({
             />
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  form.reset();
+                  onOpenChange(false);
+                }}
+              >
                 Cancelar
               </Button>
               <Button type="submit" disabled={isLoading}>
