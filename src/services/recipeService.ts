@@ -36,6 +36,8 @@ export const getRecipes = async (): Promise<Recipe[]> => {
 
 export const getRecipeById = async (id: string): Promise<Recipe | null> => {
   try {
+    console.log('Loading recipe with ID:', id);
+    
     const { data, error } = await supabase
       .from('recipes')
       .select(`
@@ -47,14 +49,22 @@ export const getRecipeById = async (id: string): Promise<Recipe | null> => {
       .eq('id', id)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching recipe:', error);
+      throw error;
+    }
 
-    return {
+    console.log('Recipe data loaded:', data);
+
+    const recipe = {
       ...data,
       category: data.category?.[0] || null,
       baseIngredients: data.recipe_base_ingredients || [],
       portionIngredients: data.recipe_portion_ingredients || []
     };
+
+    console.log('Processed recipe:', recipe);
+    return recipe;
   } catch (error) {
     console.error('Error fetching recipe:', error);
     return null;

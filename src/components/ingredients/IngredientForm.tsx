@@ -6,7 +6,6 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -40,7 +39,6 @@ const ingredientSchema = z.object({
   packageQuantity: z.coerce.number().positive({ message: "Quantidade deve ser maior que 0" }),
   packagePrice: z.coerce.number().positive({ message: "Preço deve ser maior que 0" }),
   supplier: z.string().optional(),
-  notes: z.string().optional(),
 });
 
 interface IngredientFormProps {
@@ -85,7 +83,6 @@ export const IngredientForm = ({
       packageQuantity: ingredient?.package_quantity || 0,
       packagePrice: ingredient?.package_price || 0,
       supplier: ingredient?.supplier || "",
-      notes: ingredient?.notes || "",
     },
   });
 
@@ -108,7 +105,6 @@ export const IngredientForm = ({
         package_price: values.packagePrice,
         unit_cost: unitCost,
         supplier: values.supplier || null,
-        notes: values.notes || null,
         user_id: user.id,
       };
 
@@ -303,24 +299,6 @@ export const IngredientForm = ({
                   <FormLabel>Fornecedor (opcional)</FormLabel>
                   <FormControl>
                     <Input placeholder="Nome do fornecedor" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Observações (opcional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Observações sobre o ingrediente"
-                      className="resize-none"
-                      {...field}
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

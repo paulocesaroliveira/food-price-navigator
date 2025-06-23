@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -72,44 +71,46 @@ const Pricing = () => {
     setSelectedProduct(null);
   };
 
-  // Função para calcular dados de precificação do card
+  // Enhanced function to calculate card pricing data with proper formatting
   const getCardPricingData = (product: Product) => {
     const config = configurations.find(config => config.product_id === product.id);
     
     if (!config) {
       return {
-        costWithoutTaxes: product.total_cost || 0,
+        costWithoutTaxes: Number(product.total_cost) || 0,
         totalTaxes: 0,
         finalPrice: 0,
         profit: 0,
+        margin: 0,
         hasConfiguration: false
       };
     }
 
-    const baseCost = config.base_cost || 0;
-    const packagingCost = config.packaging_cost || 0;
-    const laborCost = config.labor_cost || 0;
-    const overheadCost = config.overhead_cost || 0;
-    const marketingCost = config.marketing_cost || 0;
-    const deliveryCost = config.delivery_cost || 0;
-    const otherCosts = config.other_costs || 0;
+    const baseCost = Number(config.base_cost) || 0;
+    const packagingCost = Number(config.packaging_cost) || 0;
+    const laborCost = Number(config.labor_cost) || 0;
+    const overheadCost = Number(config.overhead_cost) || 0;
+    const marketingCost = Number(config.marketing_cost) || 0;
+    const deliveryCost = Number(config.delivery_cost) || 0;
+    const otherCosts = Number(config.other_costs) || 0;
     
     const productionCost = baseCost + packagingCost;
     const totalIndirectCosts = laborCost + overheadCost + marketingCost + deliveryCost + otherCosts;
-    const costWithWastage = (productionCost + totalIndirectCosts) * (1 + (config.wastage_percentage || 5) / 100);
+    const costWithWastage = (productionCost + totalIndirectCosts) * (1 + (Number(config.wastage_percentage) || 5) / 100);
     
-    const idealPrice = costWithWastage * (1 + (config.margin_percentage || 30) / 100);
-    const priceWithPlatformFee = idealPrice * (1 + (config.platform_fee_percentage || 0) / 100);
-    const finalPrice = priceWithPlatformFee * (1 + (config.tax_percentage || 0) / 100);
+    const idealPrice = costWithWastage * (1 + (Number(config.margin_percentage) || 30) / 100);
+    const priceWithPlatformFee = idealPrice * (1 + (Number(config.platform_fee_percentage) || 0) / 100);
+    const finalPrice = priceWithPlatformFee * (1 + (Number(config.tax_percentage) || 0) / 100);
     
-    const totalTaxes = totalIndirectCosts + (costWithWastage - productionCost) + (priceWithPlatformFee - idealPrice) + (finalPrice - priceWithPlatformFee);
     const profit = finalPrice - costWithWastage;
+    const margin = costWithWastage > 0 ? ((profit / costWithWastage) * 100) : 0;
 
     return {
       costWithoutTaxes: productionCost,
-      totalTaxes,
-      finalPrice,
-      profit,
+      totalTaxes: totalIndirectCosts,
+      finalPrice: finalPrice,
+      profit: profit,
+      margin: margin,
       hasConfiguration: true
     };
   };
@@ -177,17 +178,17 @@ const Pricing = () => {
                 <CardContent className="space-y-6">
                   {pricingData.hasConfiguration ? (
                     <>
-                      {/* Informações de Precificação */}
-                      <div className="grid grid-cols-2 gap-4">
+                      {/* Enhanced Pricing Information Display */}
+                      <div className="grid grid-cols-2 gap-3">
                         <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <p className="text-xs text-blue-600 font-medium mb-1">Custo sem Taxas</p>
+                          <p className="text-xs text-blue-600 font-medium mb-1">Custo Produção</p>
                           <p className="text-sm font-bold text-blue-800">
                             {formatCurrency(pricingData.costWithoutTaxes)}
                           </p>
                         </div>
                         
                         <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-200">
-                          <p className="text-xs text-purple-600 font-medium mb-1">Total das Taxas</p>
+                          <p className="text-xs text-purple-600 font-medium mb-1">Custos Indiretos</p>
                           <p className="text-sm font-bold text-purple-800">
                             {formatCurrency(pricingData.totalTaxes)}
                           </p>
@@ -208,8 +209,8 @@ const Pricing = () => {
                         </div>
                       </div>
 
-                      {/* Status de Rentabilidade */}
-                      <div className="flex justify-center">
+                      {/* Enhanced Status Display */}
+                      <div className="flex justify-between items-center">
                         {pricingData.profit > 0 ? (
                           <Badge className="bg-green-100 text-green-800 px-3 py-1">
                             <TrendingUp className="h-3 w-3 mr-1" />
@@ -221,11 +222,18 @@ const Pricing = () => {
                             Revisar Preços
                           </Badge>
                         )}
+                        
+                        <div className="text-right">
+                          <p className="text-xs text-gray-600">Margem</p>
+                          <p className="text-sm font-bold text-gray-800">
+                            {pricingData.margin.toFixed(1)}%
+                          </p>
+                        </div>
                       </div>
                     </>
                   ) : (
                     <>
-                      {/* Produto sem configuração */}
+                      {/* Product without configuration */}
                       <div className="text-center p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                         <Calculator className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                         <p className="text-sm text-gray-600 mb-1">Produto não precificado</p>
@@ -239,7 +247,7 @@ const Pricing = () => {
                     </>
                   )}
 
-                  {/* Botão de Ação */}
+                  {/* Action Button */}
                   <Button
                     onClick={() => handleProductSelect(product)}
                     className={`w-full group-hover:shadow-md transition-all duration-300 ${

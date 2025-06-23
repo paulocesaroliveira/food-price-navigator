@@ -1,15 +1,15 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Calculator, Package, DollarSign, TrendingUp, Target, AlertTriangle } from "lucide-react";
 import { formatCurrency } from "@/utils/calculations";
-import { Calculator, DollarSign, TrendingUp, Target } from "lucide-react";
 
 interface EnhancedPricingFormProps {
-  totalCost?: number;
+  totalCost: number;
   productName: string;
   productId: string;
   onPricingChange: (data: any) => void;
@@ -17,305 +17,566 @@ interface EnhancedPricingFormProps {
 }
 
 export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
-  totalCost = 0,
+  totalCost,
   productName,
   productId,
   onPricingChange,
   initialData
 }) => {
-  // Estado para custo do produto
-  const [productCost, setProductCost] = useState(0);
-  
-  // Estados para custos indiretos
+  const [productCost, setProductCost] = useState(totalCost || 0);
+  const [baseCost, setBaseCost] = useState(0);
+  const [packagingCost, setPackagingCost] = useState(0);
   const [laborCost, setLaborCost] = useState(0);
-  const [laborCostType, setLaborCostType] = useState<'fixed' | 'percentage'>('fixed');
   const [overheadCost, setOverheadCost] = useState(0);
-  const [overheadCostType, setOverheadCostType] = useState<'fixed' | 'percentage'>('fixed');
   const [marketingCost, setMarketingCost] = useState(0);
-  const [marketingCostType, setMarketingCostType] = useState<'fixed' | 'percentage'>('fixed');
   const [deliveryCost, setDeliveryCost] = useState(0);
-  const [deliveryCostType, setDeliveryCostType] = useState<'fixed' | 'percentage'>('fixed');
   const [otherCosts, setOtherCosts] = useState(0);
+  const [laborCostType, setLaborCostType] = useState<'fixed' | 'percentage'>('fixed');
+  const [overheadCostType, setOverheadCostType] = useState<'fixed' | 'percentage'>('fixed');
+  const [marketingCostType, setMarketingCostType] = useState<'fixed' | 'percentage'>('fixed');
+  const [deliveryCostType, setDeliveryCostType] = useState<'fixed' | 'percentage'>('fixed');
   const [otherCostType, setOtherCostType] = useState<'fixed' | 'percentage'>('fixed');
-  
-  // Estados para configurações
   const [wastagePercentage, setWastagePercentage] = useState(5);
   const [targetMarginPercentage, setTargetMarginPercentage] = useState(30);
   const [platformFeePercentage, setPlatformFeePercentage] = useState(0);
   const [taxPercentage, setTaxPercentage] = useState(0);
-  
-  // Estados para preços
+  const [sellingPrice, setSellingPrice] = useState(0);
+  const [minimumPrice, setMinimumPrice] = useState(0);
+  const [maximumPrice, setMaximumPrice] = useState(0);
+  const [competitorPrice, setCompetitorPrice] = useState(0);
   const [notes, setNotes] = useState("");
 
-  // Inicializar com o totalCost ou dados iniciais
+  // Initialize form with product cost and initial data
   useEffect(() => {
-    console.log("EnhancedPricingForm - Initializing with:", { totalCost, initialData });
+    console.log('EnhancedPricingForm - Initializing with totalCost:', totalCost);
+    console.log('EnhancedPricingForm - Initial data:', initialData);
     
+    if (totalCost > 0) {
+      setProductCost(totalCost);
+      setBaseCost(totalCost);
+    }
+
     if (initialData) {
-      // Usar dados iniciais se disponíveis
       setProductCost(initialData.productCost || totalCost || 0);
+      setBaseCost(initialData.baseCost || totalCost || 0);
+      setPackagingCost(initialData.packagingCost || 0);
       setLaborCost(initialData.laborCost || 0);
-      setLaborCostType(initialData.laborCostType || 'fixed');
       setOverheadCost(initialData.overheadCost || 0);
-      setOverheadCostType(initialData.overheadCostType || 'fixed');
       setMarketingCost(initialData.marketingCost || 0);
-      setMarketingCostType(initialData.marketingCostType || 'fixed');
       setDeliveryCost(initialData.deliveryCost || 0);
-      setDeliveryCostType(initialData.deliveryCostType || 'fixed');
       setOtherCosts(initialData.otherCosts || 0);
-      setOtherCostType(initialData.otherCostType || 'fixed');
       setWastagePercentage(initialData.wastagePercentage || 5);
       setTargetMarginPercentage(initialData.targetMarginPercentage || 30);
       setPlatformFeePercentage(initialData.platformFeePercentage || 0);
       setTaxPercentage(initialData.taxPercentage || 0);
+      setSellingPrice(initialData.sellingPrice || 0);
+      setMinimumPrice(initialData.minimumPrice || 0);
+      setMaximumPrice(initialData.maximumPrice || 0);
+      setCompetitorPrice(initialData.competitorPrice || 0);
       setNotes(initialData.notes || "");
-    } else {
-      // Usar totalCost do produto se não há dados iniciais
-      console.log("Using totalCost from product:", totalCost);
-      setProductCost(totalCost || 0);
     }
   }, [totalCost, initialData]);
 
-  // Função para calcular custo indireto
-  const calculateIndirectCost = (value: number, type: 'fixed' | 'percentage', baseValue: number) => {
-    return type === 'percentage' ? (baseValue * value) / 100 : value;
+  // Update productCost when totalCost changes
+  useEffect(() => {
+    if (totalCost > 0) {
+      console.log('EnhancedPricingForm - Updating productCost from totalCost:', totalCost);
+      setProductCost(totalCost);
+      if (!initialData || baseCost === 0) {
+        setBaseCost(totalCost);
+      }
+    }
+  }, [totalCost]);
+
+  const calculateActualLaborCost = () => {
+    if (laborCostType === 'percentage') {
+      return (productCost * laborCost) / 100;
+    }
+    return laborCost;
   };
 
-  // Cálculos principais
-  const totalLaborCost = calculateIndirectCost(laborCost, laborCostType, productCost);
-  const totalOverheadCost = calculateIndirectCost(overheadCost, overheadCostType, productCost);
-  const totalMarketingCost = calculateIndirectCost(marketingCost, marketingCostType, productCost);
-  const totalDeliveryCost = calculateIndirectCost(deliveryCost, deliveryCostType, productCost);
-  const totalOtherCosts = calculateIndirectCost(otherCosts, otherCostType, productCost);
-  
-  const totalIndirectCosts = totalLaborCost + totalOverheadCost + totalMarketingCost + totalDeliveryCost + totalOtherCosts;
-  
-  const costWithWastage = (productCost + totalIndirectCosts) * (1 + wastagePercentage / 100);
+  const calculateActualOverheadCost = () => {
+    if (overheadCostType === 'percentage') {
+      return (productCost * overheadCost) / 100;
+    }
+    return overheadCost;
+  };
+
+  const calculateActualMarketingCost = () => {
+    if (marketingCostType === 'percentage') {
+      return (productCost * marketingCost) / 100;
+    }
+    return marketingCost;
+  };
+
+  const calculateActualDeliveryCost = () => {
+    if (deliveryCostType === 'percentage') {
+      return (productCost * deliveryCost) / 100;
+    }
+    return deliveryCost;
+  };
+
+  const calculateActualOtherCost = () => {
+    if (otherCostType === 'percentage') {
+      return (productCost * otherCosts) / 100;
+    }
+    return otherCosts;
+  };
+
+  const productionCost = baseCost + packagingCost;
+  const totalIndirectCosts = calculateActualLaborCost() + calculateActualOverheadCost() + 
+                           calculateActualMarketingCost() + calculateActualDeliveryCost() + 
+                           calculateActualOtherCost();
+  const costWithWastage = (productionCost + totalIndirectCosts) * (1 + wastagePercentage / 100);
   const idealPrice = costWithWastage * (1 + targetMarginPercentage / 100);
   const priceWithPlatformFee = idealPrice * (1 + platformFeePercentage / 100);
   const finalPrice = priceWithPlatformFee * (1 + taxPercentage / 100);
-  
-  const totalTaxes = totalIndirectCosts + (costWithWastage - productCost) + (priceWithPlatformFee - idealPrice) + (finalPrice - priceWithPlatformFee);
   const profit = finalPrice - costWithWastage;
+  const actualMargin = costWithWastage > 0 ? ((profit / costWithWastage) * 100) : 0;
 
-  // Notificar mudanças
+  // Emit pricing changes
   useEffect(() => {
     const pricingData = {
+      productId,
       productCost,
-      laborCost,
-      laborCostType,
-      overheadCost,
-      overheadCostType,
-      marketingCost,
-      marketingCostType,
-      deliveryCost,
-      deliveryCostType,
-      otherCosts,
-      otherCostType,
+      baseCost,
+      packagingCost,
+      laborCost: calculateActualLaborCost(),
+      overheadCost: calculateActualOverheadCost(),
+      marketingCost: calculateActualMarketingCost(),
+      deliveryCost: calculateActualDeliveryCost(),
+      otherCosts: calculateActualOtherCost(),
       wastagePercentage,
       targetMarginPercentage,
       platformFeePercentage,
       taxPercentage,
-      sellingPrice: finalPrice,
-      notes,
-      calculations: {
-        productCost,
-        totalIndirectCosts,
-        costWithWastage,
-        idealPrice,
-        finalPrice,
-        totalTaxes,
-        profit
-      }
+      productionCost,
+      totalIndirectCosts,
+      costWithWastage,
+      idealPrice,
+      priceWithPlatformFee,
+      finalPrice,
+      profit,
+      actualMargin,
+      sellingPrice,
+      minimumPrice,
+      maximumPrice,
+      competitorPrice,
+      notes
     };
     
-    console.log("EnhancedPricingForm - Sending pricing data:", pricingData);
     onPricingChange(pricingData);
   }, [
-    productCost, laborCost, laborCostType, overheadCost, overheadCostType, 
-    marketingCost, marketingCostType, deliveryCost, deliveryCostType, 
-    otherCosts, otherCostType, wastagePercentage, targetMarginPercentage, 
-    platformFeePercentage, taxPercentage, notes, onPricingChange
+    productId, productCost, baseCost, packagingCost, laborCost, overheadCost, 
+    marketingCost, deliveryCost, otherCosts, wastagePercentage, targetMarginPercentage,
+    platformFeePercentage, taxPercentage, sellingPrice, minimumPrice, maximumPrice,
+    competitorPrice, notes, laborCostType, overheadCostType, marketingCostType,
+    deliveryCostType, otherCostType
   ]);
 
   return (
-    <div className="space-y-8">
-      {/* Custo do Produto */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 text-blue-800">
-            <DollarSign className="h-5 w-5" />
+    <div className="space-y-6">
+      {/* Product Cost Section */}
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <Package className="h-6 w-6 text-blue-600" />
             Custo do Produto
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="productCost">Custo Total do Produto</Label>
+              <Label>Custo Total do Produto</Label>
+              <div className="mt-2 p-4 bg-white rounded-lg border-2 border-blue-200">
+                <p className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(productCost)}
+                </p>
+                <p className="text-sm text-gray-600">Custo base calculado automaticamente</p>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="baseCost">Custo Base de Produção</Label>
               <Input
-                id="productCost"
+                id="baseCost"
                 type="number"
                 step="0.01"
-                value={productCost}
-                onChange={(e) => setProductCost(Number(e.target.value))}
-                className="text-lg font-semibold"
+                min="0"
+                value={baseCost}
+                onChange={(e) => setBaseCost(Number(e.target.value))}
+                className="mt-2"
               />
-              <p className="text-sm text-muted-foreground mt-1">
-                Custo carregado automaticamente do produto: {formatCurrency(totalCost || 0)}
-              </p>
             </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="packagingCost">Custo de Embalagem</Label>
+            <Input
+              id="packagingCost"
+              type="number"
+              step="0.01"
+              min="0"
+              value={packagingCost}
+              onChange={(e) => setPackagingCost(Number(e.target.value))}
+              className="mt-2"
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Custos Indiretos */}
-      <Card className="border-purple-200 bg-purple-50">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 text-purple-800">
-            <Calculator className="h-5 w-5" />
+      {/* Indirect Costs Section */}
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-purple-50 to-pink-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <DollarSign className="h-6 w-6 text-purple-600" />
             Custos Indiretos
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {[
-            { label: "Custo de Mão de Obra", value: laborCost, setValue: setLaborCost, type: laborCostType, setType: setLaborCostType, total: totalLaborCost },
-            { label: "Custos Administrativos", value: overheadCost, setValue: setOverheadCost, type: overheadCostType, setType: setOverheadCostType, total: totalOverheadCost },
-            { label: "Custos de Marketing", value: marketingCost, setValue: setMarketingCost, type: marketingCostType, setType: setMarketingCostType, total: totalMarketingCost },
-            { label: "Custos de Entrega", value: deliveryCost, setValue: setDeliveryCost, type: deliveryCostType, setType: setDeliveryCostType, total: totalDeliveryCost },
-            { label: "Outros Custos", value: otherCosts, setValue: setOtherCosts, type: otherCostType, setType: setOtherCostType, total: totalOtherCosts }
-          ].map((cost, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div>
-                <Label>{cost.label}</Label>
-              </div>
-              <div>
-                <Select value={cost.type} onValueChange={(value) => cost.setType(value as 'fixed' | 'percentage')}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fixed">R$</SelectItem>
-                    <SelectItem value="percentage">%</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="laborCost">Custo de Mão de Obra</Label>
+              <div className="flex items-center space-x-2">
                 <Input
+                  id="laborCost"
                   type="number"
                   step="0.01"
-                  value={cost.value}
-                  onChange={(e) => cost.setValue(Number(e.target.value))}
-                  placeholder={cost.type === 'percentage' ? "0%" : "R$ 0,00"}
+                  min="0"
+                  value={laborCost}
+                  onChange={(e) => setLaborCost(Number(e.target.value))}
+                  className="mt-2 flex-1"
                 />
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-purple-600">{formatCurrency(cost.total)}</p>
+                <select
+                  value={laborCostType}
+                  onChange={(e) => setLaborCostType(e.target.value as 'fixed' | 'percentage')}
+                  className="mt-2 p-2 border rounded"
+                >
+                  <option value="fixed">R$ Fixo</option>
+                  <option value="percentage">% Custo</option>
+                </select>
               </div>
             </div>
-          ))}
-          
-          <Separator />
-          
-          <div className="flex justify-between items-center p-4 bg-white rounded-lg border">
-            <span className="font-semibold">Total de Custos Indiretos:</span>
-            <span className="text-xl font-bold text-purple-600">{formatCurrency(totalIndirectCosts)}</span>
+            
+            <div>
+              <Label htmlFor="overheadCost">Custos Gerais (Aluguel, etc)</Label>
+              <div className="flex items-center space-x-2">
+                <Input
+                  id="overheadCost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={overheadCost}
+                  onChange={(e) => setOverheadCost(Number(e.target.value))}
+                  className="mt-2 flex-1"
+                />
+                <select
+                  value={overheadCostType}
+                  onChange={(e) => setOverheadCostType(e.target.value as 'fixed' | 'percentage')}
+                  className="mt-2 p-2 border rounded"
+                >
+                  <option value="fixed">R$ Fixo</option>
+                  <option value="percentage">% Custo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="marketingCost">Marketing e Divulgação</Label>
+              <div className="flex items-center space-x-2">
+                <Input
+                  id="marketingCost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={marketingCost}
+                  onChange={(e) => setMarketingCost(Number(e.target.value))}
+                  className="mt-2 flex-1"
+                />
+                <select
+                  value={marketingCostType}
+                  onChange={(e) => setMarketingCostType(e.target.value as 'fixed' | 'percentage')}
+                  className="mt-2 p-2 border rounded"
+                >
+                  <option value="fixed">R$ Fixo</option>
+                  <option value="percentage">% Custo</option>
+                </select>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="deliveryCost">Entrega e Frete</Label>
+              <div className="flex items-center space-x-2">
+                <Input
+                  id="deliveryCost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={deliveryCost}
+                  onChange={(e) => setDeliveryCost(Number(e.target.value))}
+                  className="mt-2 flex-1"
+                />
+                <select
+                  value={deliveryCostType}
+                  onChange={(e) => setDeliveryCostType(e.target.value as 'fixed' | 'percentage')}
+                  className="mt-2 p-2 border rounded"
+                >
+                  <option value="fixed">R$ Fixo</option>
+                  <option value="percentage">% Custo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="otherCosts">Outros Custos</Label>
+            <div className="flex items-center space-x-2">
+              <Input
+                id="otherCosts"
+                type="number"
+                step="0.01"
+                min="0"
+                value={otherCosts}
+                onChange={(e) => setOtherCosts(Number(e.target.value))}
+                className="mt-2 flex-1"
+              />
+              <select
+                value={otherCostType}
+                onChange={(e) => setOtherCostType(e.target.value as 'fixed' | 'percentage')}
+                className="mt-2 p-2 border rounded"
+              >
+                <option value="fixed">R$ Fixo</option>
+                <option value="percentage">% Custo</option>
+              </select>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Configurações de Margem */}
-      <Card className="border-green-200 bg-green-50">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 text-green-800">
-            <Target className="h-5 w-5" />
-            Configurações de Precificação
+      {/* Margins and Fees Section */}
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-orange-50 to-yellow-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <Calculator className="h-6 w-6 text-orange-600" />
+            Margens e Taxas
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="wastage">Percentual de Desperdício (%)</Label>
+              <Label htmlFor="wastagePercentage">Desperdício (%)</Label>
               <Input
-                id="wastage"
+                id="wastagePercentage"
                 type="number"
-                step="0.1"
+                step="0.01"
+                min="0"
+                max="100"
                 value={wastagePercentage}
                 onChange={(e) => setWastagePercentage(Number(e.target.value))}
+                className="mt-2"
               />
             </div>
+            
             <div>
-              <Label htmlFor="margin">Margem de Lucro Desejada (%)</Label>
+              <Label htmlFor="targetMarginPercentage">Margem de Lucro Alvo (%)</Label>
               <Input
-                id="margin"
+                id="targetMarginPercentage"
                 type="number"
-                step="0.1"
+                step="0.01"
+                min="0"
+                max="100"
                 value={targetMarginPercentage}
                 onChange={(e) => setTargetMarginPercentage(Number(e.target.value))}
+                className="mt-2"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="platformFee">Taxa da Plataforma (%)</Label>
+              <Label htmlFor="platformFeePercentage">Taxa da Plataforma (%)</Label>
               <Input
-                id="platformFee"
+                id="platformFeePercentage"
                 type="number"
-                step="0.1"
+                step="0.01"
+                min="0"
+                max="100"
                 value={platformFeePercentage}
                 onChange={(e) => setPlatformFeePercentage(Number(e.target.value))}
+                className="mt-2"
               />
             </div>
+            
             <div>
-              <Label htmlFor="tax">Impostos (%)</Label>
+              <Label htmlFor="taxPercentage">Impostos (%)</Label>
               <Input
-                id="tax"
+                id="taxPercentage"
                 type="number"
-                step="0.1"
+                step="0.01"
+                min="0"
+                max="100"
                 value={taxPercentage}
                 onChange={(e) => setTaxPercentage(Number(e.target.value))}
+                className="mt-2"
               />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Resumo Final */}
-      <Card className="border-amber-200 bg-amber-50">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 text-amber-800">
-            <TrendingUp className="h-5 w-5" />
+      {/* Pricing Suggestions Section */}
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-lime-50 to-green-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <TrendingUp className="h-6 w-6 text-lime-600" />
+            Sugestões de Preço
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="sellingPrice">Preço de Venda Sugerido</Label>
+              <Input
+                id="sellingPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                value={sellingPrice}
+                onChange={(e) => setSellingPrice(Number(e.target.value))}
+                className="mt-2"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="minimumPrice">Preço Mínimo Aceitável</Label>
+              <Input
+                id="minimumPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                value={minimumPrice}
+                onChange={(e) => setMinimumPrice(Number(e.target.value))}
+                className="mt-2"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="maximumPrice">Preço Máximo Competitivo</Label>
+            <Input
+              id="maximumPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              value={maximumPrice}
+              onChange={(e) => setMaximumPrice(Number(e.target.value))}
+              className="mt-2"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="competitorPrice">Preço do Concorrente</Label>
+            <Input
+              id="competitorPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              value={competitorPrice}
+              onChange={(e) => setCompetitorPrice(Number(e.target.value))}
+              className="mt-2"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Additional Notes Section */}
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-gray-50 to-stone-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <Textarea className="h-6 w-6 text-gray-600" />
+            Anotações Adicionais
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Anotações sobre a precificação, estratégias, etc."
+            className="resize-none"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Results Summary */}
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-green-50 to-emerald-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <TrendingUp className="h-6 w-6 text-green-600" />
             Resumo da Precificação
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-white rounded-lg border">
-              <p className="text-sm text-muted-foreground">Custo sem Taxas</p>
-              <p className="text-xl font-bold text-blue-600">{formatCurrency(productCost)}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="text-center p-4 bg-white rounded-lg border-2 border-blue-200">
+              <p className="text-sm text-blue-600 font-medium mb-1">Custo de Produção</p>
+              <p className="text-xl font-bold text-blue-800">{formatCurrency(productionCost)}</p>
             </div>
-            <div className="text-center p-4 bg-white rounded-lg border">
-              <p className="text-sm text-muted-foreground">Total das Taxas</p>
-              <p className="text-xl font-bold text-purple-600">{formatCurrency(totalTaxes)}</p>
+            
+            <div className="text-center p-4 bg-white rounded-lg border-2 border-purple-200">
+              <p className="text-sm text-purple-600 font-medium mb-1">Custos Indiretos</p>
+              <p className="text-xl font-bold text-purple-800">{formatCurrency(totalIndirectCosts)}</p>
             </div>
-            <div className="text-center p-4 bg-white rounded-lg border">
-              <p className="text-sm text-muted-foreground">Preço Final</p>
-              <p className="text-xl font-bold text-green-600">{formatCurrency(finalPrice)}</p>
+            
+            <div className="text-center p-4 bg-white rounded-lg border-2 border-orange-200">
+              <p className="text-sm text-orange-600 font-medium mb-1">Custo com Desperdício</p>
+              <p className="text-xl font-bold text-orange-800">{formatCurrency(costWithWastage)}</p>
             </div>
-            <div className="text-center p-4 bg-white rounded-lg border">
-              <p className="text-sm text-muted-foreground">Lucro</p>
-              <p className="text-xl font-bold text-amber-600">{formatCurrency(profit)}</p>
+            
+            <div className="text-center p-4 bg-white rounded-lg border-2 border-green-200">
+              <p className="text-sm text-green-600 font-medium mb-1">Preço Final</p>
+              <p className="text-xl font-bold text-green-800">{formatCurrency(finalPrice)}</p>
             </div>
           </div>
 
-          {/* Observações */}
-          <div className="mt-6">
-            <Label htmlFor="notes">Observações</Label>
-            <textarea
-              id="notes"
-              className="w-full p-3 border rounded-lg resize-none mt-2"
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Adicione observações sobre a precificação..."
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="text-center p-4 bg-white rounded-lg border-2 border-emerald-200">
+              <p className="text-sm text-emerald-600 font-medium mb-1">Lucro por Unidade</p>
+              <p className="text-2xl font-bold text-emerald-800">{formatCurrency(profit)}</p>
+            </div>
+            
+            <div className="text-center p-4 bg-white rounded-lg border-2 border-teal-200">
+              <p className="text-sm text-teal-600 font-medium mb-1">Margem Real</p>
+              <p className="text-2xl font-bold text-teal-800">{actualMargin.toFixed(2)}%</p>
+            </div>
+          </div>
+
+          {/* Status Indicators */}
+          <div className="flex justify-center mt-6 space-x-4">
+            {profit > 0 ? (
+              <Badge className="bg-green-100 text-green-800 px-4 py-2 text-sm">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Produto Rentável
+              </Badge>
+            ) : (
+              <Badge variant="destructive" className="px-4 py-2 text-sm">
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Revisar Precificação
+              </Badge>
+            )}
+            
+            {actualMargin >= targetMarginPercentage ? (
+              <Badge className="bg-blue-100 text-blue-800 px-4 py-2 text-sm">
+                <Target className="h-4 w-4 mr-2" />
+                Meta de Margem Atingida
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="px-4 py-2 text-sm">
+                <Target className="h-4 w-4 mr-2" />
+                Meta: {targetMarginPercentage}%
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>
