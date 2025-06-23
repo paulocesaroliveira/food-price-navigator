@@ -680,18 +680,23 @@ export type Database = {
           competitor_price: number | null
           created_at: string
           delivery_cost: number | null
+          delivery_cost_type: string | null
           final_price: number
           id: string
           ideal_price: number
           labor_cost: number | null
+          labor_cost_type: string | null
           margin_percentage: number
           marketing_cost: number | null
+          marketing_cost_type: string | null
           maximum_price: number | null
           minimum_price: number | null
           name: string
           notes: string | null
+          other_cost_type: string | null
           other_costs: number | null
           overhead_cost: number | null
+          overhead_cost_type: string | null
           packaging_cost: number
           platform_fee_percentage: number
           product_id: string
@@ -709,18 +714,23 @@ export type Database = {
           competitor_price?: number | null
           created_at?: string
           delivery_cost?: number | null
+          delivery_cost_type?: string | null
           final_price?: number
           id?: string
           ideal_price?: number
           labor_cost?: number | null
+          labor_cost_type?: string | null
           margin_percentage?: number
           marketing_cost?: number | null
+          marketing_cost_type?: string | null
           maximum_price?: number | null
           minimum_price?: number | null
           name: string
           notes?: string | null
+          other_cost_type?: string | null
           other_costs?: number | null
           overhead_cost?: number | null
+          overhead_cost_type?: string | null
           packaging_cost?: number
           platform_fee_percentage?: number
           product_id: string
@@ -738,18 +748,23 @@ export type Database = {
           competitor_price?: number | null
           created_at?: string
           delivery_cost?: number | null
+          delivery_cost_type?: string | null
           final_price?: number
           id?: string
           ideal_price?: number
           labor_cost?: number | null
+          labor_cost_type?: string | null
           margin_percentage?: number
           marketing_cost?: number | null
+          marketing_cost_type?: string | null
           maximum_price?: number | null
           minimum_price?: number | null
           name?: string
           notes?: string | null
+          other_cost_type?: string | null
           other_costs?: number | null
           overhead_cost?: number | null
+          overhead_cost_type?: string | null
           packaging_cost?: number
           platform_fee_percentage?: number
           product_id?: string

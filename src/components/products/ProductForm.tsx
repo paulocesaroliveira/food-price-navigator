@@ -26,7 +26,6 @@ import { ProductCostSummary } from "./ProductCostSummary";
 import { Product, ProductCategory, Recipe, Packaging } from "@/types";
 import { Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getProductById } from "@/services/productService";
 
 const productSchema = z.object({
   name: z.string().min(2, { message: "Nome é obrigatório" }),
@@ -73,52 +72,52 @@ export const ProductForm = ({
     },
   });
 
-  // Carregar dados do produto quando em modo de edição
+  // Load product data when editing
   useEffect(() => {
-    const loadProductData = async () => {
-      if (product?.id) {
-        setIsLoading(true);
-        try {
-          console.log("Loading product data for:", product.id);
-          const fullProduct = await getProductById(product.id);
-          console.log("Loaded product data:", fullProduct);
-          
-          // Configurar valores do formulário
-          form.reset({
-            name: fullProduct.name || "",
-            categoryId: fullProduct.category_id || "",
-            items: fullProduct.items && fullProduct.items.length > 0 
-              ? fullProduct.items.map((item: any) => ({
-                  recipeId: item.recipe_id || "",
-                  quantity: item.quantity || 1,
-                  cost: item.cost || 0,
-                }))
-              : [{ recipeId: "", quantity: 1, cost: 0 }],
-            packagingItems: fullProduct.packagingItems?.map((item: any) => ({
-              packagingId: item.packaging_id || "",
-              quantity: item.quantity || 1,
-              cost: item.cost || 0,
-              isPrimary: item.is_primary || false,
-            })) || [],
-          });
-        } catch (error) {
-          console.error("Error loading product data:", error);
-        } finally {
-          setIsLoading(false);
-        }
+    if (product) {
+      console.log("ProductForm - Loading product data:", product);
+      
+      // Set basic product info
+      form.setValue("name", product.name || "");
+      form.setValue("categoryId", product.category_id || "");
+      
+      // Set recipe items
+      if (product.items && Array.isArray(product.items) && product.items.length > 0) {
+        const formattedItems = product.items.map((item: any) => ({
+          recipeId: item.recipe_id || "",
+          quantity: item.quantity || 1,
+          cost: item.cost || 0,
+        }));
+        console.log("ProductForm - Setting recipe items:", formattedItems);
+        form.setValue("items", formattedItems);
       } else {
-        // Novo produto - limpar formulário
-        form.reset({
-          name: "",
-          categoryId: "",
-          items: [{ recipeId: "", quantity: 1, cost: 0 }],
-          packagingItems: [],
-        });
+        form.setValue("items", [{ recipeId: "", quantity: 1, cost: 0 }]);
       }
-    };
-
-    loadProductData();
-  }, [product?.id, form]);
+      
+      // Set packaging items
+      if (product.packagingItems && Array.isArray(product.packagingItems) && product.packagingItems.length > 0) {
+        const formattedPackaging = product.packagingItems.map((item: any) => ({
+          packagingId: item.packaging_id || "",
+          quantity: item.quantity || 1,
+          cost: item.cost || 0,
+          isPrimary: item.is_primary || false,
+        }));
+        console.log("ProductForm - Setting packaging items:", formattedPackaging);
+        form.setValue("packagingItems", formattedPackaging);
+      } else {
+        form.setValue("packagingItems", []);
+      }
+    } else {
+      // New product - reset form
+      console.log("ProductForm - Resetting for new product");
+      form.reset({
+        name: "",
+        categoryId: "",
+        items: [{ recipeId: "", quantity: 1, cost: 0 }],
+        packagingItems: [],
+      });
+    }
+  }, [product, form]);
 
   // Watch form values for cost calculations
   const watchedItems = form.watch("items");
@@ -156,7 +155,9 @@ export const ProductForm = ({
 
   const removeRecipe = (index: number) => {
     const currentItems = form.getValues("items");
-    form.setValue("items", currentItems.filter((_, i) => i !== index));
+    if (currentItems.length > 1) {
+      form.setValue("items", currentItems.filter((_, i) => i !== index));
+    }
   };
 
   const addPackaging = () => {
@@ -203,7 +204,7 @@ export const ProductForm = ({
   const handleFormSubmit = async (values: z.infer<typeof productSchema>) => {
     console.log("ProductForm - submitting form with values:", values);
     
-    // Recalcular todos os custos antes do submit
+    // Recalculate all costs before submit
     const updatedItems = values.items.map(item => ({
       ...item,
       cost: calculateItemCost(item.recipeId, item.quantity)
@@ -228,15 +229,6 @@ export const ProductForm = ({
     console.log("ProductForm - final product data:", productData);
     onSubmit(productData);
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-3">Carregando dados do produto...</span>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -345,7 +337,7 @@ export const ProductForm = ({
                 <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
                   Cancelar
                 </Button>
-                <Button type="submit" className="w-full sm:w-auto">
+                <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
                   {product ? "Atualizar Produto" : "Criar Produto"}
                 </Button>
               </div>
@@ -353,7 +345,7 @@ export const ProductForm = ({
           </Form>
         </div>
 
-        {/* Cost Summary - Lado direito */}
+        {/* Cost Summary - Right side */}
         <div className="lg:col-span-1">
           <div className="lg:sticky lg:top-4">
             <ProductCostSummary

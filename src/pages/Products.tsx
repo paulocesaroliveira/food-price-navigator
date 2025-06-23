@@ -1,10 +1,11 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Plus, Package, DollarSign, Settings } from "lucide-react";
+import { Search, Plus, Package, DollarSign, Settings, Edit, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductForm } from "@/components/products/ProductForm";
 import { ProductCategoryModal } from "@/components/products/ProductCategoryModal";
@@ -13,6 +14,17 @@ import { toast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ViewToggle } from "@/components/shared/ViewToggle";
 import { Product, ProductCategory, Recipe, Packaging } from "@/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,6 +32,7 @@ const Products = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: products = [], isLoading } = useQuery({
@@ -35,7 +48,7 @@ const Products = () => {
           category:product_categories(id, name)
         `)
         .eq('user_id', user.id)
-        .order('name'); // Já estava ordenado alfabeticamente
+        .order('name');
       
       if (error) throw error;
       console.log("Loaded products:", data);
@@ -53,7 +66,7 @@ const Products = () => {
         .from('product_categories')
         .select('*')
         .eq('user_id', user.id)
-        .order('name'); // Já estava ordenado alfabeticamente
+        .order('name');
       
       if (error) throw error;
       return data || [];
@@ -70,7 +83,7 @@ const Products = () => {
         .from('recipes')
         .select('*')
         .eq('user_id', user.id)
-        .order('name'); // Já estava ordenado alfabeticamente
+        .order('name');
       
       if (error) throw error;
       return data || [];
@@ -87,7 +100,7 @@ const Products = () => {
         .from('packaging')
         .select('*')
         .eq('user_id', user.id)
-        .order('name'); // Já estava ordenado alfabeticamente
+        .order('name');
       
       if (error) throw error;
       return data || [];
@@ -109,14 +122,48 @@ const Products = () => {
         updated_at: new Date().toISOString()
       };
 
-      const { data, error } = await supabase
+      const { data: productResult, error } = await supabase
         .from('products')
         .insert(product)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+
+      // Insert product items (recipes)
+      if (productData.items && productData.items.length > 0) {
+        const items = productData.items.map((item: any) => ({
+          product_id: productResult.id,
+          recipe_id: item.recipeId,
+          quantity: item.quantity,
+          cost: item.cost
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('product_items')
+          .insert(items);
+
+        if (itemsError) throw itemsError;
+      }
+
+      // Insert product packaging
+      if (productData.packagingItems && productData.packagingItems.length > 0) {
+        const packagingItems = productData.packagingItems.map((item: any) => ({
+          product_id: productResult.id,
+          packaging_id: item.packagingId,
+          quantity: item.quantity,
+          cost: item.cost,
+          is_primary: item.isPrimary
+        }));
+
+        const { error: packagingError } = await supabase
+          .from('product_packaging')
+          .insert(packagingItems);
+
+        if (packagingError) throw packagingError;
+      }
+
+      return productResult;
     },
     onSuccess: () => {
       toast({
@@ -146,7 +193,7 @@ const Products = () => {
         updated_at: new Date().toISOString()
       };
 
-      const { data, error } = await supabase
+      const { data: productResult, error } = await supabase
         .from('products')
         .update(product)
         .eq('id', id)
@@ -154,7 +201,45 @@ const Products = () => {
         .single();
 
       if (error) throw error;
-      return data;
+
+      // Delete existing items and packaging
+      await supabase.from('product_items').delete().eq('product_id', id);
+      await supabase.from('product_packaging').delete().eq('product_id', id);
+
+      // Insert new items (recipes)
+      if (productData.items && productData.items.length > 0) {
+        const items = productData.items.map((item: any) => ({
+          product_id: id,
+          recipe_id: item.recipeId,
+          quantity: item.quantity,
+          cost: item.cost
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('product_items')
+          .insert(items);
+
+        if (itemsError) throw itemsError;
+      }
+
+      // Insert new packaging
+      if (productData.packagingItems && productData.packagingItems.length > 0) {
+        const packagingItems = productData.packagingItems.map((item: any) => ({
+          product_id: id,
+          packaging_id: item.packagingId,
+          quantity: item.quantity,
+          cost: item.cost,
+          is_primary: item.isPrimary
+        }));
+
+        const { error: packagingError } = await supabase
+          .from('product_packaging')
+          .insert(packagingItems);
+
+        if (packagingError) throw packagingError;
+      }
+
+      return productResult;
     },
     onSuccess: () => {
       toast({
@@ -174,7 +259,41 @@ const Products = () => {
     }
   });
 
-  // Ordenar produtos filtrados alfabeticamente
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      // Delete related records first
+      await supabase.from('product_items').delete().eq('product_id', productId);
+      await supabase.from('product_packaging').delete().eq('product_id', productId);
+      await supabase.from('pricing_configs').delete().eq('product_id', productId);
+      
+      // Delete the product
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Produto excluído",
+        description: "O produto foi excluído com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['pricing-configurations'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao excluir produto",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setDeletingProductId(null);
+    }
+  });
+
   const filteredProducts = products
     .filter(product =>
       product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -187,10 +306,53 @@ const Products = () => {
     ? products.reduce((acc, product) => acc + (product.total_cost || 0), 0) / products.length 
     : 0;
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = async (product: Product) => {
     console.log("Editing product:", product);
-    setEditingProduct(product);
-    setShowForm(true);
+    
+    // Load complete product data with items and packaging
+    try {
+      const { data: fullProduct, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          category:product_categories(id, name),
+          items:product_items(
+            id,
+            recipe_id,
+            quantity,
+            cost,
+            recipe:recipes(id, name, unit_cost)
+          ),
+          packagingItems:product_packaging(
+            id,
+            packaging_id,
+            quantity,
+            cost,
+            is_primary,
+            packaging:packaging(id, name, unit_cost)
+          )
+        `)
+        .eq('id', product.id)
+        .single();
+
+      if (error) throw error;
+
+      console.log("Loaded full product data:", fullProduct);
+      setEditingProduct(fullProduct);
+      setShowForm(true);
+    } catch (error) {
+      console.error("Error loading product data:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar dados do produto",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = (productId: string) => {
+    setDeletingProductId(productId);
+    deleteProductMutation.mutate(productId);
   };
 
   const handleFormSubmit = (productData: any) => {
@@ -204,6 +366,11 @@ const Products = () => {
   const handleFormCancel = () => {
     setShowForm(false);
     setEditingProduct(null);
+  };
+
+  const handleNewProduct = () => {
+    setEditingProduct(null);
+    setShowForm(true);
   };
 
   const renderGridView = () => (
@@ -230,7 +397,7 @@ const Products = () => {
         filteredProducts.map((product) => (
           <Card key={product.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <h3 className="font-medium truncate">{product.name}</h3>
                 {product.category && (
                   <p className="text-sm text-orange-600">{product.category.name}</p>
@@ -240,14 +407,52 @@ const Products = () => {
                     Custo: {formatCurrency(product.total_cost || 0)}
                   </span>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleEdit(product)}
-                  className="w-full"
-                >
-                  Editar
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(product)}
+                    className="flex-1"
+                    disabled={deletingProductId === product.id}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700"
+                        disabled={deletingProductId === product.id}
+                      >
+                        {deletingProductId === product.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir o produto "{product.name}"? 
+                          Esta ação não pode ser desfeita e também excluirá todas as configurações de precificação relacionadas.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDelete(product.id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -268,7 +473,7 @@ const Products = () => {
             </div>
           </Card>
         ))
-      ) : filteredProducts.length ===0 ? (
+      ) : filteredProducts.length === 0 ? (
         <div className="text-center py-12">
           <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
           <h3 className="text-lg font-medium">Nenhum produto encontrado</h3>
@@ -291,14 +496,51 @@ const Products = () => {
                   Custo: {formatCurrency(product.total_cost || 0)}
                 </div>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleEdit(product)}
-                className="ml-4"
-              >
-                Editar
-              </Button>
+              <div className="flex gap-2 ml-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleEdit(product)}
+                  disabled={deletingProductId === product.id}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Editar
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-red-600 hover:text-red-700"
+                      disabled={deletingProductId === product.id}
+                    >
+                      {deletingProductId === product.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir o produto "{product.name}"? 
+                        Esta ação não pode ser desfeita e também excluirá todas as configurações de precificação relacionadas.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => handleDelete(product.id)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           </Card>
         ))
@@ -329,7 +571,7 @@ const Products = () => {
               Categorias
             </Button>
             <Button 
-              onClick={() => setShowForm(true)}
+              onClick={handleNewProduct}
               className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm"
               size="sm"
             >
