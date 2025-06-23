@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -426,18 +427,69 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
         </CardContent>
       </Card>
 
-      {/* Pricing Suggestions Section */}
-      <Card className="border-0 shadow-xl bg-gradient-to-r from-lime-50 to-green-50">
+      {/* Cost Summary */}
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-green-50 to-emerald-50">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-xl">
-            <TrendingUp className="h-6 w-6 text-lime-600" />
-            Sugestões de Preço
+            <TrendingUp className="h-6 w-6 text-green-600" />
+            Resumo de Custos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-white rounded-lg border shadow-sm">
+              <div className="text-2xl font-bold text-blue-600">
+                {formatCurrency(productionCost)}
+              </div>
+              <div className="text-sm text-gray-600">Custo de Produção</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg border shadow-sm">
+              <div className="text-2xl font-bold text-purple-600">
+                {formatCurrency(totalIndirectCosts)}
+              </div>
+              <div className="text-sm text-gray-600">Custos Indiretos</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg border shadow-sm">
+              <div className="text-2xl font-bold text-orange-600">
+                {formatCurrency(costWithWastage)}
+              </div>
+              <div className="text-sm text-gray-600">Custo + Desperdício</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg border shadow-sm">
+              <div className="text-2xl font-bold text-green-600">
+                {formatCurrency(finalPrice)}
+              </div>
+              <div className="text-sm text-gray-600">Preço Final</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pricing Strategy */}
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-indigo-50 to-blue-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <Target className="h-6 w-6 text-indigo-600" />
+            Estratégia de Preços
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="sellingPrice">Preço de Venda Sugerido</Label>
+              <Label htmlFor="minimumPrice">Preço Mínimo</Label>
+              <Input
+                id="minimumPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                value={minimumPrice}
+                onChange={(e) => setMinimumPrice(Number(e.target.value))}
+                className="mt-2"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="sellingPrice">Preço de Venda Desejado</Label>
               <Input
                 id="sellingPrice"
                 type="number"
@@ -450,34 +502,21 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
             </div>
             
             <div>
-              <Label htmlFor="minimumPrice">Preço Mínimo Aceitável</Label>
+              <Label htmlFor="maximumPrice">Preço Máximo</Label>
               <Input
-                id="minimumPrice"
+                id="maximumPrice"
                 type="number"
                 step="0.01"
                 min="0"
-                value={minimumPrice}
-                onChange={(e) => setMinimumPrice(Number(e.target.value))}
+                value={maximumPrice}
+                onChange={(e) => setMaximumPrice(Number(e.target.value))}
                 className="mt-2"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="maximumPrice">Preço Máximo Competitivo</Label>
-            <Input
-              id="maximumPrice"
-              type="number"
-              step="0.01"
-              min="0"
-              value={maximumPrice}
-              onChange={(e) => setMaximumPrice(Number(e.target.value))}
-              className="mt-2"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="competitorPrice">Preço do Concorrente</Label>
+            <Label htmlFor="competitorPrice">Preço da Concorrência</Label>
             <Input
               id="competitorPrice"
               type="number"
@@ -488,95 +527,53 @@ export const EnhancedPricingForm: React.FC<EnhancedPricingFormProps> = ({
               className="mt-2"
             />
           </div>
+
+          <div>
+            <Label htmlFor="notes">Observações</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Adicione observações sobre a estratégia de preços..."
+              className="mt-2"
+              rows={3}
+            />
+          </div>
         </CardContent>
       </Card>
 
-      {/* Additional Notes Section */}
-      <Card className="border-0 shadow-xl bg-gradient-to-r from-gray-50 to-stone-50">
+      {/* Profit Analysis */}
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-emerald-50 to-teal-50">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-xl">
-            <Textarea className="h-6 w-6 text-gray-600" />
-            Anotações Adicionais
+            <TrendingUp className="h-6 w-6 text-emerald-600" />
+            Análise de Lucro
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea
-            placeholder="Anotações sobre a precificação, estratégias, etc."
-            className="resize-none"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Results Summary */}
-      <Card className="border-0 shadow-xl bg-gradient-to-r from-green-50 to-emerald-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-xl">
-            <TrendingUp className="h-6 w-6 text-green-600" />
-            Resumo da Precificação
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-4 bg-white rounded-lg border-2 border-blue-200">
-              <p className="text-sm text-blue-600 font-medium mb-1">Custo de Produção</p>
-              <p className="text-xl font-bold text-blue-800">{formatCurrency(productionCost)}</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-white rounded-lg border shadow-sm">
+              <div className="text-2xl font-bold text-emerald-600">
+                {formatCurrency(profit)}
+              </div>
+              <div className="text-sm text-gray-600">Lucro por Unidade</div>
             </div>
-            
-            <div className="text-center p-4 bg-white rounded-lg border-2 border-purple-200">
-              <p className="text-sm text-purple-600 font-medium mb-1">Custos Indiretos</p>
-              <p className="text-xl font-bold text-purple-800">{formatCurrency(totalIndirectCosts)}</p>
+            <div className="text-center p-4 bg-white rounded-lg border shadow-sm">
+              <div className="text-2xl font-bold text-blue-600">
+                {actualMargin.toFixed(1)}%
+              </div>
+              <div className="text-sm text-gray-600">Margem Real</div>
             </div>
-            
-            <div className="text-center p-4 bg-white rounded-lg border-2 border-orange-200">
-              <p className="text-sm text-orange-600 font-medium mb-1">Custo com Desperdício</p>
-              <p className="text-xl font-bold text-orange-800">{formatCurrency(costWithWastage)}</p>
+            <div className="text-center p-4 bg-white rounded-lg border shadow-sm">
+              <div className="text-lg font-bold text-purple-600">
+                {actualMargin >= targetMarginPercentage ? (
+                  <span className="text-green-600">✓ Meta Atingida</span>
+                ) : (
+                  <span className="text-red-600">⚠ Abaixo da Meta</span>
+                )}
+              </div>
+              <div className="text-sm text-gray-600">Status da Margem</div>
             </div>
-            
-            <div className="text-center p-4 bg-white rounded-lg border-2 border-green-200">
-              <p className="text-sm text-green-600 font-medium mb-1">Preço Final</p>
-              <p className="text-xl font-bold text-green-800">{formatCurrency(finalPrice)}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-white rounded-lg border-2 border-emerald-200">
-              <p className="text-sm text-emerald-600 font-medium mb-1">Lucro por Unidade</p>
-              <p className="text-2xl font-bold text-emerald-800">{formatCurrency(profit)}</p>
-            </div>
-            
-            <div className="text-center p-4 bg-white rounded-lg border-2 border-teal-200">
-              <p className="text-sm text-teal-600 font-medium mb-1">Margem Real</p>
-              <p className="text-2xl font-bold text-teal-800">{actualMargin.toFixed(2)}%</p>
-            </div>
-          </div>
-
-          {/* Status Indicators */}
-          <div className="flex justify-center mt-6 space-x-4">
-            {profit > 0 ? (
-              <Badge className="bg-green-100 text-green-800 px-4 py-2 text-sm">
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Produto Rentável
-              </Badge>
-            ) : (
-              <Badge variant="destructive" className="px-4 py-2 text-sm">
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                Revisar Precificação
-              </Badge>
-            )}
-            
-            {actualMargin >= targetMarginPercentage ? (
-              <Badge className="bg-blue-100 text-blue-800 px-4 py-2 text-sm">
-                <Target className="h-4 w-4 mr-2" />
-                Meta de Margem Atingida
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="px-4 py-2 text-sm">
-                <Target className="h-4 w-4 mr-2" />
-                Meta: {targetMarginPercentage}%
-              </Badge>
-            )}
           </div>
         </CardContent>
       </Card>

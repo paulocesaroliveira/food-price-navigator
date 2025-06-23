@@ -34,7 +34,9 @@ export const getProductById = async (productId: string) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Usuário não autenticado');
 
-  // Buscar o produto
+  console.log('ProductService - Loading product with ID:', productId);
+
+  // Buscar o produto com detalhes completos
   const { data: product, error: productError } = await supabase
     .from('products')
     .select(`
@@ -45,28 +47,52 @@ export const getProductById = async (productId: string) => {
     .eq('user_id', user.id)
     .single();
 
-  if (productError) throw productError;
+  if (productError) {
+    console.error('ProductService - Error loading product:', productError);
+    throw productError;
+  }
 
-  // Buscar itens do produto (receitas)
+  console.log('ProductService - Product loaded:', product);
+
+  // Buscar itens do produto (receitas) com informações completas das receitas
   const { data: items, error: itemsError } = await supabase
     .from('product_items')
-    .select('*')
+    .select(`
+      *,
+      recipe:recipes(id, name, unit_cost)
+    `)
     .eq('product_id', productId);
 
-  if (itemsError) throw itemsError;
+  if (itemsError) {
+    console.error('ProductService - Error loading product items:', itemsError);
+    throw itemsError;
+  }
 
-  // Buscar embalagens do produto
+  console.log('ProductService - Product items loaded:', items);
+
+  // Buscar embalagens do produto com informações completas das embalagens
   const { data: packaging, error: packagingError } = await supabase
     .from('product_packaging')
-    .select('*')
+    .select(`
+      *,
+      packaging:packaging(id, name, unit_cost, type)
+    `)
     .eq('product_id', productId);
 
-  if (packagingError) throw packagingError;
+  if (packagingError) {
+    console.error('ProductService - Error loading product packaging:', packagingError);
+    throw packagingError;
+  }
 
-  return {
+  console.log('ProductService - Product packaging loaded:', packaging);
+
+  const result = {
     ...product,
     items: items || [],
     packagingItems: packaging || [],
     totalCost: product.total_cost || 0
   };
+
+  console.log('ProductService - Final product data:', result);
+  return result;
 };

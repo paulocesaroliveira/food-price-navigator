@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -139,6 +140,18 @@ const Recipes = () => {
     setEditingRecipe(null);
   };
 
+  // Função para abrir nova receita - limpar estado de edição
+  const handleNewRecipe = () => {
+    setEditingRecipe(null); // Garantir que não há receita sendo editada
+    setShowForm(true);
+  };
+
+  // Função para fechar formulário - limpar estado de edição
+  const handleFormClose = () => {
+    setShowForm(false);
+    setEditingRecipe(null);
+  };
+
   const renderListView = () => (
     <div className="space-y-2">
       {isLoading ? (
@@ -230,7 +243,7 @@ const Recipes = () => {
               Categorias
             </Button>
             <Button 
-              onClick={() => setShowForm(true)}
+              onClick={handleNewRecipe}
               className="bg-white/20 text-white border-white/30 hover:bg-white/30"
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -271,7 +284,7 @@ const Recipes = () => {
       {/* Formulário de Receita */}
       <RecipeForm
         open={showForm}
-        onOpenChange={setShowForm}
+        onOpenChange={handleFormClose}
         onSuccess={handleFormSuccess}
         categories={categories}
         ingredients={ingredients}
