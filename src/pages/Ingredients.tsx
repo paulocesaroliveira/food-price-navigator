@@ -3,10 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Package, DollarSign, Edit, Trash2, Loader2 } from "lucide-react";
+import { Search, Plus, Package, DollarSign, Edit, Trash2, Loader2, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { IngredientForm } from "@/components/ingredients/IngredientForm";
-import { CategoryDialog } from "@/components/ingredients/CategoryDialog";
+import { CategoryManager } from "@/components/shared/CategoryManager";
 import { formatCurrency } from "@/utils/calculations";
 import { toast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -33,7 +33,6 @@ const Ingredients = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
-  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [deletingIngredientId, setDeletingIngredientId] = useState<string | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const queryClient = useQueryClient();
@@ -126,6 +125,7 @@ const Ingredients = () => {
 
   const handleCategoriesChange = () => {
     queryClient.invalidateQueries({ queryKey: ['ingredient-categories'] });
+    queryClient.invalidateQueries({ queryKey: ['ingredients'] });
   };
 
   const renderGridView = () => (
@@ -370,14 +370,23 @@ const Ingredients = () => {
         ]}
         actions={
           <div className="flex gap-2">
-            <Button 
-              onClick={() => setShowCategoryDialog(true)}
-              variant="outline"
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm"
-              size="sm"
+            <CategoryManager
+              title="Gerenciar Categorias de Ingredientes"
+              description="Organize seus ingredientes em categorias para melhor gestão"
+              tableName="ingredient_categories"
+              queryKey="ingredient-categories"
+              icon={Package}
+              onCategoriesChange={handleCategoriesChange}
             >
-              Categorias
-            </Button>
+              <Button 
+                variant="outline"
+                className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm gap-2"
+                size="sm"
+              >
+                <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+                Categorias
+              </Button>
+            </CategoryManager>
             <Button 
               onClick={() => setShowForm(true)}
               className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm"
@@ -410,12 +419,6 @@ const Ingredients = () => {
         onOpenChange={setShowForm}
         onSuccess={handleFormSuccess}
         ingredient={editingIngredient}
-      />
-
-      <CategoryDialog
-        open={showCategoryDialog}
-        onOpenChange={setShowCategoryDialog}
-        onCategoriesChange={handleCategoriesChange}
       />
     </div>
   );
