@@ -198,10 +198,15 @@ export interface PricingConfiguration {
   unit_profit: number;
   actual_margin: number;
   labor_cost?: number;
+  labor_cost_type?: 'fixed' | 'percentage';
   overhead_cost?: number;
+  overhead_cost_type?: 'fixed' | 'percentage';
   marketing_cost?: number;
+  marketing_cost_type?: 'fixed' | 'percentage';
   delivery_cost?: number;
+  delivery_cost_type?: 'fixed' | 'percentage';
   other_costs?: number;
+  other_cost_type?: 'fixed' | 'percentage';
   target_margin_percentage?: number;
   minimum_price?: number;
   maximum_price?: number;
