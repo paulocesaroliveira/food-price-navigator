@@ -1,385 +1,248 @@
 
 import React from "react";
-import { Navigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { 
-  ChefHat, 
   Calculator, 
-  Package, 
-  ShoppingCart, 
+  Package2, 
+  ChefHat, 
   TrendingUp, 
-  Users, 
-  FileText, 
-  Shield,
-  Clock,
-  ArrowRight,
-  CheckCircle,
-  Sparkles,
-  Target,
+  DollarSign, 
+  ShoppingCart,
   BarChart3,
-  Zap,
-  Heart,
-  Star
+  Banknote,
+  Users,
+  Target,
+  Sparkles,
+  ArrowRight
 } from "lucide-react";
 
 const Index = () => {
-  const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  const features = [
-    {
-      icon: ChefHat,
-      title: "Gestão de Receitas",
-      description: "Organize suas receitas com cálculo automático de custos por ingrediente",
-      color: "text-orange-500",
-      benefits: ["Controle de ingredientes", "Cálculo automático de custos", "Gestão de porções"]
-    },
-    {
-      icon: Package,
-      title: "Controle de Produtos",
-      description: "Gerencie produtos complexos com múltiplas receitas e embalagens",
-      color: "text-blue-500",
-      benefits: ["Produtos compostos", "Gestão de embalagens", "Custo total automático"]
-    },
+  const mainFeatures = [
     {
       icon: Calculator,
       title: "Precificação Inteligente",
-      description: "Sistema avançado de precificação com margens personalizáveis",
-      color: "text-green-500",
-      benefits: ["Margens flexíveis", "Custos indiretos", "Análise de lucro"]
+      description: "Sistema avançado que calcula automaticamente o preço ideal considerando custos, margem de lucro, impostos e taxas de plataforma.",
+      gradient: "from-blue-500 to-purple-600",
+      action: () => navigate("/pricing"),
+      highlight: true
     },
     {
-      icon: TrendingUp,
-      title: "Análise de Vendas",
-      description: "Relatórios detalhados para tomada de decisões estratégicas",
-      color: "text-purple-500",
-      benefits: ["Dashboards visuais", "Métricas de performance", "Histórico completo"]
+      icon: Package2,
+      title: "Controle de Ingredientes",
+      description: "Gerencie seus ingredientes, receitas e custos de produção de forma inteligente e automatizada.",
+      gradient: "from-green-500 to-emerald-600",
+      action: () => navigate("/ingredients")
     },
     {
-      icon: Users,
-      title: "Gestão de Clientes",
-      description: "Mantenha relacionamento próximo com base de clientes",
-      color: "text-cyan-500",
-      benefits: ["Histórico de pedidos", "Preferências", "Comunicação direta"]
+      icon: Banknote,
+      title: "Controle Financeiro",
+      description: "Monitore suas receitas, despesas e fluxo de caixa com relatórios detalhados e análises precisas.",
+      gradient: "from-orange-500 to-red-600",
+      action: () => navigate("/sales")
     },
     {
       icon: ShoppingCart,
-      title: "Controle de Pedidos",
-      description: "Gerencie pedidos desde a criação até a entrega",
-      color: "text-red-500",
-      benefits: ["Status em tempo real", "Agendamentos", "Controle de pagamentos"]
+      title: "Controle de Vendas",
+      description: "Registre vendas, acompanhe performance e gerencie seu negócio com dados em tempo real.",
+      gradient: "from-purple-500 to-pink-600",
+      action: () => navigate("/sales")
     }
   ];
 
-  const benefits = [
-    "Reduz tempo de precificação em até 90%",
-    "Aumenta margem de lucro com preços mais precisos",
-    "Elimina erros de cálculo manual",
-    "Oferece visão completa do negócio",
-    "Interface simples e intuitiva",
-    "Suporte técnico especializado"
-  ];
-
-  const steps = [
+  const quickActions = [
     {
-      step: "1",
-      title: "Cadastre seus Ingredientes",
-      description: "Registre ingredientes com preços e fornecedores para base de cálculos precisos"
+      icon: ChefHat,
+      title: "Receitas",
+      description: "Crie e gerencie suas receitas",
+      action: () => navigate("/recipes")
     },
     {
-      step: "2", 
-      title: "Crie suas Receitas",
-      description: "Monte receitas definindo quantidades e custos automáticos por porção"
+      icon: Package2,
+      title: "Produtos",
+      description: "Organize seus produtos finais",
+      action: () => navigate("/products")
     },
     {
-      step: "3",
-      title: "Configure seus Produtos", 
-      description: "Combine receitas e embalagens para formar produtos completos"
+      icon: TrendingUp,
+      title: "Relatórios",
+      description: "Análises e insights do negócio",
+      action: () => navigate("/sales")
     },
     {
-      step: "4",
-      title: "Defina sua Precificação",
-      description: "Use nossa calculadora avançada para definir preços com margem ideal"
+      icon: Users,
+      title: "Revendedores",
+      description: "Gerencie sua rede de revenda",
+      action: () => navigate("/resellers")
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-food-light via-white to-food-cardlight">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-food-borderLight sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-2">
-              <ChefHat className="h-8 w-8 text-food-coral" />
-              <span className="text-2xl font-bold text-food-textlight">TastyHub</span>
-              <Badge className="bg-orange-100 text-orange-800 text-xs">BETA</Badge>
-            </div>
-            <Button 
-              onClick={() => window.location.href = '/auth'}
-              className="bg-food-coral hover:bg-food-amber transition-colors"
-            >
-              Começar Agora
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="container mx-auto px-4 py-8 sm:py-12">
+        {/* Hero Section */}
+        <div className="text-center mb-12 sm:mb-16">
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium mb-6">
+            <Sparkles className="h-4 w-4" />
+            Sistema Completo de Gestão
           </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section className="pt-20 pb-32 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-food-coral/10 text-food-coral text-sm font-medium mb-8">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Sistema em desenvolvimento - Fase Beta
-          </div>
-          
-          <h1 className="text-5xl md:text-7xl font-bold text-food-textlight mb-6 leading-tight">
-            Precificação
-            <span className="text-food-coral"> Inteligente</span>
-            <br />
-            para Alimentação
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+            Transforme seu Negócio com
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block sm:inline sm:ml-3">
+              Inteligência
+            </span>
           </h1>
-          
-          <p className="text-xl text-food-secondaryLight mb-12 max-w-3xl mx-auto leading-relaxed">
-            A primeira plataforma brasileira especializada em precificação de alimentos. 
-            Calcule custos precisos, defina margens ideais e maximize seus lucros.
+          <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+            Precificação inteligente, controle de ingredientes e receitas, gestão financeira completa e controle de vendas e revenda. Tudo em uma plataforma otimizada para mobile.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
-              size="lg"
-              onClick={() => window.location.href = '/auth'}
-              className="bg-food-coral hover:bg-food-amber text-white px-8 py-4 text-lg shadow-button hover:shadow-hover transition-all"
+              size="lg" 
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3"
+              onClick={() => navigate("/pricing")}
             >
-              Testar Gratuitamente
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <Calculator className="mr-2 h-5 w-5" />
+              Começar Precificação
             </Button>
             <Button 
+              size="lg" 
               variant="outline" 
-              size="lg"
-              className="border-food-coral text-food-coral hover:bg-food-coral hover:text-white px-8 py-4 text-lg transition-all"
+              className="border-2 border-blue-200 hover:bg-blue-50 px-8 py-3"
+              onClick={() => navigate("/ingredients")}
             >
-              <Heart className="mr-2 h-5 w-5" />
-              Ver Como Funciona
+              Ver Funcionalidades
             </Button>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-food-coral mb-2">
-                <Zap className="h-8 w-8 mx-auto mb-2" />
-                Rápido
-              </div>
-              <div className="text-food-secondaryLight">Configure em minutos</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-food-coral mb-2">
-                <Target className="h-8 w-8 mx-auto mb-2" />
-                Preciso
-              </div>
-              <div className="text-food-secondaryLight">Cálculos exatos</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-food-coral mb-2">
-                <BarChart3 className="h-8 w-8 mx-auto mb-2" />
-                Completo
-              </div>
-              <div className="text-food-secondaryLight">Gestão total</div>
-            </div>
-          </div>
         </div>
-      </section>
 
-      {/* How it Works */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-food-textlight mb-4">
-              Como Funciona
-            </h2>
-            <p className="text-xl text-food-secondaryLight max-w-3xl mx-auto">
-              Em 4 passos simples, você terá controle total sobre custos e preços
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {steps.map((step, index) => (
-              <Card key={index} className="text-center border-food-borderLight hover:shadow-hover transition-all duration-300">
-                <CardHeader>
-                  <div className="w-16 h-16 bg-food-coral rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl font-bold text-white">{step.step}</span>
+        {/* Main Features */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-12 sm:mb-16">
+          {mainFeatures.map((feature, index) => (
+            <Card 
+              key={index} 
+              className={`group cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 border-0 overflow-hidden ${
+                feature.highlight ? 'lg:col-span-2' : ''
+              }`}
+              onClick={feature.action}
+            >
+              <div className={`h-2 bg-gradient-to-r ${feature.gradient}`} />
+              <CardHeader className="pb-4">
+                <div className="flex items-start gap-4">
+                  <div className={`p-3 rounded-xl bg-gradient-to-r ${feature.gradient} text-white shrink-0`}>
+                    <feature.icon className="h-6 w-6" />
                   </div>
-                  <CardTitle className="text-lg text-food-textlight">{step.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-food-secondaryLight text-sm">{step.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-food-light">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-food-textlight mb-4">
-              Funcionalidades Completas
-            </h2>
-            <p className="text-xl text-food-secondaryLight max-w-3xl mx-auto">
-              Todas as ferramentas que você precisa para gerenciar seu negócio de alimentação
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="group hover:shadow-hover transition-all duration-300 hover:-translate-y-2 border-food-borderLight bg-white">
-                <CardHeader className="text-center pb-4">
-                  <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-50 mb-4 mx-auto group-hover:scale-110 transition-transform ${feature.color}`}>
-                    <feature.icon className="h-8 w-8" />
+                  <div className="flex-1">
+                    <CardTitle className="text-xl sm:text-2xl mb-2 group-hover:text-blue-600 transition-colors">
+                      {feature.title}
+                      {feature.highlight && (
+                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 font-medium">
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Destaque
+                        </span>
+                      )}
+                    </CardTitle>
+                    <p className="text-gray-600 text-base leading-relaxed">
+                      {feature.description}
+                    </p>
                   </div>
-                  <CardTitle className="text-lg font-semibold text-food-textlight">
-                    {feature.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-food-secondaryLight text-center text-sm leading-relaxed">
-                    {feature.description}
-                  </p>
-                  <ul className="space-y-2">
-                    {feature.benefits.map((benefit, idx) => (
-                      <li key={idx} className="flex items-center text-sm text-food-secondaryLight">
-                        <CheckCircle className="h-4 w-4 text-food-mint mr-2 flex-shrink-0" />
-                        {benefit}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 className="text-4xl font-bold text-food-textlight mb-6">
-                Por que escolher o TastyHub?
-              </h2>
-              <div className="space-y-6">
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <CheckCircle className="h-6 w-6 text-food-mint flex-shrink-0" />
-                    <span className="text-food-textlight font-medium">{benefit}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-8">
-                <Button 
-                  size="lg"
-                  onClick={() => window.location.href = '/auth'}
-                  className="bg-food-coral hover:bg-food-amber text-white px-8 py-4"
-                >
-                  Começar Agora Mesmo
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="bg-white rounded-3xl p-8 shadow-card border-2 border-food-borderLight">
-                <div className="space-y-4">
-                  <div className="text-center mb-6">
-                    <h3 className="text-xl font-bold text-food-textlight mb-2">Exemplo de Precificação</h3>
-                    <p className="text-sm text-food-secondaryLight">Bolo de Chocolate Gourmet</p>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-food-light rounded-xl">
-                    <span className="font-medium text-food-textlight">Custo dos Ingredientes</span>
-                    <span className="text-food-coral font-bold">R$ 8,50</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-food-light rounded-xl">
-                    <span className="font-medium text-food-textlight">Custo de Embalagem</span>
-                    <span className="text-food-coral font-bold">R$ 2,00</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-food-light rounded-xl">
-                    <span className="font-medium text-food-textlight">Custos Indiretos (20%)</span>
-                    <span className="text-food-coral font-bold">R$ 2,10</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-food-light rounded-xl">
-                    <span className="font-medium text-food-textlight">Margem de Lucro (60%)</span>
-                    <span className="text-food-coral font-bold">R$ 7,56</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-food-coral rounded-xl text-white">
-                    <span className="font-bold">Preço de Venda Final</span>
-                    <span className="font-bold text-xl">R$ 20,16</span>
-                  </div>
+                  <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all shrink-0" />
                 </div>
-              </div>
-            </div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mb-12 sm:mb-16">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8">
+            Acesso Rápido
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {quickActions.map((action, index) => (
+              <Card 
+                key={index}
+                className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 text-center border border-gray-100"
+                onClick={action.action}
+              >
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col items-center">
+                    <div className="p-3 rounded-full bg-gray-50 group-hover:bg-blue-50 transition-colors mb-3">
+                      <action.icon className="h-6 w-6 text-gray-600 group-hover:text-blue-600 transition-colors" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">
+                      {action.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-500 text-center">
+                      {action.description}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
-      </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-food-coral to-food-amber">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Pronto para revolucionar sua precificação?
+        {/* Benefits Section */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 lg:p-12">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8 sm:mb-12">
+            Por que escolher nosso sistema?
           </h2>
-          <p className="text-xl text-white/90 mb-12">
-            Junte-se aos empreendedores que já estão maximizando seus lucros com o TastyHub
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {[
+              {
+                icon: Target,
+                title: "Precificação Precisa",
+                description: "Calcule o preço ideal considerando todos os custos e margem desejada"
+              },
+              {
+                icon: BarChart3,
+                title: "Análises Detalhadas",
+                description: "Relatórios completos para tomada de decisões estratégicas"
+              },
+              {
+                icon: DollarSign,
+                title: "Controle Total",
+                description: "Gerencie custos, receitas e lucros de forma inteligente"
+              }
+            ].map((benefit, index) => (
+              <div key={index} className="text-center">
+                <div className="inline-flex p-4 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 mb-4">
+                  <benefit.icon className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3">
+                  {benefit.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {benefit.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="text-center mt-12 sm:mt-16">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 sm:p-8 lg:p-12 text-white">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+              Pronto para otimizar seu negócio?
+            </h2>
+            <p className="text-lg sm:text-xl opacity-90 mb-6 sm:mb-8 max-w-2xl mx-auto">
+              Comece agora mesmo a usar nossa plataforma completa de gestão e precificação inteligente.
+            </p>
             <Button 
-              size="lg"
-              onClick={() => window.location.href = '/auth'}
-              className="bg-white text-food-coral hover:bg-gray-100 px-8 py-4 text-lg shadow-button transition-all"
+              size="lg" 
+              className="bg-white text-blue-600 hover:bg-gray-50 font-semibold px-8 py-3"
+              onClick={() => navigate("/pricing")}
             >
-              Começar Teste Gratuito
-              <Clock className="ml-2 h-5 w-5" />
+              <Calculator className="mr-2 h-5 w-5" />
+              Iniciar Precificação Agora
             </Button>
           </div>
-          
-          <p className="text-white/80 mt-6 text-sm">
-            ✓ Sem cartão de crédito ✓ Configuração em minutos ✓ Suporte especializado
-          </p>
         </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-food-textlight text-white py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="flex items-center justify-center space-x-2 mb-6">
-            <ChefHat className="h-8 w-8 text-food-coral" />
-            <span className="text-2xl font-bold">TastyHub</span>
-            <Badge className="bg-orange-100 text-orange-800 text-xs">BETA</Badge>
-          </div>
-          <p className="text-gray-400 mb-4">
-            A plataforma mais completa para precificação de alimentos no Brasil
-          </p>
-          <p className="text-gray-500 text-sm">
-            © 2024 TastyHub. Todos os direitos reservados. | Sistema em desenvolvimento - Versão Beta
-          </p>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 };

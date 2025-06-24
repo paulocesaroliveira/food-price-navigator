@@ -1,35 +1,26 @@
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Plus, Package, DollarSign, Settings, Edit, Trash2, Loader2 } from "lucide-react";
+import { Search, Plus, Package, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductForm } from "@/components/products/ProductForm";
-import { ProductCategoryModal } from "@/components/products/ProductCategoryModal";
 import { formatCurrency } from "@/utils/calculations";
 import { toast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ViewToggle } from "@/components/shared/ViewToggle";
+import { CategoryManager } from "@/components/shared/CategoryManager";
+import { ItemCard } from "@/components/shared/ItemCard";
+import { SortControls } from "@/components/shared/SortControls";
+import { useSortAndFilter } from "@/hooks/useSortAndFilter";
 import { Product, ProductCategory, Recipe, Packaging } from "@/types";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { getProductById } from "@/services/productService";
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
@@ -51,7 +42,6 @@ const Products = () => {
         .order('name');
       
       if (error) throw error;
-      console.log("Loaded products:", data);
       return data || [];
     }
   });
@@ -107,6 +97,29 @@ const Products = () => {
     }
   });
 
+  const sortOptions = [
+    { value: 'name' as const, label: 'Nome' },
+    { value: 'category' as const, label: 'Categoria' },
+    { value: 'cost' as const, label: 'Custo' },
+    { value: 'created_at' as const, label: 'Data de Criação' }
+  ];
+
+  const {
+    sortedItems: filteredProducts,
+    sortBy,
+    sortDirection,
+    handleSort
+  } = useSortAndFilter({
+    items: products,
+    searchTerm,
+    defaultSort: 'name'
+  });
+
+  const totalProducts = products.length;
+  const avgCost = products.length > 0 
+    ? products.reduce((acc, product) => acc + (product.total_cost || 0), 0) / products.length 
+    : 0;
+
   const createProductMutation = useMutation({
     mutationFn: async (productData: any) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -130,7 +143,6 @@ const Products = () => {
 
       if (error) throw error;
 
-      // Insert product items (recipes)
       if (productData.items && productData.items.length > 0) {
         const items = productData.items.map((item: any) => ({
           product_id: productResult.id,
@@ -146,7 +158,6 @@ const Products = () => {
         if (itemsError) throw itemsError;
       }
 
-      // Insert product packaging
       if (productData.packagingItems && productData.packagingItems.length > 0) {
         const packagingItems = productData.packagingItems.map((item: any) => ({
           product_id: productResult.id,
@@ -184,7 +195,7 @@ const Products = () => {
   });
 
   const updateProductMutation = useMutation({
-    mutationFn: async ({ id, productData }: { id: string; productData: any }) => {
+    mutationFn: async ({ productId, productData }: { productId: string, productData: any }) => {
       const product = {
         name: productData.name,
         category_id: productData.categoryId || null,
@@ -193,23 +204,19 @@ const Products = () => {
         updated_at: new Date().toISOString()
       };
 
-      const { data: productResult, error } = await supabase
+      const { error } = await supabase
         .from('products')
         .update(product)
-        .eq('id', id)
-        .select()
-        .single();
+        .eq('id', productId);
 
       if (error) throw error;
 
-      // Delete existing items and packaging
-      await supabase.from('product_items').delete().eq('product_id', id);
-      await supabase.from('product_packaging').delete().eq('product_id', id);
+      await supabase.from('product_items').delete().eq('product_id', productId);
+      await supabase.from('product_packaging').delete().eq('product_id', productId);
 
-      // Insert new items (recipes)
       if (productData.items && productData.items.length > 0) {
         const items = productData.items.map((item: any) => ({
-          product_id: id,
+          product_id: productId,
           recipe_id: item.recipeId,
           quantity: item.quantity,
           cost: item.cost
@@ -222,10 +229,9 @@ const Products = () => {
         if (itemsError) throw itemsError;
       }
 
-      // Insert new packaging
       if (productData.packagingItems && productData.packagingItems.length > 0) {
         const packagingItems = productData.packagingItems.map((item: any) => ({
-          product_id: id,
+          product_id: productId,
           packaging_id: item.packagingId,
           quantity: item.quantity,
           cost: item.cost,
@@ -238,8 +244,6 @@ const Products = () => {
 
         if (packagingError) throw packagingError;
       }
-
-      return productResult;
     },
     onSuccess: () => {
       toast({
@@ -261,12 +265,6 @@ const Products = () => {
 
   const deleteProductMutation = useMutation({
     mutationFn: async (productId: string) => {
-      // Delete related records first
-      await supabase.from('product_items').delete().eq('product_id', productId);
-      await supabase.from('product_packaging').delete().eq('product_id', productId);
-      await supabase.from('pricing_configs').delete().eq('product_id', productId);
-      
-      // Delete the product
       const { error } = await supabase
         .from('products')
         .delete()
@@ -280,7 +278,6 @@ const Products = () => {
         description: "O produto foi excluído com sucesso.",
       });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['pricing-configurations'] });
     },
     onError: (error: any) => {
       toast({
@@ -294,78 +291,15 @@ const Products = () => {
     }
   });
 
-  const filteredProducts = products
-    .filter(product =>
-      product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
-
-  const totalProducts = products.length;
-  const avgCost = products.length > 0 
-    ? products.reduce((acc, product) => acc + (product.total_cost || 0), 0) / products.length 
-    : 0;
-
-  const handleEdit = async (product: Product) => {
-    console.log("Editing product:", product);
-    
-    // Load complete product data with items and packaging
+  const handleEdit = async (productId: string) => {
     try {
-      const { data: fullProduct, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          category:product_categories(id, name),
-          items:product_items(
-            id,
-            recipe_id,
-            quantity,
-            cost,
-            recipe:recipes(id, name, unit_cost)
-          ),
-          packagingItems:product_packaging(
-            id,
-            packaging_id,
-            quantity,
-            cost,
-            is_primary,
-            packaging:packaging(id, name, unit_cost)
-          )
-        `)
-        .eq('id', product.id)
-        .single();
-
-      if (error) throw error;
-
-      console.log("Loaded full product data:", fullProduct);
-      
-      // Transform the data to match our TypeScript interfaces
-      const transformedProduct = {
-        ...fullProduct,
-        items: fullProduct.items?.map((item: any) => ({
-          id: item.id,
-          recipeId: item.recipe_id,
-          quantity: item.quantity,
-          cost: item.cost,
-          recipe: item.recipe
-        })) || [],
-        packagingItems: fullProduct.packagingItems?.map((item: any) => ({
-          id: item.id,
-          packagingId: item.packaging_id,
-          quantity: item.quantity,
-          cost: item.cost,
-          isPrimary: item.is_primary,
-          packaging: item.packaging
-        })) || []
-      };
-
-      setEditingProduct(transformedProduct);
+      const productData = await getProductById(productId);
+      setEditingProduct(productData);
       setShowForm(true);
-    } catch (error) {
-      console.error("Error loading product data:", error);
+    } catch (error: any) {
       toast({
-        title: "Erro",
-        description: "Erro ao carregar dados do produto",
+        title: "Erro ao carregar produto",
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -378,15 +312,10 @@ const Products = () => {
 
   const handleFormSubmit = (productData: any) => {
     if (editingProduct) {
-      updateProductMutation.mutate({ id: editingProduct.id, productData });
+      updateProductMutation.mutate({ productId: editingProduct.id, productData });
     } else {
       createProductMutation.mutate(productData);
     }
-  };
-
-  const handleFormCancel = () => {
-    setShowForm(false);
-    setEditingProduct(null);
   };
 
   const handleNewProduct = () => {
@@ -394,17 +323,18 @@ const Products = () => {
     setShowForm(true);
   };
 
+  const handleFormClose = () => {
+    setShowForm(false);
+    setEditingProduct(null);
+  };
+
   const renderGridView = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {isLoading ? (
         Array.from({ length: 8 }).map((_, i) => (
-          <Card key={i} className="p-4">
-            <div className="animate-pulse space-y-3">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-            </div>
-          </Card>
+          <div key={i} className="animate-pulse">
+            <div className="bg-gray-200 rounded-2xl h-48"></div>
+          </div>
         ))
       ) : filteredProducts.length === 0 ? (
         <div className="col-span-full text-center py-12">
@@ -416,67 +346,19 @@ const Products = () => {
         </div>
       ) : (
         filteredProducts.map((product) => (
-          <Card key={product.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                <h3 className="font-medium truncate">{product.name}</h3>
-                {product.category && (
-                  <p className="text-sm text-orange-600">{product.category.name}</p>
-                )}
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-blue-600 font-medium">
-                    Custo: {formatCurrency(product.total_cost || 0)}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEdit(product)}
-                    className="flex-1"
-                    disabled={deletingProductId === product.id}
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Editar
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 hover:text-red-700"
-                        disabled={deletingProductId === product.id}
-                      >
-                        {deletingProductId === product.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja excluir o produto "{product.name}"? 
-                          Esta ação não pode ser desfeita e também excluirá todas as configurações de precificação relacionadas.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => handleDelete(product.id)}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ItemCard
+            key={product.id}
+            id={product.id}
+            title={product.name}
+            category={product.category?.name}
+            stats={[
+              { label: 'Custo total', value: product.total_cost || 0, type: 'currency' },
+              { label: 'Preço venda', value: product.selling_price || 0, type: 'currency' }
+            ]}
+            onEdit={() => handleEdit(product.id)}
+            onDelete={() => handleDelete(product.id)}
+            isDeleting={deletingProductId === product.id}
+          />
         ))
       )}
     </div>
@@ -486,13 +368,7 @@ const Products = () => {
     <div className="space-y-2">
       {isLoading ? (
         Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="p-4">
-            <div className="animate-pulse flex items-center space-x-4">
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-            </div>
-          </Card>
+          <div key={i} className="animate-pulse bg-gray-200 rounded-2xl h-16"></div>
         ))
       ) : filteredProducts.length === 0 ? (
         <div className="text-center py-12">
@@ -504,66 +380,19 @@ const Products = () => {
         </div>
       ) : (
         filteredProducts.map((product) => (
-          <Card key={product.id} className="p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 flex-1">
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-medium truncate">{product.name}</h3>
-                  {product.category && (
-                    <p className="text-sm text-orange-600">{product.category.name}</p>
-                  )}
-                </div>
-                <div className="text-sm font-medium text-blue-600 min-w-0">
-                  Custo: {formatCurrency(product.total_cost || 0)}
-                </div>
-              </div>
-              <div className="flex gap-2 ml-4">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleEdit(product)}
-                  disabled={deletingProductId === product.id}
-                >
-                  <Edit className="h-4 w-4 mr-1" />
-                  Editar
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-red-600 hover:text-red-700"
-                      disabled={deletingProductId === product.id}
-                    >
-                      {deletingProductId === product.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tem certeza que deseja excluir o produto "{product.name}"? 
-                        Esta ação não pode ser desfeita e também excluirá todas as configurações de precificação relacionadas.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={() => handleDelete(product.id)}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Excluir
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          </Card>
+          <ItemCard
+            key={product.id}
+            id={product.id}
+            title={product.name}
+            category={product.category?.name}
+            stats={[
+              { label: 'Custo total', value: product.total_cost || 0, type: 'currency' },
+              { label: 'Preço venda', value: product.selling_price || 0, type: 'currency' }
+            ]}
+            onEdit={() => handleEdit(product.id)}
+            onDelete={() => handleDelete(product.id)}
+            isDeleting={deletingProductId === product.id}
+          />
         ))
       )}
     </div>
@@ -573,31 +402,36 @@ const Products = () => {
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
         title="Produtos"
-        subtitle="Gerencie seus produtos e custos"
+        subtitle="Gerencie seus produtos e composições"
         icon={Package}
-        gradient="bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500"
+        gradient="bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-500"
         badges={[
           { icon: Package, text: `${totalProducts} produtos` },
           { icon: DollarSign, text: `Custo médio: ${formatCurrency(avgCost)}` }
         ]}
         actions={
           <div className="flex gap-2">
-            <Button 
-              variant="outline"
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm"
-              size="sm"
-              onClick={() => setShowCategoryModal(true)}
+            <CategoryManager
+              title="Categorias de Produtos"
+              description="Gerencie as categorias dos seus produtos"
+              tableName="product_categories"
+              queryKey="product-categories"
+              icon={Package}
+              onCategoriesChange={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
             >
-              <Settings className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              Categorias
-            </Button>
+              <Button 
+                variant="outline"
+                className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+              >
+                Categorias
+              </Button>
+            </CategoryManager>
             <Button 
               onClick={handleNewProduct}
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm"
-              size="sm"
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
             >
-              <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              Novo
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Produto
             </Button>
           </div>
         }
@@ -613,12 +447,20 @@ const Products = () => {
             className="w-full input-focus"
           />
         </div>
-        <ViewToggle view={view} onViewChange={setView} />
+        <div className="flex items-center gap-3">
+          <SortControls
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            availableOptions={sortOptions}
+          />
+          <ViewToggle view={view} onViewChange={setView} />
+        </div>
       </div>
 
       {view === 'grid' ? renderGridView() : renderListView()}
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={handleFormClose}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -628,18 +470,13 @@ const Products = () => {
           <ProductForm
             product={editingProduct}
             onSubmit={handleFormSubmit}
-            onCancel={handleFormCancel}
+            onCancel={handleFormClose}
             categories={categories}
             recipes={recipes}
             packaging={packaging}
           />
         </DialogContent>
       </Dialog>
-
-      <ProductCategoryModal 
-        open={showCategoryModal} 
-        onOpenChange={setShowCategoryModal} 
-      />
     </div>
   );
 };

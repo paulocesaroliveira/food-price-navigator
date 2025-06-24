@@ -35,7 +35,7 @@ const ingredientSchema = z.object({
   name: z.string().min(2, { message: "Nome é obrigatório" }),
   brand: z.string().min(1, { message: "Marca é obrigatória" }),
   categoryId: z.string().optional(),
-  unit: z.string().min(1, { message: "Unidade é obrigatória" }),
+  unit: z.enum(["g", "ml", "un"], { message: "Unidade é obrigatória" }),
   packageQuantity: z.coerce.number().positive({ message: "Quantidade deve ser maior que 0" }),
   packagePrice: z.coerce.number().positive({ message: "Preço deve ser maior que 0" }),
   supplier: z.string().optional(),
@@ -79,7 +79,7 @@ export const IngredientForm = ({
       name: ingredient?.name || "",
       brand: ingredient?.brand || "",
       categoryId: ingredient?.category_id || "",
-      unit: ingredient?.unit || "",
+      unit: ingredient?.unit || "g",
       packageQuantity: ingredient?.package_quantity || 0,
       packagePrice: ingredient?.package_price || 0,
       supplier: ingredient?.supplier || "",
@@ -93,7 +93,7 @@ export const IngredientForm = ({
         name: ingredient.name || "",
         brand: ingredient.brand || "",
         categoryId: ingredient.category_id || "",
-        unit: ingredient.unit || "",
+        unit: ingredient.unit || "g",
         packageQuantity: ingredient.package_quantity || 0,
         packagePrice: ingredient.package_price || 0,
         supplier: ingredient.supplier || "",
@@ -103,7 +103,7 @@ export const IngredientForm = ({
         name: "",
         brand: "",
         categoryId: "",
-        unit: "",
+        unit: "g",
         packageQuantity: 0,
         packagePrice: 0,
         supplier: "",
@@ -253,16 +253,9 @@ export const IngredientForm = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="g">Grama (g)</SelectItem>
-                        <SelectItem value="kg">Quilograma (kg)</SelectItem>
-                        <SelectItem value="ml">Mililitro (ml)</SelectItem>
-                        <SelectItem value="l">Litro (l)</SelectItem>
-                        <SelectItem value="un">Unidade (un)</SelectItem>
-                        <SelectItem value="dz">Dúzia (dz)</SelectItem>
-                        <SelectItem value="cx">Caixa (cx)</SelectItem>
-                        <SelectItem value="pct">Pacote (pct)</SelectItem>
-                        <SelectItem value="sc">Saco (sc)</SelectItem>
-                        <SelectItem value="rl">Rolo (rl)</SelectItem>
+                        <SelectItem value="g">Gramas (g)</SelectItem>
+                        <SelectItem value="ml">Mililitros (ml)</SelectItem>
+                        <SelectItem value="un">Unidades (un)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -283,7 +276,7 @@ export const IngredientForm = ({
                         type="number"
                         step="0.01"
                         min="0"
-                        placeholder="Ex: 1"
+                        placeholder="Ex: 1000"
                         {...field}
                       />
                     </FormControl>
@@ -335,7 +328,7 @@ export const IngredientForm = ({
               )}
             />
 
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
               <Button 
                 type="button" 
                 variant="outline" 
@@ -343,10 +336,11 @@ export const IngredientForm = ({
                   form.reset();
                   onOpenChange(false);
                 }}
+                className="w-full sm:w-auto"
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
                 {isLoading ? "Salvando..." : ingredient ? "Atualizar" : "Criar"} Ingrediente
               </Button>
             </div>

@@ -1,10 +1,9 @@
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, ChefHat, Package, DollarSign, Edit, Trash2, Loader2 } from "lucide-react";
+import { Search, Plus, ChefHat, Package, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RecipesGrid } from "@/components/recipes/RecipesGrid";
 import { RecipeCategoryDialog } from "@/components/recipes/RecipeCategoryDialog";
@@ -13,6 +12,10 @@ import { formatCurrency } from "@/utils/calculations";
 import { toast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ViewToggle } from "@/components/shared/ViewToggle";
+import { CategoryManager } from "@/components/shared/CategoryManager";
+import { ItemCard } from "@/components/shared/ItemCard";
+import { SortControls } from "@/components/shared/SortControls";
+import { useSortAndFilter } from "@/hooks/useSortAndFilter";
 
 interface Recipe {
   id: string;
@@ -33,9 +36,8 @@ const Recipes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
-  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
-  const [deletingRecipeId, setDeletingRecipeId] = useState<string | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [deletingRecipeId, setDeletingRecipeId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: recipes = [], isLoading } = useQuery({
@@ -92,10 +94,23 @@ const Recipes = () => {
     }
   });
 
-  const filteredRecipes = recipes.filter(recipe =>
-    recipe.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    recipe.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const sortOptions = [
+    { value: 'name' as const, label: 'Nome' },
+    { value: 'category' as const, label: 'Categoria' },
+    { value: 'cost' as const, label: 'Custo' },
+    { value: 'created_at' as const, label: 'Data de Criação' }
+  ];
+
+  const {
+    sortedItems: filteredRecipes,
+    sortBy,
+    sortDirection,
+    handleSort
+  } = useSortAndFilter({
+    items: recipes,
+    searchTerm,
+    defaultSort: 'name'
+  });
 
   const totalRecipes = recipes.length;
   const avgCost = recipes.length > 0 
@@ -140,30 +155,60 @@ const Recipes = () => {
     setEditingRecipe(null);
   };
 
-  // Função para abrir nova receita - limpar estado de edição
   const handleNewRecipe = () => {
-    setEditingRecipe(null); // Garantir que não há receita sendo editada
+    setEditingRecipe(null);
     setShowForm(true);
   };
 
-  // Função para fechar formulário - limpar estado de edição
   const handleFormClose = () => {
     setShowForm(false);
     setEditingRecipe(null);
   };
 
+  const renderGridView = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {isLoading ? (
+        Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="animate-pulse">
+            <div className="bg-gray-200 rounded-2xl h-48"></div>
+          </div>
+        ))
+      ) : filteredRecipes.length === 0 ? (
+        <div className="col-span-full text-center py-12">
+          <ChefHat className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h3 className="text-lg font-medium">Nenhuma receita encontrada</h3>
+          <p className="text-muted-foreground">
+            {searchTerm ? "Tente alterar os termos de busca" : "Comece criando sua primeira receita"}
+          </p>
+        </div>
+      ) : (
+        filteredRecipes.map((recipe) => (
+          <ItemCard
+            key={recipe.id}
+            id={recipe.id}
+            title={recipe.name}
+            category={recipe.category?.name}
+            imageUrl={recipe.image_url}
+            stats={[
+              { label: 'Porções', value: recipe.portions, type: 'text' },
+              { label: 'Custo total', value: recipe.total_cost || 0, type: 'currency' },
+              { label: 'Custo unitário', value: recipe.unit_cost || 0, type: 'currency' }
+            ]}
+            onEdit={() => handleEdit(recipe)}
+            onDelete={() => handleDelete(recipe.id)}
+            isDeleting={deletingRecipeId === recipe.id}
+            extraInfo={recipe.notes}
+          />
+        ))
+      )}
+    </div>
+  );
+
   const renderListView = () => (
     <div className="space-y-2">
       {isLoading ? (
         Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="p-4">
-            <div className="animate-pulse flex items-center space-x-4">
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-            </div>
-          </Card>
+          <div key={i} className="animate-pulse bg-gray-200 rounded-2xl h-16"></div>
         ))
       ) : filteredRecipes.length === 0 ? (
         <div className="text-center py-12">
@@ -175,48 +220,20 @@ const Recipes = () => {
         </div>
       ) : (
         filteredRecipes.map((recipe) => (
-          <Card key={recipe.id} className="p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 flex-1">
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-medium truncate">{recipe.name}</h3>
-                  {recipe.category && (
-                    <p className="text-sm text-orange-600">{recipe.category.name}</p>
-                  )}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {recipe.portions} porções
-                </div>
-                <div className="text-sm font-medium text-green-600 min-w-0">
-                  {formatCurrency(recipe.total_cost)}
-                </div>
-                <div className="text-sm font-medium text-blue-600 min-w-0">
-                  {formatCurrency(recipe.unit_cost)}
-                </div>
-              </div>
-              <div className="flex space-x-2 ml-4">
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => handleEdit(recipe)}
-                  disabled={deletingRecipeId === recipe.id}
-                >
-                  <Edit className="h-4 w-4" />
-                  <span className="sr-only">Editar</span>
-                </Button>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => handleDelete(recipe.id)}
-                  disabled={deletingRecipeId === recipe.id}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  {deletingRecipeId === recipe.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                  <span className="sr-only">Excluir</span>
-                </Button>
-              </div>
-            </div>
-          </Card>
+          <ItemCard
+            key={recipe.id}
+            id={recipe.id}
+            title={recipe.name}
+            category={recipe.category?.name}
+            stats={[
+              { label: 'Porções', value: recipe.portions, type: 'text' },
+              { label: 'Custo total', value: recipe.total_cost || 0, type: 'currency' },
+              { label: 'Custo unitário', value: recipe.unit_cost || 0, type: 'currency' }
+            ]}
+            onEdit={() => handleEdit(recipe)}
+            onDelete={() => handleDelete(recipe.id)}
+            isDeleting={deletingRecipeId === recipe.id}
+          />
         ))
       )}
     </div>
@@ -235,13 +252,21 @@ const Recipes = () => {
         ]}
         actions={
           <div className="flex gap-2">
-            <Button 
-              onClick={() => setShowCategoryDialog(true)}
-              variant="outline"
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+            <CategoryManager
+              title="Categorias de Receitas"
+              description="Gerencie as categorias das suas receitas"
+              tableName="recipe_categories"
+              queryKey="recipe-categories"
+              icon={ChefHat}
+              onCategoriesChange={() => queryClient.invalidateQueries({ queryKey: ['recipes'] })}
             >
-              Categorias
-            </Button>
+              <Button 
+                variant="outline"
+                className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+              >
+                Categorias
+              </Button>
+            </CategoryManager>
             <Button 
               onClick={handleNewRecipe}
               className="bg-white/20 text-white border-white/30 hover:bg-white/30"
@@ -253,7 +278,6 @@ const Recipes = () => {
         }
       />
 
-      {/* Controles de busca e visualização */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2 flex-1 max-w-md">
           <Search className="h-4 w-4 text-gray-400 shrink-0" />
@@ -264,24 +288,19 @@ const Recipes = () => {
             className="w-full input-focus"
           />
         </div>
-        <ViewToggle view={view} onViewChange={setView} />
+        <div className="flex items-center gap-3">
+          <SortControls
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            availableOptions={sortOptions}
+          />
+          <ViewToggle view={view} onViewChange={setView} />
+        </div>
       </div>
 
-      {/* Lista de Receitas */}
-      {view === 'grid' ? (
-        <RecipesGrid 
-          recipes={filteredRecipes}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          isLoading={isLoading}
-          searchTerm={searchTerm}
-          deletingRecipeId={deletingRecipeId}
-        />
-      ) : (
-        renderListView()
-      )}
+      {view === 'grid' ? renderGridView() : renderListView()}
 
-      {/* Formulário de Receita */}
       <RecipeForm
         open={showForm}
         onOpenChange={handleFormClose}
@@ -290,14 +309,6 @@ const Recipes = () => {
         ingredients={ingredients}
         editingRecipe={editingRecipe}
       />
-
-      {/* Dialog de Categoria */}
-      {showCategoryDialog && (
-        <RecipeCategoryDialog
-          open={showCategoryDialog}
-          onClose={() => setShowCategoryDialog(false)}
-        />
-      )}
     </div>
   );
 };
