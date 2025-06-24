@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  PlusCircle, 
+  Plus, 
   Edit, 
   Trash2, 
   Save, 
@@ -46,6 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Category {
   id: string;
@@ -54,7 +55,7 @@ interface Category {
   created_at?: string;
 }
 
-type CategoryTableName = 'ingredient_categories' | 'recipe_categories' | 'product_categories' | 'packaging_categories';
+type CategoryTableName = 'ingredient_categories' | 'recipe_categories' | 'product_categories';
 
 interface CategoryManagerProps {
   title: string;
@@ -82,6 +83,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const { data: categories = [], refetch, isLoading } = useQuery({
     queryKey: [queryKey],
@@ -173,8 +175,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
       const relatedTables = {
         'ingredient_categories': 'ingredients',
         'recipe_categories': 'recipes', 
-        'product_categories': 'products',
-        'packaging_categories': 'packaging'
+        'product_categories': 'products'
       };
       
       const relatedTable = relatedTables[tableName];
@@ -262,7 +263,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
             </Button>
           )}
         </DialogTrigger>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-4xl max-h-[85vh]'} overflow-hidden flex flex-col`}>
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-3 text-xl">
               <div className="p-2 rounded-lg bg-primary/10">
@@ -276,8 +277,8 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-            {/* Estatísticas */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Estatísticas - Responsivas */}
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-4`}>
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
@@ -321,16 +322,16 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
               </Card>
             </div>
 
-            {/* Formulário para nova categoria */}
+            {/* Formulário para nova categoria - Mobile Friendly */}
             <Card className="border-dashed border-2 hover:border-primary/50 transition-colors">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <PlusCircle className="h-5 w-5 text-primary" />
+                  <Plus className="h-5 w-5 text-primary" />
                   Adicionar Nova Categoria
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-3">
+                <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-3`}>
                   <div className="flex-1">
                     <Label htmlFor="newCategory" className="text-sm font-medium">
                       Nome da Categoria
@@ -347,12 +348,12 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
                   <Button 
                     onClick={handleCreate} 
                     disabled={!newCategoryName.trim() || createMutation.isPending}
-                    className="mt-6 px-6"
+                    className={`${isMobile ? 'mt-2 w-full' : 'mt-6'} px-6`}
                   >
                     {createMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     ) : (
-                      <PlusCircle className="h-4 w-4 mr-2" />
+                      <Plus className="h-4 w-4 mr-2" />
                     )}
                     Criar
                   </Button>
@@ -360,7 +361,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
               </CardContent>
             </Card>
 
-            {/* Lista de categorias */}
+            {/* Lista de categorias - Mobile Optimized */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Categorias Existentes</CardTitle>
@@ -379,7 +380,81 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
                       Crie sua primeira categoria usando o formulário acima
                     </p>
                   </div>
+                ) : isMobile ? (
+                  // Mobile: Cards em vez de tabela
+                  <div className="space-y-3 p-4">
+                    {categories.map((category) => (
+                      <Card key={category.id} className="border border-gray-200">
+                        <CardContent className="p-4">
+                          {editingId === category.id ? (
+                            <div className="space-y-3">
+                              <Input
+                                value={editingName}
+                                onChange={(e) => setEditingName(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit()}
+                                autoFocus
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={handleSaveEdit}
+                                  disabled={updateMutation.isPending}
+                                  className="flex-1 text-green-600 border-green-200 hover:bg-green-50"
+                                  variant="outline"
+                                >
+                                  {updateMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Save className="h-4 w-4" />
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handleCancelEdit}
+                                  className="flex-1"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                <span className="font-medium">{category.name}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEdit(category)}
+                                  className="text-blue-600 hover:text-blue-700"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDelete(category.id)}
+                                  disabled={deleteMutation.isPending}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  {deleteMutation.isPending && deleteConfirmId === category.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 ) : (
+                  // Desktop: Tabela
                   <Table>
                     <TableHeader>
                       <TableRow>
