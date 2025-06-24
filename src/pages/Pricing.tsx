@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+const mapDatabaseToPricingConfig = (item: any): PricingConfiguration => ({
+  ...item,
+  user_id: item.user_id || '',
+  labor_cost_type: (item.labor_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+  overhead_cost_type: (item.overhead_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+  marketing_cost_type: (item.marketing_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+  delivery_cost_type: (item.delivery_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+  other_cost_type: (item.other_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+});
 
 const Pricing = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,7 +85,7 @@ const Pricing = () => {
       
       if (error) throw error;
       console.log("Loaded pricing configurations:", data);
-      return data || [];
+      return (data || []).map(mapDatabaseToPricingConfig);
     }
   });
 
@@ -217,7 +228,7 @@ const Pricing = () => {
     }
 
     setSelectedProduct(product);
-    setEditingConfig(config);
+    setEditingConfig(mapDatabaseToPricingConfig(config));
     setShowForm(true);
   };
 
