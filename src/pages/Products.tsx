@@ -338,7 +338,28 @@ const Products = () => {
       if (error) throw error;
 
       console.log("Loaded full product data:", fullProduct);
-      setEditingProduct(fullProduct);
+      
+      // Transform the data to match our TypeScript interfaces
+      const transformedProduct = {
+        ...fullProduct,
+        items: fullProduct.items?.map((item: any) => ({
+          id: item.id,
+          recipeId: item.recipe_id,
+          quantity: item.quantity,
+          cost: item.cost,
+          recipe: item.recipe
+        })) || [],
+        packagingItems: fullProduct.packagingItems?.map((item: any) => ({
+          id: item.id,
+          packagingId: item.packaging_id,
+          quantity: item.quantity,
+          cost: item.cost,
+          isPrimary: item.is_primary,
+          packaging: item.packaging
+        })) || []
+      };
+
+      setEditingProduct(transformedProduct);
       setShowForm(true);
     } catch (error) {
       console.error("Error loading product data:", error);
