@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -81,10 +80,10 @@ export const ProductForm = ({
       form.setValue("name", product.name || "");
       form.setValue("categoryId", product.category_id || "");
       
-      // Set recipe items
+      // Set recipe items with proper mapping
       if (product.items && Array.isArray(product.items) && product.items.length > 0) {
         const formattedItems = product.items.map((item: any) => ({
-          recipeId: item.recipe_id || "",
+          recipeId: item.recipeId || item.recipe_id || "",
           quantity: item.quantity || 1,
           cost: item.cost || 0,
         }));
@@ -94,13 +93,13 @@ export const ProductForm = ({
         form.setValue("items", [{ recipeId: "", quantity: 1, cost: 0 }]);
       }
       
-      // Set packaging items
+      // Set packaging items with proper mapping
       if (product.packagingItems && Array.isArray(product.packagingItems) && product.packagingItems.length > 0) {
         const formattedPackaging = product.packagingItems.map((item: any) => ({
-          packagingId: item.packaging_id || "",
+          packagingId: item.packagingId || item.packaging_id || "",
           quantity: item.quantity || 1,
           cost: item.cost || 0,
-          isPrimary: item.is_primary || false,
+          isPrimary: item.isPrimary || item.is_primary || false,
         }));
         console.log("ProductForm - Setting packaging items:", formattedPackaging);
         form.setValue("packagingItems", formattedPackaging);
@@ -136,14 +135,14 @@ export const ProductForm = ({
     return pkg ? (pkg.unitCost || pkg.unit_cost || 0) * quantity : 0;
   };
 
-  // Calculate total costs
-  const totalRecipeCost = watchedItems?.reduce((sum, item) => {
+  // Calculate total costs with proper null checks
+  const totalRecipeCost = (watchedItems || []).reduce((sum, item) => {
     return sum + calculateItemCost(item.recipeId, item.quantity);
-  }, 0) || 0;
+  }, 0);
 
-  const totalPackagingCost = watchedPackagingItems?.reduce((sum, pkg) => {
+  const totalPackagingCost = (watchedPackagingItems || []).reduce((sum, pkg) => {
     return sum + calculatePackagingCost(pkg.packagingId, pkg.quantity);
-  }, 0) || 0;
+  }, 0);
 
   const addRecipe = () => {
     const currentItems = form.getValues("items");
@@ -210,10 +209,10 @@ export const ProductForm = ({
       cost: calculateItemCost(item.recipeId, item.quantity)
     }));
 
-    const updatedPackagingItems = values.packagingItems?.map(item => ({
+    const updatedPackagingItems = (values.packagingItems || []).map(item => ({
       ...item,
       cost: calculatePackagingCost(item.packagingId, item.quantity)
-    })) || [];
+    }));
 
     const finalTotalRecipeCost = updatedItems.reduce((sum, item) => sum + item.cost, 0);
     const finalTotalPackagingCost = updatedPackagingItems.reduce((sum, item) => sum + item.cost, 0);

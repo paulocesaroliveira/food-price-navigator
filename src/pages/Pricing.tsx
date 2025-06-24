@@ -1,19 +1,17 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Search, Calculator, Package, DollarSign, TrendingUp, ArrowRight, Settings, Target, Zap, Edit, Trash2, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency } from "@/utils/calculations";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { Product, PricingConfiguration } from "@/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getProductList } from "@/services/productService";
+import { Search, Plus, Calculator, DollarSign, TrendingUp, Edit, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { AdvancedPricingForm } from "@/components/pricing/AdvancedPricingForm";
+import { formatCurrency } from "@/utils/calculations";
 import { toast } from "@/hooks/use-toast";
-import { PricingCalculatorForm } from "@/components/pricing/PricingCalculatorForm";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { ViewToggle } from "@/components/shared/ViewToggle";
+import { Product, PricingConfiguration } from "@/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,17 +26,38 @@ import {
 
 const Pricing = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [showForm, setShowForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [showPricingDialog, setShowPricingDialog] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<PricingConfiguration | null>(null);
+  const [view, setView] = useState<'grid' | 'list'>('grid');
   const [deletingConfigId, setDeletingConfigId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: getProductList
+  // Fetch products with dynamic updates
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['products-for-pricing'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          category:product_categories(id, name)
+        `)
+        .eq('user_id', user.id)
+        .order('name');
+      
+      if (error) throw error;
+      console.log("Loaded products for pricing:", data);
+      return data || [];
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds to keep products in sync
   });
 
-  const { data: configurations = [] } = useQuery({
+  // Fetch pricing configurations
+  const { data: pricingConfigs = [], isLoading: configsLoading } = useQuery({
     queryKey: ['pricing-configurations'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -48,74 +67,87 @@ const Pricing = () => {
         .from('pricing_configs')
         .select(`
           *,
-          product:products(id, name, total_cost)
+          product:products(id, name, total_cost, category:product_categories(id, name))
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
+      console.log("Loaded pricing configurations:", data);
       return data || [];
     }
   });
 
-  const savePricingMutation = useMutation({
-    mutationFn: async (pricingData: any) => {
+  const createPricingMutation = useMutation({
+    mutationFn: async (configData: any) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      const configData = {
-        ...pricingData,
+      const config = {
+        ...configData,
         user_id: user.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
-      // Check if configuration already exists for this product
-      const { data: existing } = await supabase
+      const { data, error } = await supabase
         .from('pricing_configs')
-        .select('id')
-        .eq('product_id', pricingData.product_id)
-        .eq('user_id', user.id)
+        .insert(config)
+        .select()
         .single();
 
-      if (existing) {
-        // Update existing configuration
-        const { data, error } = await supabase
-          .from('pricing_configs')
-          .update({
-            ...configData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existing.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } else {
-        // Create new configuration
-        const { data, error } = await supabase
-          .from('pricing_configs')
-          .insert(configData)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      }
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       toast({
-        title: "Precificação salva",
-        description: "A configuração de precificação foi salva com sucesso.",
+        title: "Configuração criada",
+        description: "A configuração de precificação foi criada com sucesso.",
       });
       queryClient.invalidateQueries({ queryKey: ['pricing-configurations'] });
-      setShowPricingDialog(false);
+      setShowForm(false);
       setSelectedProduct(null);
+      setEditingConfig(null);
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao salvar",
+        title: "Erro ao criar configuração",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updatePricingMutation = useMutation({
+    mutationFn: async ({ id, configData }: { id: string; configData: any }) => {
+      const config = {
+        ...configData,
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('pricing_configs')
+        .update(config)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Configuração atualizada",
+        description: "A configuração de precificação foi atualizada com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['pricing-configurations'] });
+      setShowForm(false);
+      setSelectedProduct(null);
+      setEditingConfig(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar configuração",
         description: error.message,
         variant: "destructive",
       });
@@ -140,7 +172,7 @@ const Pricing = () => {
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao excluir",
+        title: "Erro ao excluir configuração",
         description: error.message,
         variant: "destructive",
       });
@@ -150,200 +182,164 @@ const Pricing = () => {
     }
   });
 
-  // Filtrar e ordenar produtos alfabeticamente
-  const filteredProducts = products
-    .filter(product =>
-      product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      const nameA = (a.name || '').toLowerCase();
-      const nameB = (b.name || '').toLowerCase();
-      return nameA.localeCompare(nameB, 'pt-BR');
-    });
+  const filteredConfigs = pricingConfigs
+    .filter(config => {
+      if (!config.product) return false;
+      return config.product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             config.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             config.product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    })
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
 
-  const totalProducts = products.length;
-  const avgCost = products.length > 0 
-    ? products.reduce((acc, product) => acc + (product.total_cost || 0), 0) / products.length 
+  const totalConfigs = pricingConfigs.length;
+  const avgMargin = pricingConfigs.length > 0 
+    ? pricingConfigs.reduce((acc, config) => acc + (config.actual_margin || 0), 0) / pricingConfigs.length 
     : 0;
-  const totalConfigurations = configurations.length;
 
-  const handleProductSelect = (product: Product) => {
-    console.log("Selected product for pricing:", product);
+  const handleNewPricing = (product: Product) => {
     setSelectedProduct(product);
-    setShowPricingDialog(true);
+    setEditingConfig(null);
+    setShowForm(true);
   };
 
-  const handleSavePricing = async (pricingData: any) => {
-    console.log('Salvando configuração de preço:', pricingData);
-    savePricingMutation.mutate(pricingData);
-  };
-
-  const handleEditConfiguration = (config: any) => {
+  const handleEdit = (config: PricingConfiguration) => {
+    console.log("Editing pricing config:", config);
+    
+    // Find the product for this configuration
     const product = products.find(p => p.id === config.product_id);
-    if (product) {
-      setSelectedProduct(product);
-      setShowPricingDialog(true);
+    if (!product) {
+      toast({
+        title: "Erro",
+        description: "Produto não encontrado para esta configuração",
+        variant: "destructive",
+      });
+      return;
     }
+
+    setSelectedProduct(product);
+    setEditingConfig(config);
+    setShowForm(true);
   };
 
-  const handleDeleteConfiguration = (configId: string) => {
+  const handleDelete = (configId: string) => {
     setDeletingConfigId(configId);
     deletePricingMutation.mutate(configId);
   };
 
-  // Enhanced function to calculate card pricing data with proper formatting
-  const getCardPricingData = (product: Product) => {
-    const config = configurations.find(config => config.product_id === product.id);
-    
-    if (!config) {
-      return {
-        costWithoutTaxes: Number(product.total_cost) || 0,
-        totalTaxes: 0,
-        finalPrice: 0,
-        profit: 0,
-        margin: 0,
-        hasConfiguration: false
-      };
+  const handleFormSubmit = (configData: any) => {
+    if (editingConfig) {
+      updatePricingMutation.mutate({ id: editingConfig.id, configData });
+    } else {
+      createPricingMutation.mutate(configData);
     }
-
-    const baseCost = Number(config.base_cost) || 0;
-    const packagingCost = Number(config.packaging_cost) || 0;
-    const laborCost = Number(config.labor_cost) || 0;
-    const overheadCost = Number(config.overhead_cost) || 0;
-    const marketingCost = Number(config.marketing_cost) || 0;
-    const deliveryCost = Number(config.delivery_cost) || 0;
-    const otherCosts = Number(config.other_costs) || 0;
-    
-    const productionCost = baseCost + packagingCost;
-    const totalIndirectCosts = laborCost + overheadCost + marketingCost + deliveryCost + otherCosts;
-    const costWithWastage = (productionCost + totalIndirectCosts) * (1 + (Number(config.wastage_percentage) || 5) / 100);
-    
-    const idealPrice = costWithWastage * (1 + (Number(config.margin_percentage) || 30) / 100);
-    const priceWithPlatformFee = idealPrice * (1 + (Number(config.platform_fee_percentage) || 0) / 100);
-    const finalPrice = priceWithPlatformFee * (1 + (Number(config.tax_percentage) || 0) / 100);
-    
-    const profit = finalPrice - costWithWastage;
-    const margin = costWithWastage > 0 ? ((profit / costWithWastage) * 100) : 0;
-
-    return {
-      costWithoutTaxes: productionCost,
-      totalTaxes: totalIndirectCosts,
-      finalPrice: finalPrice,
-      profit: profit,
-      margin: margin,
-      hasConfiguration: true
-    };
   };
 
-  return (
-    <div className="space-y-6 p-4 sm:p-6">
-      <PageHeader
-        title="Precificação Inteligente"
-        subtitle="Configure preços profissionais para seus produtos com análise completa de custos"
-        icon={Calculator}
-        gradient="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600"
-        badges={[
-          { icon: Package, text: `${totalProducts} produtos` },
-          { icon: Settings, text: `${totalConfigurations} configurações` },
-          { icon: DollarSign, text: `Custo médio: ${formatCurrency(avgCost)}` }
-        ]}
-      />
+  const handleFormCancel = () => {
+    setShowForm(false);
+    setSelectedProduct(null);
+    setEditingConfig(null);
+  };
 
-      {/* Search Bar */}
-      <div className="flex items-center space-x-2 max-w-md">
-        <Search className="h-4 w-4 text-gray-400 shrink-0" />
-        <Input
-          placeholder="Buscar produtos para precificar..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full input-focus"
-        />
-      </div>
+  // Get products without pricing configurations
+  const productsWithoutPricing = products.filter(product => 
+    !pricingConfigs.some(config => config.product_id === product.id)
+  );
 
-      {/* Configurações Existentes */}
-      {configurations.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Configurações de Precificação</h2>
-            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-              {configurations.length} configurações ativas
-            </Badge>
+  const renderGridView = () => (
+    <div className="space-y-8">
+      {/* Products without pricing */}
+      {productsWithoutPricing.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            Produtos sem Precificação ({productsWithoutPricing.length})
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {productsWithoutPricing.map((product) => (
+              <Card key={product.id} className="border-amber-200 bg-amber-50/50 hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <h4 className="font-medium truncate">{product.name}</h4>
+                    {product.category && (
+                      <p className="text-sm text-orange-600">{product.category.name}</p>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-blue-600 font-medium">
+                        Custo: {formatCurrency(product.total_cost || 0)}
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleNewPricing(product)}
+                      className="w-full bg-amber-600 hover:bg-amber-700"
+                    >
+                      <Calculator className="h-4 w-4 mr-1" />
+                      Criar Precificação
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-            {configurations.map((config) => {
-              const product = products.find(p => p.id === config.product_id);
-              if (!product) return null;
-              
-              const pricingData = getCardPricingData(product);
-              
-              return (
-                <Card key={config.id} className="hover:shadow-xl transition-all duration-300 border-2 hover:border-green-200 bg-gradient-to-br from-white to-green-50">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg font-bold truncate text-gray-800">{product.name}</CardTitle>
-                        <p className="text-sm text-gray-600 mt-1">{config.name}</p>
-                        {product.category && (
-                          <Badge variant="secondary" className="mt-2 text-xs bg-blue-100 text-blue-800">
-                            {product.category.name}
-                          </Badge>
-                        )}
-                      </div>
-                      <Badge className="bg-green-100 text-green-800 text-xs font-semibold">
-                        <Zap className="h-3 w-3 mr-1" />
-                        Ativo
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-xs text-blue-600 font-medium mb-1">Custo Produção</p>
-                        <p className="text-sm font-bold text-blue-800">
-                          {formatCurrency(pricingData.costWithoutTaxes)}
-                        </p>
-                      </div>
-                      
-                      <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-200">
-                        <p className="text-xs text-purple-600 font-medium mb-1">Custos Indiretos</p>
-                        <p className="text-sm font-bold text-purple-800">
-                          {formatCurrency(pricingData.totalTaxes)}
-                        </p>
-                      </div>
-                      
-                      <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
-                        <p className="text-xs text-green-600 font-medium mb-1">Preço Final</p>
-                        <p className="text-sm font-bold text-green-800">
-                          {formatCurrency(pricingData.finalPrice)}
-                        </p>
-                      </div>
-                      
-                      <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
-                        <p className="text-xs text-amber-600 font-medium mb-1">Margem</p>
-                        <p className="text-sm font-bold text-amber-800">
-                          {pricingData.margin.toFixed(1)}%
-                        </p>
-                      </div>
-                    </div>
+        </div>
+      )}
 
+      {/* Existing pricing configurations */}
+      {filteredConfigs.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Configurações de Precificação ({filteredConfigs.length})
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredConfigs.map((config) => (
+              <Card key={config.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <h4 className="font-medium truncate">{config.name}</h4>
+                    {config.product && (
+                      <>
+                        <p className="text-sm text-gray-600">{config.product.name}</p>
+                        {config.product.category && (
+                          <p className="text-xs text-orange-600">{config.product.category.name}</p>
+                        )}
+                      </>
+                    )}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500">Preço Final:</span>
+                        <span className="text-sm font-bold text-green-600">
+                          {formatCurrency(config.final_price || 0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500">Margem:</span>
+                        <span className="text-sm font-bold text-blue-600">
+                          {(config.actual_margin || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500">Lucro:</span>
+                        <span className="text-sm font-bold text-purple-600">
+                          {formatCurrency(config.unit_profit || 0)}
+                        </span>
+                      </div>
+                    </div>
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => handleEditConfiguration(config)}
-                        className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
                         size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(config)}
+                        className="flex-1"
+                        disabled={deletingConfigId === config.id}
                       >
-                        <Edit className="h-4 w-4 mr-2" />
+                        <Edit className="h-4 w-4 mr-1" />
                         Editar
                       </Button>
-                      
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
-                            variant="outline"
                             size="sm"
+                            variant="outline"
                             className="text-red-600 hover:text-red-700"
                             disabled={deletingConfigId === config.id}
                           >
@@ -358,14 +354,14 @@ const Pricing = () => {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Tem certeza que deseja excluir a configuração de precificação para "{product.name}"? 
+                              Tem certeza que deseja excluir a configuração "{config.name}"? 
                               Esta ação não pode ser desfeita.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction 
-                              onClick={() => handleDeleteConfiguration(config.id)}
+                              onClick={() => handleDelete(config.id)}
                               className="bg-red-600 hover:bg-red-700"
                             >
                               Excluir
@@ -374,159 +370,205 @@ const Pricing = () => {
                         </AlertDialogContent>
                       </AlertDialog>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Products Grid */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Produtos Disponíveis</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredProducts.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-medium">Nenhum produto encontrado</h3>
-              <p className="text-muted-foreground">
-                {searchTerm ? "Tente alterar os termos de busca" : "Cadastre produtos para começar a precificação"}
-              </p>
-            </div>
-          ) : (
-            filteredProducts.map((product) => {
-              const pricingData = getCardPricingData(product);
-              
-              return (
-                <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-purple-200 bg-gradient-to-br from-white to-gray-50">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg font-bold truncate text-gray-800">{product.name}</CardTitle>
-                        {product.category && (
-                          <Badge variant="secondary" className="mt-2 text-xs bg-blue-100 text-blue-800">
-                            {product.category.name}
-                          </Badge>
-                        )}
-                      </div>
-                      {pricingData.hasConfiguration && (
-                        <Badge className="bg-green-100 text-green-800 text-xs font-semibold">
-                          <Zap className="h-3 w-3 mr-1" />
-                          Configurado
-                        </Badge>
+      {/* Empty state */}
+      {products.length === 0 && !productsLoading && (
+        <div className="text-center py-12">
+          <Calculator className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h3 className="text-lg font-medium">Nenhum produto encontrado</h3>
+          <p className="text-muted-foreground">
+            Primeiro, crie produtos na página "Produtos" para poder fazer suas precificações
+          </p>
+        </div>
+      )}
+
+      {/* No results from search */}
+      {products.length > 0 && filteredConfigs.length === 0 && productsWithoutPricing.length === 0 && searchTerm && (
+        <div className="text-center py-12">
+          <Calculator className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h3 className="text-lg font-medium">Nenhuma configuração encontrada</h3>
+          <p className="text-muted-foreground">
+            Tente alterar os termos de busca
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderListView = () => (
+    <div className="space-y-6">
+      {/* Products without pricing */}
+      {productsWithoutPricing.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            Produtos sem Precificação
+          </h3>
+          <div className="space-y-2">
+            {productsWithoutPricing.map((product) => (
+              <Card key={product.id} className="border-amber-200 bg-amber-50/50 p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-medium truncate">{product.name}</h4>
+                      {product.category && (
+                        <p className="text-sm text-orange-600">{product.category.name}</p>
                       )}
                     </div>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-6">
-                    {pricingData.hasConfiguration ? (
-                      <>
-                        {/* Enhanced Pricing Information Display */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <p className="text-xs text-blue-600 font-medium mb-1">Custo Produção</p>
-                            <p className="text-sm font-bold text-blue-800">
-                              {formatCurrency(pricingData.costWithoutTaxes)}
-                            </p>
-                          </div>
-                          
-                          <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-200">
-                            <p className="text-xs text-purple-600 font-medium mb-1">Custos Indiretos</p>
-                            <p className="text-sm font-bold text-purple-800">
-                              {formatCurrency(pricingData.totalTaxes)}
-                            </p>
-                          </div>
-                          
-                          <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
-                            <p className="text-xs text-green-600 font-medium mb-1">Preço Final</p>
-                            <p className="text-sm font-bold text-green-800">
-                              {formatCurrency(pricingData.finalPrice)}
-                            </p>
-                          </div>
-                          
-                          <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
-                            <p className="text-xs text-amber-600 font-medium mb-1">Lucro</p>
-                            <p className="text-sm font-bold text-amber-800">
-                              {formatCurrency(pricingData.profit)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Enhanced Status Display */}
-                        <div className="flex justify-between items-center">
-                          {pricingData.profit > 0 ? (
-                            <Badge className="bg-green-100 text-green-800 px-3 py-1">
-                              <TrendingUp className="h-3 w-3 mr-1" />
-                              Rentável
-                            </Badge>
-                          ) : (
-                            <Badge variant="destructive" className="px-3 py-1">
-                              <Target className="h-3 w-3 mr-1" />
-                              Revisar Preços
-                            </Badge>
-                          )}
-                          
-                          <div className="text-right">
-                            <p className="text-xs text-gray-600">Margem</p>
-                            <p className="text-sm font-bold text-gray-800">
-                              {pricingData.margin.toFixed(1)}%
-                            </p>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        {/* Product without configuration */}
-                        <div className="text-center p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                          <Calculator className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                          <p className="text-sm text-gray-600 mb-1">Produto não precificado</p>
-                          <div className="text-center">
-                            <span className="text-xs text-gray-500">Custo Base:</span>
-                            <p className="font-semibold text-blue-600">
-                              {formatCurrency(product.total_cost || 0)}
-                            </p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Action Button */}
-                    <Button
-                      onClick={() => handleProductSelect(product)}
-                      className={`w-full group-hover:shadow-md transition-all duration-300 ${
-                        pricingData.hasConfiguration 
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'
-                          : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'
-                      }`}
-                    >
-                      <Calculator className="h-4 w-4 mr-2" />
-                      {pricingData.hasConfiguration ? 'Reconfigurar Preços' : 'Criar Precificação'}
-                      <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
+                    <div className="text-sm font-medium text-blue-600 min-w-0">
+                      Custo: {formatCurrency(product.total_cost || 0)}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleNewPricing(product)}
+                    className="ml-4 bg-amber-600 hover:bg-amber-700"
+                  >
+                    <Calculator className="h-4 w-4 mr-1" />
+                    Criar Precificação
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
+      )}
+
+      {/* Existing configurations */}
+      {filteredConfigs.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Configurações de Precificação
+          </h3>
+          <div className="space-y-2">
+            {filteredConfigs.map((config) => (
+              <Card key={config.id} className="p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-medium truncate">{config.name}</h4>
+                      {config.product && (
+                        <p className="text-sm text-gray-600">{config.product.name}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-6 text-sm">
+                      <div className="text-center">
+                        <div className="font-bold text-green-600">{formatCurrency(config.final_price || 0)}</div>
+                        <div className="text-xs text-gray-500">Preço Final</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-bold text-blue-600">{(config.actual_margin || 0).toFixed(1)}%</div>
+                        <div className="text-xs text-gray-500">Margem</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-bold text-purple-600">{formatCurrency(config.unit_profit || 0)}</div>
+                        <div className="text-xs text-gray-500">Lucro</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEdit(config)}
+                      disabled={deletingConfigId === config.id}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Editar
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 hover:text-red-700"
+                          disabled={deletingConfigId === config.id}
+                        >
+                          {deletingConfigId === config.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir a configuração "{config.name}"? 
+                            Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleDelete(config.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Precificação"
+        subtitle="Configure preços inteligentes para seus produtos"
+        icon={Calculator}
+        gradient="bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500"
+        badges={[
+          { icon: Calculator, text: `${totalConfigs} configurações` },
+          { icon: TrendingUp, text: `Margem média: ${avgMargin.toFixed(1)}%` }
+        ]}
+      />
+
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center space-x-2 flex-1 max-w-md">
+          <Search className="h-4 w-4 text-gray-400 shrink-0" />
+          <Input
+            placeholder="Buscar configurações..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full input-focus"
+          />
+        </div>
+        <ViewToggle view={view} onViewChange={setView} />
       </div>
 
-      {/* Pricing Dialog */}
-      <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      {view === 'grid' ? renderGridView() : renderListView()}
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-3">
-              <Calculator className="h-6 w-6 text-purple-600" />
-              Precificação Profissional - {selectedProduct?.name}
+            <DialogTitle>
+              {editingConfig ? 'Editar Precificação' : 'Nova Precificação'}
+              {selectedProduct && ` - ${selectedProduct.name}`}
             </DialogTitle>
           </DialogHeader>
           {selectedProduct && (
-            <PricingCalculatorForm
+            <AdvancedPricingForm
               product={selectedProduct}
-              onSave={handleSavePricing}
-              existingConfig={configurations.find(config => config.product_id === selectedProduct.id)}
-              isLoading={savePricingMutation.isPending}
+              onSave={handleFormSubmit}
+              existingConfig={editingConfig}
+              isLoading={createPricingMutation.isPending || updatePricingMutation.isPending}
             />
           )}
         </DialogContent>
