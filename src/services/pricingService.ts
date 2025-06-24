@@ -40,6 +40,17 @@ export const calculatePricingResults = (
   };
 };
 
+const mapDatabaseToPricingConfig = (item: any): PricingConfiguration => ({
+  ...item,
+  user_id: item.user_id || '',
+  labor_cost_type: (item.labor_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+  overhead_cost_type: (item.overhead_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+  marketing_cost_type: (item.marketing_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+  delivery_cost_type: (item.delivery_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+  other_cost_type: (item.other_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+  additionalCosts: []
+});
+
 export const getPricingConfigurations = async (): Promise<PricingConfiguration[]> => {
   try {
     const { data, error } = await supabase
@@ -49,11 +60,7 @@ export const getPricingConfigurations = async (): Promise<PricingConfiguration[]
 
     if (error) throw error;
 
-    return (data || []).map(item => ({
-      ...item,
-      user_id: item.user_id || '',
-      additionalCosts: []
-    }));
+    return (data || []).map(mapDatabaseToPricingConfig);
   } catch (error) {
     console.error('Error fetching pricing configurations:', error);
     return [];
@@ -75,11 +82,7 @@ export const getPricingConfigs = async (productId?: string): Promise<PricingConf
 
     if (error) throw error;
 
-    return (data || []).map(item => ({
-      ...item,
-      user_id: item.user_id || '',
-      additionalCosts: []
-    }));
+    return (data || []).map(mapDatabaseToPricingConfig);
   } catch (error) {
     console.error('Error fetching pricing configurations:', error);
     return [];
@@ -110,10 +113,10 @@ export const createPricingConfiguration = async (config: Omit<PricingConfigurati
         .insert(costsToInsert);
     }
 
-    return {
+    return mapDatabaseToPricingConfig({
       ...data,
       additionalCosts: additionalCosts || []
-    };
+    });
   } catch (error) {
     console.error('Error creating pricing configuration:', error);
     return null;
@@ -158,10 +161,10 @@ export const updatePricingConfiguration = async (id: string, config: Omit<Pricin
       }
     }
 
-    return {
+    return mapDatabaseToPricingConfig({
       ...data,
       additionalCosts: additionalCosts || []
-    };
+    });
   } catch (error) {
     console.error('Error updating pricing configuration:', error);
     return null;
