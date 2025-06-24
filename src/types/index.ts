@@ -1,4 +1,3 @@
-
 export interface Customer {
   id: string;
   name: string;
@@ -213,6 +212,15 @@ export interface PricingConfiguration {
   competitor_price?: number;
   notes?: string;
   additionalCosts?: AdditionalCost[];
+  product?: {
+    id: string;
+    name: string;
+    total_cost: number;
+    category?: {
+      id: string;
+      name: string;
+    };
+  };
   created_at: string;
   updated_at: string;
 }

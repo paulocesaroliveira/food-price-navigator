@@ -33,6 +33,12 @@ const mapDatabaseToPricingConfig = (item: any): PricingConfiguration => ({
   marketing_cost_type: (item.marketing_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
   delivery_cost_type: (item.delivery_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
   other_cost_type: (item.other_cost_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+  product: item.product ? {
+    id: item.product.id,
+    name: item.product.name,
+    total_cost: item.product.total_cost,
+    category: item.product.category
+  } : undefined,
 });
 
 const Pricing = () => {
