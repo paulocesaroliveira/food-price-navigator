@@ -54,10 +54,12 @@ interface Category {
   created_at?: string;
 }
 
+type CategoryTableName = 'ingredient_categories' | 'recipe_categories' | 'product_categories' | 'packaging_categories';
+
 interface CategoryManagerProps {
   title: string;
   description: string;
-  tableName: string;
+  tableName: CategoryTableName;
   queryKey: string;
   icon?: React.ElementType;
   onCategoriesChange?: () => void;
@@ -94,7 +96,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
         .order('name');
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as Category[];
     },
     enabled: isOpen,
   });
@@ -175,11 +177,11 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
         'packaging_categories': 'packaging'
       };
       
-      const relatedTable = relatedTables[tableName as keyof typeof relatedTables];
+      const relatedTable = relatedTables[tableName];
       
       if (relatedTable) {
         const { data: items, error: checkError } = await supabase
-          .from(relatedTable)
+          .from(relatedTable as any)
           .select('id')
           .eq('category_id', id)
           .limit(1);
