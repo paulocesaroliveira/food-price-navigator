@@ -254,8 +254,15 @@ export const IngredientForm = ({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="g">Grama (g)</SelectItem>
+                        <SelectItem value="kg">Quilograma (kg)</SelectItem>
                         <SelectItem value="ml">Mililitro (ml)</SelectItem>
+                        <SelectItem value="l">Litro (l)</SelectItem>
                         <SelectItem value="un">Unidade (un)</SelectItem>
+                        <SelectItem value="dz">Dúzia (dz)</SelectItem>
+                        <SelectItem value="cx">Caixa (cx)</SelectItem>
+                        <SelectItem value="pct">Pacote (pct)</SelectItem>
+                        <SelectItem value="sc">Saco (sc)</SelectItem>
+                        <SelectItem value="rl">Rolo (rl)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -1,300 +1,443 @@
 
-import React, { useState, useEffect } from 'react';
-import { Product, PricingConfiguration, AdditionalCost, PricingResult } from '@/types';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatPercentage } from '@/utils/calculations';
-import { calculatePricingResults } from '@/services/pricingService';
-import AdditionalCostsEditor from './AdditionalCostsEditor';
+import React, { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { formatCurrency } from "@/utils/calculations";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-interface PricingFormProps {
-  product: Product;
-  onSave: (data: any) => void;
-  isLoading?: boolean;
-  existingConfig?: PricingConfiguration | null;
+const pricingSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório"),
+  productId: z.string().min(1, "Produto é obrigatório"),
+  wastagePercentage: z.number().min(0).max(100),
+  marginPercentage: z.number().min(0),
+  platformFeePercentage: z.number().min(0).max(100),
+  taxPercentage: z.number().min(0).max(100),
+  laborCost: z.number().min(0),
+  overheadCost: z.number().min(0),
+  marketingCost: z.number().min(0),
+  deliveryCost: z.number().min(0),
+  otherCosts: z.number().min(0),
+  notes: z.string().optional(),
+});
+
+type PricingFormData = z.infer<typeof pricingSchema>;
+
+interface ProductCostData {
+  totalRecipeCost: number;
+  totalPackagingCost: number;
+  totalBaseCost: number;
 }
 
-const PricingForm: React.FC<PricingFormProps> = ({
-  product,
-  onSave,
-  isLoading = false,
-  existingConfig
+interface PricingFormProps {
+  onSubmit: (data: PricingFormData) => void;
+  onCancel: () => void;
+  initialData?: Partial<PricingFormData>;
+  products: Array<{ id: string; name: string; total_cost?: number }>;
+}
+
+export const PricingForm: React.FC<PricingFormProps> = ({
+  onSubmit,
+  onCancel,
+  initialData,
+  products
 }) => {
-  const [formData, setFormData] = useState({
-    name: existingConfig?.name || `Precificação ${product.name}`,
-    product_id: product.id,
-    user_id: '',
-    base_cost: existingConfig?.base_cost || product.total_cost || 0,
-    packaging_cost: existingConfig?.packaging_cost || product.packaging_cost || 0,
-    wastage_percentage: existingConfig?.wastage_percentage || 5,
-    additionalCosts: existingConfig?.additionalCosts || [] as AdditionalCost[],
-    margin_percentage: existingConfig?.margin_percentage || 30,
-    platform_fee_percentage: existingConfig?.platform_fee_percentage || 0,
-    tax_percentage: existingConfig?.tax_percentage || 0,
-    labor_cost: existingConfig?.labor_cost || 0,
-    overhead_cost: existingConfig?.overhead_cost || 0,
-    marketing_cost: existingConfig?.marketing_cost || 0,
-    delivery_cost: existingConfig?.delivery_cost || 0,
-    other_costs: existingConfig?.other_costs || 0,
-    target_margin_percentage: existingConfig?.target_margin_percentage || 30,
-    minimum_price: existingConfig?.minimum_price || 0,
-    maximum_price: existingConfig?.maximum_price || 0,
-    competitor_price: existingConfig?.competitor_price || 0,
-    notes: existingConfig?.notes || ''
+  const [selectedProductId, setSelectedProductId] = useState(initialData?.productId || "");
+  const [productCosts, setProductCosts] = useState<ProductCostData>({
+    totalRecipeCost: 0,
+    totalPackagingCost: 0,
+    totalBaseCost: 0
   });
 
-  const [results, setResults] = useState<PricingResult | null>(null);
+  const form = useForm<PricingFormData>({
+    resolver: zodResolver(pricingSchema),
+    defaultValues: {
+      name: initialData?.name || "",
+      productId: initialData?.productId || "",
+      wastagePercentage: initialData?.wastagePercentage || 5,
+      marginPercentage: initialData?.marginPercentage || 30,
+      platformFeePercentage: initialData?.platformFeePercentage || 0,
+      taxPercentage: initialData?.taxPercentage || 0,
+      laborCost: initialData?.laborCost || 0,
+      overheadCost: initialData?.overheadCost || 0,
+      marketingCost: initialData?.marketingCost || 0,
+      deliveryCost: initialData?.deliveryCost || 0,
+      otherCosts: initialData?.otherCosts || 0,
+      notes: initialData?.notes || "",
+    },
+  });
 
+  // Query para buscar detalhes do produto selecionado
+  const { data: productDetails } = useQuery({
+    queryKey: ['product-details', selectedProductId],
+    queryFn: async () => {
+      if (!selectedProductId) return null;
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      // Buscar produto com itens (receitas) e embalagens
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select(`
+          *,
+          items:product_items(
+            quantity,
+            cost,
+            recipe:recipes(name, unit_cost)
+          ),
+          packagingItems:product_packaging(
+            quantity,
+            cost,
+            packaging:packaging(name, unit_cost)
+          )
+        `)
+        .eq('id', selectedProductId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (productError) throw productError;
+      return product;
+    },
+    enabled: !!selectedProductId
+  });
+
+  // Calcular custos do produto quando os detalhes mudarem
   useEffect(() => {
-    calculateResults();
-  }, [
-    formData.base_cost,
-    formData.packaging_cost,
-    formData.wastage_percentage,
-    formData.additionalCosts,
-    formData.margin_percentage,
-    formData.platform_fee_percentage,
-    formData.tax_percentage
-  ]);
+    if (productDetails) {
+      const totalRecipeCost = productDetails.items?.reduce((sum: number, item: any) => 
+        sum + (item.cost || 0), 0) || 0;
+      
+      const totalPackagingCost = productDetails.packagingItems?.reduce((sum: number, item: any) => 
+        sum + (item.cost || 0), 0) || 0;
+      
+      const totalBaseCost = totalRecipeCost + totalPackagingCost;
 
-  const calculateResults = () => {
-    const calculatedResults = calculatePricingResults(
-      formData.base_cost,
-      formData.packaging_cost,
-      formData.wastage_percentage,
-      formData.additionalCosts,
-      formData.margin_percentage,
-      formData.platform_fee_percentage,
-      formData.tax_percentage
-    );
-    setResults(calculatedResults);
-  };
+      setProductCosts({
+        totalRecipeCost,
+        totalPackagingCost,
+        totalBaseCost
+      });
+    } else {
+      setProductCosts({
+        totalRecipeCost: 0,
+        totalPackagingCost: 0,
+        totalBaseCost: 0
+      });
+    }
+  }, [productDetails]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!results) return;
+  const watchedValues = form.watch();
+  
+  // Cálculos de precificação
+  const baseCost = productCosts.totalBaseCost;
+  const wastageAmount = baseCost * (watchedValues.wastagePercentage / 100);
+  const totalCostWithWastage = baseCost + wastageAmount;
+  
+  const additionalCosts = (watchedValues.laborCost || 0) + 
+                          (watchedValues.overheadCost || 0) + 
+                          (watchedValues.marketingCost || 0) + 
+                          (watchedValues.deliveryCost || 0) + 
+                          (watchedValues.otherCosts || 0);
+  
+  const totalUnitCost = totalCostWithWastage + additionalCosts;
+  
+  const idealPrice = totalUnitCost / (1 - (watchedValues.marginPercentage / 100));
+  const platformFee = idealPrice * (watchedValues.platformFeePercentage / 100);
+  const taxes = idealPrice * (watchedValues.taxPercentage / 100);
+  const finalPrice = idealPrice + platformFee + taxes;
+  const unitProfit = finalPrice - totalUnitCost;
+  const actualMargin = totalUnitCost > 0 ? ((unitProfit / finalPrice) * 100) : 0;
 
-    const dataToSave = {
-      ...formData,
-      id: existingConfig?.id,
-      user_id: '', // Will be set by the service
-      total_unit_cost: results.unitCost,
-      ideal_price: results.sellingPrice,
-      final_price: results.priceWithTaxes,
-      unit_profit: results.unitProfit,
-      actual_margin: results.margin
-    };
-
-    onSave(dataToSave);
-  };
-
-  const handleInputChange = (field: string, value: number | string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleAdditionalCostsChange = (costs: AdditionalCost[]) => {
-    setFormData(prev => ({ ...prev, additionalCosts: costs }));
+  const handleProductChange = (productId: string) => {
+    setSelectedProductId(productId);
+    form.setValue('productId', productId);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Custos Base */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              💰 Custos Base
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="name">Nome da Configuração</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                required
-              />
-            </div>
+        {/* Formulário */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Informações Básicas</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="name">Nome da Configuração</Label>
+                <Input
+                  id="name"
+                  {...form.register('name')}
+                  placeholder="Ex: Precificação Padrão"
+                />
+                {form.formState.errors.name && (
+                  <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
+                )}
+              </div>
 
-            <div>
-              <Label htmlFor="base_cost">Custo Base do Produto</Label>
-              <Input
-                id="base_cost"
-                type="number"
-                step="0.01"
-                value={formData.base_cost}
-                onChange={(e) => handleInputChange('base_cost', parseFloat(e.target.value) || 0)}
-                required
-              />
-            </div>
+              <div>
+                <Label htmlFor="product">Produto</Label>
+                <select
+                  id="product"
+                  className="w-full p-2 border rounded-md"
+                  value={selectedProductId}
+                  onChange={(e) => handleProductChange(e.target.value)}
+                >
+                  <option value="">Selecione um produto</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
+                {form.formState.errors.productId && (
+                  <p className="text-sm text-red-500">{form.formState.errors.productId.message}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-            <div>
-              <Label htmlFor="packaging_cost">Custo de Embalagem</Label>
-              <Input
-                id="packaging_cost"
-                type="number"
-                step="0.01"
-                value={formData.packaging_cost}
-                onChange={(e) => handleInputChange('packaging_cost', parseFloat(e.target.value) || 0)}
-              />
-            </div>
+          {/* Custo do Produto - Seção dinâmica */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Custo do Produto</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <Card className="p-4 bg-blue-50 border-blue-200">
+                  <div className="text-center">
+                    <p className="text-sm text-blue-600 font-medium">Total Receitas</p>
+                    <p className="text-xl font-bold text-blue-700">
+                      {formatCurrency(productCosts.totalRecipeCost)}
+                    </p>
+                  </div>
+                </Card>
+                
+                <Card className="p-4 bg-green-50 border-green-200">
+                  <div className="text-center">
+                    <p className="text-sm text-green-600 font-medium">Total Embalagens</p>
+                    <p className="text-xl font-bold text-green-700">
+                      {formatCurrency(productCosts.totalPackagingCost)}
+                    </p>
+                  </div>
+                </Card>
+                
+                <Card className="p-4 bg-purple-50 border-purple-200">
+                  <div className="text-center">
+                    <p className="text-sm text-purple-600 font-medium">Custo Total Base</p>
+                    <p className="text-xl font-bold text-purple-700">
+                      {formatCurrency(productCosts.totalBaseCost)}
+                    </p>
+                  </div>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-            <div>
-              <Label htmlFor="wastage_percentage">Percentual de Desperdício (%)</Label>
-              <Input
-                id="wastage_percentage"
-                type="number"
-                step="0.1"
-                value={formData.wastage_percentage}
-                onChange={(e) => handleInputChange('wastage_percentage', parseFloat(e.target.value) || 0)}
-              />
-            </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Parâmetros de Precificação</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="wastage">Perda (%)</Label>
+                  <Input
+                    id="wastage"
+                    type="number"
+                    step="0.1"
+                    {...form.register('wastagePercentage', { valueAsNumber: true })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="margin">Margem Desejada (%)</Label>
+                  <Input
+                    id="margin"
+                    type="number"
+                    step="0.1"
+                    {...form.register('marginPercentage', { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
 
-            <AdditionalCostsEditor
-              costs={formData.additionalCosts}
-              onChange={handleAdditionalCostsChange}
-            />
-          </CardContent>
-        </Card>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="platformFee">Taxa de Plataforma (%)</Label>
+                  <Input
+                    id="platformFee"
+                    type="number"
+                    step="0.1"
+                    {...form.register('platformFeePercentage', { valueAsNumber: true })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="tax">Impostos (%)</Label>
+                  <Input
+                    id="tax"
+                    type="number"
+                    step="0.1"
+                    {...form.register('taxPercentage', { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Parâmetros de Venda */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              📈 Parâmetros de Venda
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="margin_percentage">Margem de Lucro (%)</Label>
-              <Input
-                id="margin_percentage"
-                type="number"
-                step="0.1"
-                value={formData.margin_percentage}
-                onChange={(e) => handleInputChange('margin_percentage', parseFloat(e.target.value) || 0)}
-                required
-              />
-            </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Custos Adicionais</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="labor">Mão de Obra</Label>
+                  <Input
+                    id="labor"
+                    type="number"
+                    step="0.01"
+                    {...form.register('laborCost', { valueAsNumber: true })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="overhead">Custos Indiretos</Label>
+                  <Input
+                    id="overhead"
+                    type="number"
+                    step="0.01"
+                    {...form.register('overheadCost', { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
 
-            <div>
-              <Label htmlFor="platform_fee_percentage">Taxa da Plataforma (%)</Label>
-              <Input
-                id="platform_fee_percentage"
-                type="number"
-                step="0.1"
-                value={formData.platform_fee_percentage}
-                onChange={(e) => handleInputChange('platform_fee_percentage', parseFloat(e.target.value) || 0)}
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="marketing">Marketing</Label>
+                  <Input
+                    id="marketing"
+                    type="number"
+                    step="0.01"
+                    {...form.register('marketingCost', { valueAsNumber: true })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="delivery">Entrega</Label>
+                  <Input
+                    id="delivery"
+                    type="number"
+                    step="0.01"
+                    {...form.register('deliveryCost', { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
 
-            <div>
-              <Label htmlFor="tax_percentage">Impostos (%)</Label>
-              <Input
-                id="tax_percentage"
-                type="number"
-                step="0.1"
-                value={formData.tax_percentage}
-                onChange={(e) => handleInputChange('tax_percentage', parseFloat(e.target.value) || 0)}
-              />
-            </div>
+              <div>
+                <Label htmlFor="other">Outros Custos</Label>
+                <Input
+                  id="other"
+                  type="number"
+                  step="0.01"
+                  {...form.register('otherCosts', { valueAsNumber: true })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            <div>
-              <Label htmlFor="notes">Observações</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
-                placeholder="Observações sobre esta precificação..."
+        {/* Resumo de Cálculos */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumo de Cálculos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span>Custo Base:</span>
+                  <span className="font-medium">{formatCurrency(baseCost)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Perdas ({watchedValues.wastagePercentage}%):</span>
+                  <span className="font-medium">{formatCurrency(wastageAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Custos Adicionais:</span>
+                  <span className="font-medium">{formatCurrency(additionalCosts)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-lg font-semibold">
+                  <span>Custo Total Unitário:</span>
+                  <span>{formatCurrency(totalUnitCost)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Resultado da Precificação</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span>Preço Ideal:</span>
+                  <span className="font-medium">{formatCurrency(idealPrice)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Taxa de Plataforma:</span>
+                  <span className="font-medium">{formatCurrency(platformFee)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Impostos:</span>
+                  <span className="font-medium">{formatCurrency(taxes)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-xl font-bold text-green-600">
+                  <span>Preço Final:</span>
+                  <span>{formatCurrency(finalPrice)}</span>
+                </div>
+                <div className="flex justify-between text-lg">
+                  <span>Lucro Unitário:</span>
+                  <span className="font-semibold text-blue-600">{formatCurrency(unitProfit)}</span>
+                </div>
+                <div className="flex justify-between text-lg">
+                  <span>Margem Efetiva:</span>
+                  <span className="font-semibold text-purple-600">{actualMargin.toFixed(1)}%</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Observações</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <textarea
+                className="w-full p-3 border rounded-md resize-none"
+                rows={4}
+                placeholder="Adicione observações sobre esta configuração de preços..."
+                {...form.register('notes')}
               />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Resultados */}
-      {results && (
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-800">
-              🎯 Resultados da Precificação
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-blue-600">
-                  {formatCurrency(results.unitCost)}
-                </div>
-                <div className="text-sm text-gray-600">Custo Unitário</div>
-              </div>
-
-              <div className="text-center p-4 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(results.sellingPrice)}
-                </div>
-                <div className="text-sm text-gray-600">Preço de Venda</div>
-              </div>
-
-              <div className="text-center p-4 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-purple-600">
-                  {formatCurrency(results.priceWithCommission)}
-                </div>
-                <div className="text-sm text-gray-600">Com Comissão</div>
-              </div>
-
-              <div className="text-center p-4 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-orange-600">
-                  {formatCurrency(results.priceWithTaxes)}
-                </div>
-                <div className="text-sm text-gray-600">Preço Final</div>
-              </div>
-
-              <div className="text-center p-4 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-green-700">
-                  {formatCurrency(results.unitProfit)}
-                </div>
-                <div className="text-sm text-gray-600">Lucro Unitário</div>
-              </div>
-
-              <div className="text-center p-4 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-blue-700">
-                  {formatPercentage(results.appliedMarkup)}
-                </div>
-                <div className="text-sm text-gray-600">Markup Aplicado</div>
-              </div>
-
-              <div className="text-center p-4 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {formatCurrency(results.minimumRecommendedPrice)}
-                </div>
-                <div className="text-sm text-gray-600">Preço Mínimo</div>
-              </div>
-
-              <div className="text-center p-4 bg-white rounded-lg border">
-                <Badge variant="secondary" className="text-lg">
-                  {formatPercentage(results.appliedMarkup)} markup
-                </Badge>
-                <div className="text-sm text-gray-600">Rendimento</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="flex justify-end gap-4">
-        <Button type="submit" disabled={isLoading || !results} className="min-w-32">
-          {isLoading ? 'Salvando...' : existingConfig ? 'Atualizar' : 'Salvar'} Precificação
+      <div className="flex justify-end gap-4 pt-6 border-t">
+        <Button variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button onClick={form.handleSubmit(onSubmit)}>
+          Salvar Configuração
         </Button>
       </div>
-    </form>
+    </div>
   );
 };
-
-export default PricingForm;
