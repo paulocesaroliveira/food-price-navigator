@@ -76,40 +76,44 @@ export const IngredientForm = ({
   const form = useForm<z.infer<typeof ingredientSchema>>({
     resolver: zodResolver(ingredientSchema),
     defaultValues: {
-      name: ingredient?.name || "",
-      brand: ingredient?.brand || "",
-      categoryId: ingredient?.category_id || "",
-      unit: ingredient?.unit || "g",
-      packageQuantity: ingredient?.package_quantity || 0,
-      packagePrice: ingredient?.package_price || 0,
-      supplier: ingredient?.supplier || "",
+      name: "",
+      brand: "",
+      categoryId: "",
+      unit: "g",
+      packageQuantity: 0,
+      packagePrice: 0,
+      supplier: "",
     },
   });
 
-  // Reset form when ingredient changes
+  // Reset form when ingredient changes or dialog opens
   React.useEffect(() => {
-    if (ingredient) {
-      form.reset({
-        name: ingredient.name || "",
-        brand: ingredient.brand || "",
-        categoryId: ingredient.category_id || "",
-        unit: ingredient.unit || "g",
-        packageQuantity: ingredient.package_quantity || 0,
-        packagePrice: ingredient.package_price || 0,
-        supplier: ingredient.supplier || "",
-      });
-    } else {
-      form.reset({
-        name: "",
-        brand: "",
-        categoryId: "",
-        unit: "g",
-        packageQuantity: 0,
-        packagePrice: 0,
-        supplier: "",
-      });
+    if (open) {
+      if (ingredient) {
+        console.log('Editando ingrediente:', ingredient);
+        form.reset({
+          name: ingredient.name || "",
+          brand: ingredient.brand || "",
+          categoryId: ingredient.category_id || "",
+          unit: ingredient.unit || "g",
+          packageQuantity: ingredient.package_quantity || 0,
+          packagePrice: ingredient.package_price || 0,
+          supplier: ingredient.supplier || "",
+        });
+      } else {
+        console.log('Novo ingrediente');
+        form.reset({
+          name: "",
+          brand: "",
+          categoryId: "",
+          unit: "g",
+          packageQuantity: 0,
+          packagePrice: 0,
+          supplier: "",
+        });
+      }
     }
-  }, [ingredient, form]);
+  }, [ingredient, form, open]);
 
   const packageQuantity = form.watch("packageQuantity");
   const packagePrice = form.watch("packagePrice");
