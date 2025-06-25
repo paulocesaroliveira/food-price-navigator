@@ -86,10 +86,28 @@ export const getProductById = async (productId: string) => {
 
   console.log('ProductService - Product packaging loaded:', packaging);
 
+  // Mapear os dados para corresponder aos tipos esperados
+  const mappedItems = (items || []).map(item => ({
+    id: item.id,
+    recipeId: item.recipe_id,
+    quantity: item.quantity,
+    cost: item.cost,
+    recipe: item.recipe
+  }));
+
+  const mappedPackaging = (packaging || []).map(pack => ({
+    id: pack.id,
+    packagingId: pack.packaging_id,
+    quantity: pack.quantity,
+    cost: pack.cost,
+    isPrimary: pack.is_primary,
+    packaging: pack.packaging
+  }));
+
   const result = {
     ...product,
-    items: items || [],
-    packagingItems: packaging || [],
+    items: mappedItems,
+    packagingItems: mappedPackaging,
     totalCost: product.total_cost || 0
   };
 
