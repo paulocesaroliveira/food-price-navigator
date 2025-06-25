@@ -96,8 +96,8 @@ export const IngredientForm = ({
           brand: ingredient.brand || "",
           categoryId: ingredient.category_id || "",
           unit: ingredient.unit || "g",
-          packageQuantity: ingredient.package_quantity || 0,
-          packagePrice: ingredient.package_price || 0,
+          packageQuantity: Number(ingredient.package_quantity) || 0,
+          packagePrice: Number(ingredient.package_price) || 0,
           supplier: ingredient.supplier || "",
         });
       } else {
@@ -282,6 +282,7 @@ export const IngredientForm = ({
                         min="0"
                         placeholder="Ex: 1000"
                         {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />

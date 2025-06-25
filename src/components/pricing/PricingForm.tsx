@@ -364,10 +364,10 @@ export const PricingForm: React.FC<PricingFormProps> = ({
           </CardContent>
         </Card>
 
-        {/* Configuração de Preço e Margem */}
+        {/* Definição de Preço e Margem */}
         <Card className="w-full">
           <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg">Definição de Preço</CardTitle>
+            <CardTitle className="text-lg">Definição de Preço e Margem</CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
