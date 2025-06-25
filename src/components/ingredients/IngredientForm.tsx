@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -86,18 +86,19 @@ export const IngredientForm = ({
     },
   });
 
-  // Reset form when ingredient changes or dialog opens
-  React.useEffect(() => {
+  // Efeito para resetar o formulário quando abrir/fechar ou quando o ingrediente mudar
+  useEffect(() => {
     if (open) {
       if (ingredient) {
         console.log('Editando ingrediente:', ingredient);
+        // Garantir que os valores sejam tratados corretamente
         form.reset({
           name: ingredient.name || "",
           brand: ingredient.brand || "",
           categoryId: ingredient.category_id || "",
           unit: ingredient.unit || "g",
-          packageQuantity: Number(ingredient.package_quantity) || 0,
-          packagePrice: Number(ingredient.package_price) || 0,
+          packageQuantity: parseFloat(ingredient.package_quantity) || 0,
+          packagePrice: parseFloat(ingredient.package_price) || 0,
           supplier: ingredient.supplier || "",
         });
       } else {
@@ -113,11 +114,11 @@ export const IngredientForm = ({
         });
       }
     }
-  }, [ingredient, form, open]);
+  }, [ingredient, open, form]);
 
   const packageQuantity = form.watch("packageQuantity");
   const packagePrice = form.watch("packagePrice");
-  const unitCost = packageQuantity && packagePrice ? packagePrice / packageQuantity : 0;
+  const unitCost = packageQuantity && packagePrice && packageQuantity > 0 ? packagePrice / packageQuantity : 0;
 
   const handleSubmit = async (values: z.infer<typeof ingredientSchema>) => {
     setIsLoading(true);
@@ -136,6 +137,8 @@ export const IngredientForm = ({
         supplier: values.supplier || null,
         user_id: user.id,
       };
+
+      console.log('Dados a serem salvos:', ingredientData);
 
       if (ingredient) {
         const { error } = await supabase

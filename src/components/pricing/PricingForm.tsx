@@ -1,480 +1,730 @@
 
 import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { formatCurrency } from "@/utils/calculations";
-import { useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { Calculator, Package, DollarSign, TrendingUp, Target } from "lucide-react";
 
 const pricingSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
-  productId: z.string().min(1, "Produto é obrigatório"),
-  wastagePercentage: z.number().min(0).max(100),
-  platformFeePercentage: z.number().min(0).max(100),
-  taxPercentage: z.number().min(0).max(100),
-  laborCost: z.number().min(0),
-  overheadCost: z.number().min(0),
-  marketingCost: z.number().min(0),
-  deliveryCost: z.number().min(0),
-  otherCosts: z.number().min(0),
-  marginPercentage: z.number().min(0),
-  desiredSellingPrice: z.number().min(0),
-  notes: z.string().optional(),
+  productId: z.string().min(1, { message: "Produto é obrigatório" }),
+  laborCost: z.coerce.number().min(0, { message: "Valor deve ser positivo" }).default(0),
+  laborCostType: z.enum(["fixed", "percentage"]).default("fixed"),
+  overheadCost: z.coerce.number().min(0, { message: "Valor deve ser positivo" }).default(0),
+  overheadCostType: z.enum(["fixed", "percentage"]).default("fixed"),
+  marketingCost: z.coerce.number().min(0, { message: "Valor deve ser positivo" }).default(0),
+  marketingCostType: z.enum(["fixed", "percentage"]).default("fixed"),
+  deliveryCost: z.coerce.number().min(0, { message: "Valor deve ser positivo" }).default(0),
+  deliveryCostType: z.enum(["fixed", "percentage"]).default("fixed"),
+  taxPercentage: z.coerce.number().min(0).max(100, { message: "Valor deve estar entre 0 e 100" }).default(0),
+  platformFeePercentage: z.coerce.number().min(0).max(100, { message: "Valor deve estar entre 0 e 100" }).default(0),
+  marginPercentage: z.coerce.number().min(0).max(1000, { message: "Margem deve ser positiva" }).default(30),
+  desiredSellingPrice: z.coerce.number().min(0, { message: "Valor deve ser positivo" }).default(0),
 });
 
-type PricingFormData = z.infer<typeof pricingSchema>;
-
-interface ProductCostData {
-  totalRecipeCost: number;
-  totalPackagingCost: number;
-  totalBaseCost: number;
-}
-
 interface PricingFormProps {
-  onSubmit: (data: PricingFormData) => void;
-  onCancel: () => void;
-  initialData?: Partial<PricingFormData>;
-  products: Array<{ id: string; name: string; total_cost?: number }>;
+  onSuccess?: () => void;
 }
 
-export const PricingForm: React.FC<PricingFormProps> = ({
-  onSubmit,
-  onCancel,
-  initialData,
-  products
-}) => {
-  const [selectedProductId, setSelectedProductId] = useState(initialData?.productId || "");
-  const [productCosts, setProductCosts] = useState<ProductCostData>({
-    totalRecipeCost: 0,
-    totalPackagingCost: 0,
-    totalBaseCost: 0
+export const PricingForm = ({ onSuccess }: PricingFormProps) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [calculatedValues, setCalculatedValues] = useState({
+    totalIndirectCosts: 0,
+    totalCostWithIndirect: 0,
+    sellingPrice: 0,
+    unitProfit: 0,
+    actualMargin: 0,
   });
 
-  const form = useForm<PricingFormData>({
-    resolver: zodResolver(pricingSchema),
-    defaultValues: {
-      name: initialData?.name || "",
-      productId: initialData?.productId || "",
-      wastagePercentage: initialData?.wastagePercentage || 5,
-      platformFeePercentage: initialData?.platformFeePercentage || 0,
-      taxPercentage: initialData?.taxPercentage || 0,
-      laborCost: initialData?.laborCost || 0,
-      overheadCost: initialData?.overheadCost || 0,
-      marketingCost: initialData?.marketingCost || 0,
-      deliveryCost: initialData?.deliveryCost || 0,
-      otherCosts: initialData?.otherCosts || 0,
-      marginPercentage: initialData?.marginPercentage || 30,
-      desiredSellingPrice: initialData?.desiredSellingPrice || 0,
-      notes: initialData?.notes || "",
-    },
-  });
-
-  // Query para buscar detalhes do produto selecionado
-  const { data: productDetails } = useQuery({
-    queryKey: ['product-details', selectedProductId],
+  const { data: products = [] } = useQuery({
+    queryKey: ['products-for-pricing'],
     queryFn: async () => {
-      if (!selectedProductId) return null;
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      const { data: product, error: productError } = await supabase
+      const { data, error } = await supabase
         .from('products')
-        .select(`
-          *,
-          items:product_items(
-            quantity,
-            cost,
-            recipe:recipes(name, unit_cost)
-          ),
-          packagingItems:product_packaging(
-            quantity,
-            cost,
-            packaging:packaging(name, unit_cost)
-          )
-        `)
-        .eq('id', selectedProductId)
+        .select('*')
         .eq('user_id', user.id)
-        .single();
-
-      if (productError) throw productError;
-      return product;
-    },
-    enabled: !!selectedProductId
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    }
   });
 
-  // Calcular custos do produto quando os detalhes mudarem
-  useEffect(() => {
-    if (productDetails) {
-      const totalRecipeCost = productDetails.items?.reduce((sum: number, item: any) => 
-        sum + (item.cost || 0), 0) || 0;
-      
-      const totalPackagingCost = productDetails.packagingItems?.reduce((sum: number, item: any) => 
-        sum + (item.cost || 0), 0) || 0;
-      
-      const totalBaseCost = totalRecipeCost + totalPackagingCost;
-
-      setProductCosts({
-        totalRecipeCost,
-        totalPackagingCost,
-        totalBaseCost
-      });
-    } else {
-      setProductCosts({
-        totalRecipeCost: 0,
-        totalPackagingCost: 0,
-        totalBaseCost: 0
-      });
-    }
-  }, [productDetails]);
+  const form = useForm<z.infer<typeof pricingSchema>>({
+    resolver: zodResolver(pricingSchema),
+    defaultValues: {
+      productId: "",
+      laborCost: 0,
+      laborCostType: "fixed",
+      overheadCost: 0,
+      overheadCostType: "fixed",
+      marketingCost: 0,
+      marketingCostType: "fixed",
+      deliveryCost: 0,
+      deliveryCostType: "fixed",
+      taxPercentage: 0,
+      platformFeePercentage: 0,
+      marginPercentage: 30,
+      desiredSellingPrice: 0,
+    },
+  });
 
   const watchedValues = form.watch();
-  
-  // Cálculos de precificação
-  const baseCost = productCosts.totalBaseCost;
-  const wastageAmount = baseCost * (watchedValues.wastagePercentage / 100);
-  const totalCostWithWastage = baseCost + wastageAmount;
-  
-  const additionalCosts = (watchedValues.laborCost || 0) + 
-                          (watchedValues.overheadCost || 0) + 
-                          (watchedValues.marketingCost || 0) + 
-                          (watchedValues.deliveryCost || 0) + 
-                          (watchedValues.otherCosts || 0);
-  
-  const totalUnitCost = totalCostWithWastage + additionalCosts;
-  
-  // Calcular preço baseado na margem
-  const priceByMargin = totalUnitCost > 0 ? totalUnitCost / (1 - (watchedValues.marginPercentage / 100)) : 0;
-  const platformFee = priceByMargin * (watchedValues.platformFeePercentage / 100);
-  const taxes = priceByMargin * (watchedValues.taxPercentage / 100);
-  const finalPriceByMargin = priceByMargin + platformFee + taxes;
-  
-  // Calcular margem baseada no preço desejado
-  const desiredPrice = watchedValues.desiredSellingPrice || 0;
-  const desiredProfit = desiredPrice - totalUnitCost;
-  const desiredMargin = desiredPrice > 0 ? ((desiredProfit / desiredPrice) * 100) : 0;
 
-  const handleProductChange = (productId: string) => {
-    setSelectedProductId(productId);
-    form.setValue('productId', productId);
+  // Buscar dados do produto selecionado
+  useEffect(() => {
+    if (watchedValues.productId) {
+      const product = products.find(p => p.id === watchedValues.productId);
+      setSelectedProduct(product);
+    }
+  }, [watchedValues.productId, products]);
+
+  // Recalcular valores sempre que os campos mudarem
+  useEffect(() => {
+    if (selectedProduct) {
+      calculatePricing();
+    }
+  }, [watchedValues, selectedProduct]);
+
+  const calculatePricing = () => {
+    if (!selectedProduct) return;
+
+    const baseCost = selectedProduct.total_cost || 0;
+    
+    // Calcular custos indiretos
+    let laborCostValue = watchedValues.laborCostType === "percentage" 
+      ? (baseCost * watchedValues.laborCost / 100) 
+      : watchedValues.laborCost;
+    
+    let overheadCostValue = watchedValues.overheadCostType === "percentage" 
+      ? (baseCost * watchedValues.overheadCost / 100) 
+      : watchedValues.overheadCost;
+    
+    let marketingCostValue = watchedValues.marketingCostType === "percentage" 
+      ? (baseCost * watchedValues.marketingCost / 100) 
+      : watchedValues.marketingCost;
+    
+    let deliveryCostValue = watchedValues.deliveryCostType === "percentage" 
+      ? (baseCost * watchedValues.deliveryCost / 100) 
+      : watchedValues.deliveryCost;
+
+    const totalIndirectCosts = laborCostValue + overheadCostValue + marketingCostValue + deliveryCostValue;
+    const totalCostWithIndirect = baseCost + totalIndirectCosts;
+
+    let sellingPrice = 0;
+    let unitProfit = 0;
+    let actualMargin = 0;
+
+    // Se o usuário definiu um preço de venda, calcular margem baseada nele
+    if (watchedValues.desiredSellingPrice > 0) {
+      sellingPrice = watchedValues.desiredSellingPrice;
+      
+      // Aplicar taxas e comissões
+      const taxAmount = sellingPrice * (watchedValues.taxPercentage / 100);
+      const platformFeeAmount = sellingPrice * (watchedValues.platformFeePercentage / 100);
+      const netSellingPrice = sellingPrice - taxAmount - platformFeeAmount;
+      
+      unitProfit = netSellingPrice - totalCostWithIndirect;
+      actualMargin = totalCostWithIndirect > 0 ? (unitProfit / totalCostWithIndirect) * 100 : 0;
+      
+      // Atualizar campo de margem sem disparar loop
+      if (Math.abs(form.getValues("marginPercentage") - actualMargin) > 0.1) {
+        form.setValue("marginPercentage", Number(actualMargin.toFixed(2)), { shouldValidate: false });
+      }
+    } else {
+      // Calcular preço baseado na margem
+      const marginMultiplier = 1 + (watchedValues.marginPercentage / 100);
+      const priceBeforeTaxes = totalCostWithIndirect * marginMultiplier;
+      
+      // Ajustar para taxas e comissões
+      const taxAndFeeRate = (watchedValues.taxPercentage + watchedValues.platformFeePercentage) / 100;
+      sellingPrice = priceBeforeTaxes / (1 - taxAndFeeRate);
+      
+      const taxAmount = sellingPrice * (watchedValues.taxPercentage / 100);
+      const platformFeeAmount = sellingPrice * (watchedValues.platformFeePercentage / 100);
+      const netSellingPrice = sellingPrice - taxAmount - platformFeeAmount;
+      
+      unitProfit = netSellingPrice - totalCostWithIndirect;
+      actualMargin = watchedValues.marginPercentage;
+      
+      // Atualizar campo de preço de venda sem disparar loop
+      if (Math.abs(form.getValues("desiredSellingPrice") - sellingPrice) > 0.01) {
+        form.setValue("desiredSellingPrice", Number(sellingPrice.toFixed(2)), { shouldValidate: false });
+      }
+    }
+
+    setCalculatedValues({
+      totalIndirectCosts,
+      totalCostWithIndirect,
+      sellingPrice,
+      unitProfit,
+      actualMargin,
+    });
   };
 
-  const handleMarginChange = (margin: number) => {
-    form.setValue('marginPercentage', margin);
-    // Calcular e atualizar o preço baseado na margem
-    if (totalUnitCost > 0) {
-      const newPrice = totalUnitCost / (1 - (margin / 100));
-      const newPlatformFee = newPrice * (watchedValues.platformFeePercentage / 100);
-      const newTaxes = newPrice * (watchedValues.taxPercentage / 100);
-      const newFinalPrice = newPrice + newPlatformFee + newTaxes;
-      form.setValue('desiredSellingPrice', newFinalPrice);
+  const handleSubmit = async (values: z.infer<typeof pricingSchema>) => {
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const pricingData = {
+        user_id: user.id,
+        product_id: values.productId,
+        name: `Precificação - ${selectedProduct?.name}`,
+        base_cost: selectedProduct?.total_cost || 0,
+        labor_cost: values.laborCost,
+        labor_cost_type: values.laborCostType,
+        overhead_cost: values.overheadCost,
+        overhead_cost_type: values.overheadCostType,
+        marketing_cost: values.marketingCost,
+        marketing_cost_type: values.marketingCostType,
+        delivery_cost: values.deliveryCost,
+        delivery_cost_type: values.deliveryCostType,
+        tax_percentage: values.taxPercentage,
+        platform_fee_percentage: values.platformFeePercentage,
+        margin_percentage: calculatedValues.actualMargin,
+        total_unit_cost: calculatedValues.totalCostWithIndirect,
+        final_price: calculatedValues.sellingPrice,
+        unit_profit: calculatedValues.unitProfit,
+        actual_margin: calculatedValues.actualMargin,
+      };
+
+      const { error } = await supabase
+        .from('pricing_configs')
+        .insert(pricingData);
+
+      if (error) throw error;
+
+      toast({
+        title: "Precificação salva",
+        description: "A configuração de precificação foi salva com sucesso.",
+      });
+
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error('Erro ao salvar precificação:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao salvar precificação",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handlePriceChange = (price: number) => {
-    form.setValue('desiredSellingPrice', price);
-    // Calcular e atualizar a margem baseada no preço
-    if (price > 0 && totalUnitCost > 0) {
-      const profit = price - totalUnitCost;
-      const margin = (profit / price) * 100;
-      form.setValue('marginPercentage', Math.max(0, margin));
-    }
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-2 sm:px-4">
-      <div className="space-y-4">
-        {/* Informações Básicas */}
-        <Card className="w-full">
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg">Informações Básicas</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
-            <div>
-              <Label htmlFor="name" className="text-sm">Nome da Configuração</Label>
-              <Input
-                id="name"
-                {...form.register('name')}
-                placeholder="Ex: Precificação Padrão"
-                className="mt-1"
-              />
-              {form.formState.errors.name && (
-                <p className="text-sm text-red-500 mt-1">{form.formState.errors.name.message}</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="product" className="text-sm">Produto</Label>
-              <select
-                id="product"
-                className="w-full p-2 mt-1 border rounded-md text-sm"
-                value={selectedProductId}
-                onChange={(e) => handleProductChange(e.target.value)}
-              >
-                <option value="">Selecione um produto</option>
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name}
-                  </option>
-                ))}
-              </select>
-              {form.formState.errors.productId && (
-                <p className="text-sm text-red-500 mt-1">{form.formState.errors.productId.message}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Custo do Produto */}
-        <Card className="w-full">
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg">Custo do Produto</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                <p className="text-xs text-blue-600 font-medium">Total Receitas</p>
-                <p className="text-lg font-bold text-blue-700">
-                  {formatCurrency(productCosts.totalRecipeCost)}
-                </p>
-              </div>
-              
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center">
-                <p className="text-xs text-green-600 font-medium">Total Embalagens</p>
-                <p className="text-lg font-bold text-green-700">
-                  {formatCurrency(productCosts.totalPackagingCost)}
-                </p>
-              </div>
-              
-              <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-center">
-                <p className="text-xs text-purple-600 font-medium">Custo Total Base</p>
-                <p className="text-lg font-bold text-purple-700">
-                  {formatCurrency(productCosts.totalBaseCost)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Parâmetros de Precificação */}
-        <Card className="w-full">
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg">Parâmetros</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="wastage" className="text-sm">Perda (%)</Label>
-                <Input
-                  id="wastage"
-                  type="number"
-                  step="0.1"
-                  className="mt-1"
-                  {...form.register('wastagePercentage', { valueAsNumber: true })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="platformFee" className="text-sm">Taxa Plataforma (%)</Label>
-                <Input
-                  id="platformFee"
-                  type="number"
-                  step="0.1"
-                  className="mt-1"
-                  {...form.register('platformFeePercentage', { valueAsNumber: true })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="tax" className="text-sm">Impostos (%)</Label>
-                <Input
-                  id="tax"
-                  type="number"
-                  step="0.1"
-                  className="mt-1"
-                  {...form.register('taxPercentage', { valueAsNumber: true })}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Custos Adicionais */}
-        <Card className="w-full">
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg">Custos Adicionais</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="labor" className="text-sm">Mão de Obra</Label>
-                <Input
-                  id="labor"
-                  type="number"
-                  step="0.01"
-                  className="mt-1"
-                  {...form.register('laborCost', { valueAsNumber: true })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="overhead" className="text-sm">Custos Indiretos</Label>
-                <Input
-                  id="overhead"
-                  type="number"
-                  step="0.01"
-                  className="mt-1"
-                  {...form.register('overheadCost', { valueAsNumber: true })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="marketing" className="text-sm">Marketing</Label>
-                <Input
-                  id="marketing"
-                  type="number"
-                  step="0.01"
-                  className="mt-1"
-                  {...form.register('marketingCost', { valueAsNumber: true })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="delivery" className="text-sm">Entrega</Label>
-                <Input
-                  id="delivery"
-                  type="number"
-                  step="0.01"
-                  className="mt-1"
-                  {...form.register('deliveryCost', { valueAsNumber: true })}
-                />
-              </div>
-            </div>
-            <div className="mt-4">
-              <Label htmlFor="other" className="text-sm">Outros Custos</Label>
-              <Input
-                id="other"
-                type="number"
-                step="0.01"
-                className="mt-1"
-                {...form.register('otherCosts', { valueAsNumber: true })}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Definição de Preço e Margem */}
-        <Card className="w-full">
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg">Definição de Preço e Margem</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="margin" className="text-sm">Margem Desejada (%)</Label>
-                <Input
-                  id="margin"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  className="mt-1"
-                  value={watchedValues.marginPercentage}
-                  onChange={(e) => handleMarginChange(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="desiredPrice" className="text-sm">Preço de Venda Desejado</Label>
-                <Input
-                  id="desiredPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="R$ 0,00"
-                  className="mt-1"
-                  value={watchedValues.desiredSellingPrice}
-                  onChange={(e) => handlePriceChange(Number(e.target.value))}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Resumo de Cálculos */}
-        <Card className="w-full">
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg">Resumo de Cálculos</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0 space-y-3">
-            <div className="flex justify-between text-sm">
-              <span>Custo Base:</span>
-              <span className="font-medium">{formatCurrency(baseCost)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Perdas ({watchedValues.wastagePercentage}%):</span>
-              <span className="font-medium">{formatCurrency(wastageAmount)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Custos Adicionais:</span>
-              <span className="font-medium">{formatCurrency(additionalCosts)}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between text-base font-semibold">
-              <span>Custo Total Unitário:</span>
-              <span>{formatCurrency(totalUnitCost)}</span>
-            </div>
-            <div className="flex justify-between text-base">
-              <span>Preço de Venda:</span>
-              <span className="font-semibold text-green-600">{formatCurrency(desiredPrice)}</span>
-            </div>
-            <div className="flex justify-between text-base">
-              <span>Lucro Unitário:</span>
-              <span className={`font-semibold ${desiredProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                {formatCurrency(desiredProfit)}
-              </span>
-            </div>
-            <div className="flex justify-between text-base">
-              <span>Margem Efetiva:</span>
-              <span className={`font-semibold ${desiredMargin >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
-                {desiredMargin.toFixed(1)}%
-              </span>
-            </div>
-            
-            {desiredProfit < 0 && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md mt-4">
-                <p className="text-sm text-red-700">
-                  ⚠️ Atenção: O preço atual resultará em prejuízo!
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Observações */}
-        <Card className="w-full">
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg">Observações</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
-            <textarea
-              className="w-full p-3 border rounded-md resize-none text-sm"
-              rows={3}
-              placeholder="Adicione observações sobre esta configuração de preços..."
-              {...form.register('notes')}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Botões de Ação */}
-        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">
-            Cancelar
-          </Button>
-          <Button onClick={form.handleSubmit(onSubmit)} className="w-full sm:w-auto">
-            Salvar Configuração
-          </Button>
-        </div>
+    <div className="max-w-4xl mx-auto p-4 space-y-6">
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Precificação Inteligente</h1>
+        <p className="text-gray-600">Configure sua precificação de forma inteligente e precisa</p>
       </div>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          {/* Sessão 1: Nome do Produto */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Produto
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="productId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Selecione o Produto</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Escolha um produto para precificar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Sessão 2: Custo do Produto */}
+          {selectedProduct && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Custo do Produto
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">Custo calculado automaticamente baseado nas receitas e embalagens</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {formatCurrency(selectedProduct.total_cost || 0)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Sessão 3: Custos Indiretos e Taxas */}
+          {selectedProduct && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Custos Indiretos e Taxas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <FormField
+                      control={form.control}
+                      name="laborCost"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Custo de Mão de Obra</FormLabel>
+                          <FormControl>
+                            {watchedValues.laborCostType === "percentage" ? (
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0"
+                                {...field}
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                              />
+                            ) : (
+                              <CurrencyInput
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                placeholder="R$ 0,00"
+                              />
+                            )}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FormField
+                      control={form.control}
+                      name="laborCostType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                              <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <FormField
+                      control={form.control}
+                      name="overheadCost"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Custos Gerais</FormLabel>
+                          <FormControl>
+                            {watchedValues.overheadCostType === "percentage" ? (
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0"
+                                {...field}
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                              />
+                            ) : (
+                              <CurrencyInput
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                placeholder="R$ 0,00"
+                              />
+                            )}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FormField
+                      control={form.control}
+                      name="overheadCostType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                              <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <FormField
+                      control={form.control}
+                      name="marketingCost"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Custos de Marketing</FormLabel>
+                          <FormControl>
+                            {watchedValues.marketingCostType === "percentage" ? (
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0"
+                                {...field}
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                              />
+                            ) : (
+                              <CurrencyInput
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                placeholder="R$ 0,00"
+                              />
+                            )}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FormField
+                      control={form.control}
+                      name="marketingCostType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                              <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <FormField
+                      control={form.control}
+                      name="deliveryCost"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Custos de Entrega</FormLabel>
+                          <FormControl>
+                            {watchedValues.deliveryCostType === "percentage" ? (
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0"
+                                {...field}
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                              />
+                            ) : (
+                              <CurrencyInput
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                placeholder="R$ 0,00"
+                              />
+                            )}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FormField
+                      control={form.control}
+                      name="deliveryCostType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                              <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="taxPercentage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Impostos (%)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            placeholder="0"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="platformFeePercentage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Taxa da Plataforma (%)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            placeholder="0"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Sessão 4: Margem e Preço de Venda */}
+          {selectedProduct && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Definição de Margem e Preço
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="marginPercentage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Margem de Lucro (%)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="30"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="desiredSellingPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preço de Venda Desejado</FormLabel>
+                        <FormControl>
+                          <CurrencyInput
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="R$ 0,00"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Os campos acima são dinâmicos - altere qualquer um e o outro será calculado automaticamente
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Sessão 5: Resumo */}
+          {selectedProduct && (
+            <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-green-700">
+                  <TrendingUp className="h-5 w-5" />
+                  Resumo da Precificação
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">Custo Base</p>
+                    <p className="text-lg font-semibold">
+                      {formatCurrency(selectedProduct.total_cost || 0)}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">Custos Indiretos</p>
+                    <p className="text-lg font-semibold">
+                      {formatCurrency(calculatedValues.totalIndirectCosts)}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">Custo Total</p>
+                    <p className="text-lg font-semibold text-orange-600">
+                      {formatCurrency(calculatedValues.totalCostWithIndirect)}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">Margem Atual</p>
+                    <p className="text-lg font-semibold text-blue-600">
+                      {calculatedValues.actualMargin.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+                
+                <Separator className="my-4" />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-white rounded-lg border">
+                    <p className="text-sm text-gray-600 mb-1">Preço de Venda</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatCurrency(calculatedValues.sellingPrice)}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-white rounded-lg border">
+                    <p className="text-sm text-gray-600 mb-1">Lucro por Unidade</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatCurrency(calculatedValues.unitProfit)}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <Button 
+              type="submit" 
+              disabled={isLoading || !selectedProduct}
+              className="px-8"
+            >
+              {isLoading ? "Salvando..." : "Salvar Precificação"}
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 };
