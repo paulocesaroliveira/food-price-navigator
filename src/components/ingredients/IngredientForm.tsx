@@ -86,33 +86,30 @@ export const IngredientForm = ({
     },
   });
 
-  // Efeito para resetar o formulário quando abrir/fechar ou quando o ingrediente mudar
+  // Corrigir o useEffect para carregar dados corretamente
   useEffect(() => {
-    if (open) {
-      if (ingredient) {
-        console.log('Editando ingrediente:', ingredient);
-        // Garantir que os valores sejam tratados corretamente
-        form.reset({
-          name: ingredient.name || "",
-          brand: ingredient.brand || "",
-          categoryId: ingredient.category_id || "",
-          unit: ingredient.unit || "g",
-          packageQuantity: parseFloat(ingredient.package_quantity) || 0,
-          packagePrice: parseFloat(ingredient.package_price) || 0,
-          supplier: ingredient.supplier || "",
-        });
-      } else {
-        console.log('Novo ingrediente');
-        form.reset({
-          name: "",
-          brand: "",
-          categoryId: "",
-          unit: "g",
-          packageQuantity: 0,
-          packagePrice: 0,
-          supplier: "",
-        });
-      }
+    if (open && ingredient) {
+      console.log('Carregando dados do ingrediente para edição:', ingredient);
+      form.reset({
+        name: ingredient.name || "",
+        brand: ingredient.brand || "",
+        categoryId: ingredient.category_id || "",
+        unit: ingredient.unit || "g",
+        packageQuantity: Number(ingredient.package_quantity) || 0,
+        packagePrice: Number(ingredient.package_price) || 0,
+        supplier: ingredient.supplier || "",
+      });
+    } else if (open && !ingredient) {
+      console.log('Novo ingrediente - resetando formulário');
+      form.reset({
+        name: "",
+        brand: "",
+        categoryId: "",
+        unit: "g",
+        packageQuantity: 0,
+        packagePrice: 0,
+        supplier: "",
+      });
     }
   }, [ingredient, open, form]);
 
@@ -137,8 +134,6 @@ export const IngredientForm = ({
         supplier: values.supplier || null,
         user_id: user.id,
       };
-
-      console.log('Dados a serem salvos:', ingredientData);
 
       if (ingredient) {
         const { error } = await supabase
@@ -166,7 +161,6 @@ export const IngredientForm = ({
       }
 
       onSuccess();
-      form.reset();
       onOpenChange(false);
     } catch (error: any) {
       console.error('Erro ao salvar ingrediente:', error);
@@ -340,10 +334,7 @@ export const IngredientForm = ({
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => {
-                  form.reset();
-                  onOpenChange(false);
-                }}
+                onClick={() => onOpenChange(false)}
                 className="w-full sm:w-auto"
               >
                 Cancelar
