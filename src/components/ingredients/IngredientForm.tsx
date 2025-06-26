@@ -86,21 +86,21 @@ export const IngredientForm = ({
     },
   });
 
-  // Corrigir o useEffect para carregar dados corretamente
+  // Carregar dados do ingrediente para edição
   useEffect(() => {
     if (open && ingredient) {
-      console.log('Carregando dados do ingrediente para edição:', ingredient);
+      console.log('Carregando ingrediente para edição:', ingredient);
       form.reset({
         name: ingredient.name || "",
         brand: ingredient.brand || "",
         categoryId: ingredient.category_id || "",
         unit: ingredient.unit || "g",
-        packageQuantity: Number(ingredient.package_quantity) || 0,
-        packagePrice: Number(ingredient.package_price) || 0,
+        packageQuantity: ingredient.package_quantity || 0,
+        packagePrice: ingredient.package_price || 0,
         supplier: ingredient.supplier || "",
       });
     } else if (open && !ingredient) {
-      console.log('Novo ingrediente - resetando formulário');
+      console.log('Novo ingrediente - resetando form');
       form.reset({
         name: "",
         brand: "",

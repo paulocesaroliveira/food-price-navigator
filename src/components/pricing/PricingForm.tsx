@@ -97,7 +97,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
     }
   }, [watchedValues.productId, products]);
 
-  // Calcular valores dinamicamente
+  // Cálculos dinâmicos
   const baseCost = selectedProduct?.total_cost || 0;
   
   const laborCostValue = watchedValues.laborCostType === "percentage" 
@@ -119,7 +119,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
   const totalIndirectCosts = laborCostValue + overheadCostValue + marketingCostValue + deliveryCostValue;
   const totalCost = baseCost + totalIndirectCosts;
   
-  // Cálculo dinâmico baseado na margem ou preço de venda
+  // Lógica dinâmica de margem/preço
   const calculatedSellingPrice = totalCost * (1 + watchedValues.marginPercentage / 100);
   const calculatedMargin = watchedValues.sellingPrice > 0 && totalCost > 0 
     ? ((watchedValues.sellingPrice - totalCost) / totalCost) * 100 
@@ -199,12 +199,12 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          {/* Sessão 1: Nome do Produto */}
+          {/* Seção 1: Seleção do Produto */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                Nome do Produto
+                Produto
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -235,7 +235,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
             </CardContent>
           </Card>
 
-          {/* Sessão 2: Custo do Produto */}
+          {/* Seção 2: Custo do Produto */}
           {selectedProduct && (
             <Card>
               <CardHeader>
@@ -255,7 +255,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
             </Card>
           )}
 
-          {/* Sessão 3: Custos Indiretos e Taxas */}
+          {/* Seção 3: Custos Indiretos e Taxas */}
           {selectedProduct && (
             <Card>
               <CardHeader>
@@ -531,7 +531,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
             </Card>
           )}
 
-          {/* Sessão 4: Margem de Lucro ou Preço de Venda */}
+          {/* Seção 4: Margem de Lucro */}
           {selectedProduct && (
             <Card>
               <CardHeader>
@@ -598,7 +598,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
             </Card>
           )}
 
-          {/* Sessão 5: Resumo */}
+          {/* Seção 5: Resumo */}
           {selectedProduct && (
             <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
               <CardHeader>
@@ -608,7 +608,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div className="text-center">
                     <p className="text-sm text-gray-600">Custo Base</p>
                     <p className="text-lg font-semibold">
