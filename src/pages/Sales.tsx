@@ -30,7 +30,8 @@ import {
   DollarSign,
   Receipt,
   Target,
-  ShoppingBag
+  ShoppingBag,
+  Users
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/utils/calculations";
 import { getSales, createSale, deleteSale } from "@/services/salesService";
@@ -38,6 +39,7 @@ import { getProductList } from "@/services/productService";
 import SalesForm from "@/components/sales/SalesForm";
 import { toast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { Link } from "react-router-dom";
 
 const Sales = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,12 +47,12 @@ const Sales = () => {
   const queryClient = useQueryClient();
 
   const { data: sales = [], isLoading: salesLoading } = useQuery({
-    queryKey: ['sales'],
+    queryKey: ["sales"],
     queryFn: getSales
   });
 
   const { data: products = [] } = useQuery({
-    queryKey: ['products'],
+    queryKey: ["products"],
     queryFn: getProductList
   });
 
@@ -58,10 +60,10 @@ const Sales = () => {
     mutationFn: createSale,
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Venda criada com sucesso!" });
-      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
       setShowForm(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Erro",
         description: `Erro ao criar venda: ${error.message}`,
@@ -74,9 +76,9 @@ const Sales = () => {
     mutationFn: deleteSale,
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Venda excluída com sucesso!" });
-      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Erro",
         description: `Erro ao excluir venda: ${error.message}`,
@@ -88,7 +90,7 @@ const Sales = () => {
   // Calculate summary data
   const totalRevenue = Array.isArray(sales) ? sales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0) : 0;
   const totalCost = Array.isArray(sales) ? sales.reduce((sum, sale) => sum + (sale.total_cost || 0), 0) : 0;
-  const totalSales = Array.isArray(sales) ? sales.filter(sale => sale.status === 'completed').length : 0;
+  const totalSales = Array.isArray(sales) ? sales.filter(sale => sale.status === "completed").length : 0;
   const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
   const grossProfit = totalRevenue - totalCost;
 
@@ -117,13 +119,23 @@ const Sales = () => {
           { icon: TrendingUp, text: `Lucro: ${formatCurrency(grossProfit)}` }
         ]}
         actions={
-          <Button 
-            className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto" 
-            onClick={() => setShowForm(true)}
-          >
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Nova Venda
-          </Button>
+          <div className="flex gap-2">
+            <Link to="/resale">
+              <Button 
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Revendedores
+              </Button>
+            </Link>
+            <Button 
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto" 
+              onClick={() => setShowForm(true)}
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Nova Venda
+            </Button>
+          </div>
         }
       />
 
@@ -230,14 +242,14 @@ const Sales = () => {
                       </TableCell>
                       <TableCell>
                         <Badge 
-                          variant={sale.status === 'completed' ? 'default' : 'secondary'}
+                          variant={sale.status === "completed" ? "default" : "secondary"}
                           className={
-                            sale.status === 'completed' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
+                            sale.status === "completed" 
+                              ? "bg-green-100 text-green-800" 
+                              : "bg-gray-100 text-gray-800"
                           }
                         >
-                          {sale.status === 'completed' ? 'Concluída' : 'Pendente'}
+                          {sale.status === "completed" ? "Concluída" : "Pendente"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -288,3 +300,5 @@ const Sales = () => {
 };
 
 export default Sales;
+
+

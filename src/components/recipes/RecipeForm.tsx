@@ -59,14 +59,14 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   useEffect(() => {
     if (open) {
       if (editingRecipe) {
-        console.log('Loading recipe for edit:', editingRecipe);
+        console.log(`Loading recipe for edit:`, editingRecipe);
         setName(editingRecipe.name || "");
         setCategoryId(editingRecipe.category?.id || "");
         setPortions(editingRecipe.portions?.toString() || "1");
         setNotes(editingRecipe.notes || "");
         loadRecipeIngredients();
       } else {
-        console.log('Opening form for new recipe');
+        console.log(`Opening form for new recipe`);
         // Reset form for new recipe
         setName("");
         setCategoryId("");
@@ -82,32 +82,32 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     if (!editingRecipe?.id) return;
 
     try {
-      console.log('Loading ingredients for recipe:', editingRecipe.id);
+      console.log(`Loading ingredients for recipe:`, editingRecipe.id);
       
       // Carregar ingredientes base
       const { data: baseData, error: baseError } = await supabase
-        .from('recipe_base_ingredients')
+        .from(`recipe_base_ingredients`)
         .select(`
           *,
           ingredient:ingredients(id, name, unit, unit_cost)
         `)
-        .eq('recipe_id', editingRecipe.id);
+        .eq(`recipe_id`, editingRecipe.id);
 
       if (baseError) throw baseError;
 
       // Carregar ingredientes por porção
       const { data: portionData, error: portionError } = await supabase
-        .from('recipe_portion_ingredients')
+        .from(`recipe_portion_ingredients`)
         .select(`
           *,
           ingredient:ingredients(id, name, unit, unit_cost)
         `)
-        .eq('recipe_id', editingRecipe.id);
+        .eq(`recipe_id`, editingRecipe.id);
 
       if (portionError) throw portionError;
 
-      console.log('Base ingredients loaded:', baseData);
-      console.log('Portion ingredients loaded:', portionData);
+      console.log(`Base ingredients loaded:`, baseData);
+      console.log(`Portion ingredients loaded:`, portionData);
 
       setBaseIngredients(baseData?.map(item => ({
         id: item.id,
@@ -126,13 +126,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       })) || []);
 
     } catch (error) {
-      console.error('Erro ao carregar ingredientes da receita:', error);
+      console.error(`Erro ao carregar ingredientes da receita:`, error);
     }
   };
 
   const addBaseIngredient = () => {
     setBaseIngredients([...baseIngredients, {
-      ingredient_id: '',
+      ingredient_id: `\`\``,
       quantity: 0,
       cost: 0
     }]);
@@ -140,7 +140,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
 
   const addPortionIngredient = () => {
     setPortionIngredients([...portionIngredients, {
-      ingredient_id: '',
+      ingredient_id: `\`\``,
       quantity: 0,
       cost: 0
     }]);
@@ -158,13 +158,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     const updated = [...baseIngredients];
     updated[index] = { ...updated[index], [field]: value };
 
-    if (field === 'ingredient_id') {
+    if (field === `ingredient_id`) {
       const ingredient = ingredients.find(ing => ing.id === value);
       if (ingredient) {
         updated[index].cost = updated[index].quantity * ingredient.unit_cost;
         updated[index].ingredient = ingredient;
       }
-    } else if (field === 'quantity') {
+    } else if (field === `quantity`) {
       const ingredient = ingredients.find(ing => ing.id === updated[index].ingredient_id);
       if (ingredient) {
         updated[index].cost = value * ingredient.unit_cost;
@@ -178,13 +178,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     const updated = [...portionIngredients];
     updated[index] = { ...updated[index], [field]: value };
 
-    if (field === 'ingredient_id') {
+    if (field === `ingredient_id`) {
       const ingredient = ingredients.find(ing => ing.id === value);
       if (ingredient) {
         updated[index].cost = updated[index].quantity * ingredient.unit_cost;
         updated[index].ingredient = ingredient;
       }
-    } else if (field === 'quantity') {
+    } else if (field === `quantity`) {
       const ingredient = ingredients.find(ing => ing.id === updated[index].ingredient_id);
       if (ingredient) {
         updated[index].cost = value * ingredient.unit_cost;
@@ -206,18 +206,18 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     
     if (!name.trim()) {
       toast({
-        title: "❌ Erro",
-        description: "O nome da receita é obrigatório",
-        variant: "destructive"
+        title: `❌ Erro`,
+        description: `O nome da receita é obrigatório`,
+        variant: `destructive`
       });
       return;
     }
 
     if (baseIngredients.some(ing => !ing.ingredient_id) || portionIngredients.some(ing => !ing.ingredient_id)) {
       toast({
-        title: "❌ Erro",
-        description: "Todos os ingredientes devem ser selecionados",
-        variant: "destructive"
+        title: `❌ Erro`,
+        description: `Todos os ingredientes devem ser selecionados`,
+        variant: `destructive`
       });
       return;
     }
@@ -226,7 +226,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+      if (!user) throw new Error(`Usuário não autenticado`);
 
       const recipeData = {
         name,
@@ -243,19 +243,19 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       if (editingRecipe) {
         // Atualizar receita existente
         const { error } = await supabase
-          .from('recipes')
+          .from(`recipes`)
           .update(recipeData)
-          .eq('id', editingRecipe.id);
+          .eq(`id`, editingRecipe.id);
 
         if (error) throw error;
 
         // Deletar ingredientes existentes
-        await supabase.from('recipe_base_ingredients').delete().eq('recipe_id', editingRecipe.id);
-        await supabase.from('recipe_portion_ingredients').delete().eq('recipe_id', editingRecipe.id);
+        await supabase.from(`recipe_base_ingredients`).delete().eq(`recipe_id`, editingRecipe.id);
+        await supabase.from(`recipe_portion_ingredients`).delete().eq(`recipe_id`, editingRecipe.id);
       } else {
         // Criar nova receita
         const { data, error } = await supabase
-          .from('recipes')
+          .from(`recipes`)
           .insert(recipeData)
           .select()
           .single();
@@ -274,7 +274,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         }));
 
         const { error: baseError } = await supabase
-          .from('recipe_base_ingredients')
+          .from(`recipe_base_ingredients`)
           .insert(baseIngredientsData);
 
         if (baseError) throw baseError;
@@ -290,26 +290,26 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         }));
 
         const { error: portionError } = await supabase
-          .from('recipe_portion_ingredients')
+          .from(`recipe_portion_ingredients`)
           .insert(portionIngredientsData);
 
         if (portionError) throw portionError;
       }
 
       toast({
-        title: "✨ Sucesso",
-        description: `Receita ${editingRecipe ? 'atualizada' : 'criada'} com sucesso!`,
+        title: `✨ Sucesso`,
+        description: `Receita ${editingRecipe ? `atualizada` : `criada`} com sucesso!`,
       });
       
       onSuccess();
       onOpenChange(false);
 
     } catch (error: any) {
-      console.error('Erro ao salvar receita:', error);
+      console.error(`Erro ao salvar receita:`, error);
       toast({
-        title: "❌ Erro",
+        title: `❌ Erro`,
         description: error.message,
-        variant: "destructive"
+        variant: `destructive`
       });
     } finally {
       setIsLoading(false);
@@ -321,7 +321,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {editingRecipe ? 'Editar' : 'Nova'} Receita
+            {editingRecipe ? `Editar` : `Nova`} Receita
           </DialogTitle>
         </DialogHeader>
 
@@ -401,7 +401,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                       <Label>Ingrediente</Label>
                       <Select
                         value={ingredient.ingredient_id}
-                        onValueChange={(value) => updateBaseIngredient(index, 'ingredient_id', value)}
+                        onValueChange={(value) => updateBaseIngredient(index, `ingredient_id`, value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione..." />
@@ -421,7 +421,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                         type="number"
                         step="0.01"
                         value={ingredient.quantity}
-                        onChange={(e) => updateBaseIngredient(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => updateBaseIngredient(index, `quantity`, parseFloat(e.target.value) || 0)}
                         placeholder="0"
                       />
                     </div>
@@ -470,7 +470,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                       <Label>Ingrediente</Label>
                       <Select
                         value={ingredient.ingredient_id}
-                        onValueChange={(value) => updatePortionIngredient(index, 'ingredient_id', value)}
+                        onValueChange={(value) => updatePortionIngredient(index, `ingredient_id`, value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione..." />
@@ -490,7 +490,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                         type="number"
                         step="0.01"
                         value={ingredient.quantity}
-                        onChange={(e) => updatePortionIngredient(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => updatePortionIngredient(index, `quantity`, parseFloat(e.target.value) || 0)}
                         placeholder="0"
                       />
                     </div>
@@ -573,7 +573,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Salvando...' : editingRecipe ? 'Atualizar' : 'Criar'} Receita
+              {isLoading ? `Salvando...` : editingRecipe ? `Atualizar` : `Criar`} Receita
             </Button>
           </div>
         </form>
@@ -583,3 +583,5 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
 };
 
 export default RecipeForm;
+
+

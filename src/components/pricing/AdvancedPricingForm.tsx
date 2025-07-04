@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Calculator, Package, DollarSign, TrendingUp, Target, AlertTriangle, Save, Zap, Percent } from "lucide-react";
+import { Calculator, Package, DollarSign, TrendingUp, Target, AlertTriangle, Save, Zap, Percent, CheckCircle } from "lucide-react";
 import { formatCurrency } from "@/utils/calculations";
 import { Product, PricingConfiguration } from "@/types";
+import { useToast } from "@/hooks/use-toast"; // Import useToast
 
 interface AdvancedPricingFormProps {
   product: Product;
@@ -24,6 +25,8 @@ export const AdvancedPricingForm: React.FC<AdvancedPricingFormProps> = ({
   existingConfig,
   isLoading = false
 }) => {
+  const { toast } = useToast(); // Initialize useToast
+
   const [formData, setFormData] = useState({
     name: `Precificação ${product.name}`,
     product_id: product.id,
@@ -87,6 +90,18 @@ export const AdvancedPricingForm: React.FC<AdvancedPricingFormProps> = ({
   }, [existingConfig, product]);
 
   const handleInputChange = (field: string, value: number | string) => {
+    // Basic validation for number inputs
+    if (typeof value === 'string' && ['base_cost', 'packaging_cost', 'labor_cost', 'overhead_cost', 'marketing_cost', 'delivery_cost', 'other_costs', 'wastage_percentage', 'margin_percentage', 'platform_fee_percentage', 'tax_percentage', 'minimum_price', 'maximum_price', 'competitor_price'].includes(field)) {
+      if (isNaN(Number(value)) && value !== '') {
+        return; // Prevent updating state with non-numeric values
+      }
+      if (Number(value) < 0) {
+        value = 0; // Prevent negative values
+      }
+      if (['wastage_percentage', 'margin_percentage', 'platform_fee_percentage', 'tax_percentage'].includes(field) && Number(value) > 100) {
+        value = 100; // Limit percentages to 100
+      }
+    }
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -105,18 +120,18 @@ export const AdvancedPricingForm: React.FC<AdvancedPricingFormProps> = ({
   };
 
   // Calculations
-  const productionCost = formData.base_cost + formData.packaging_cost;
-  const actualLaborCost = calculateActualCost(formData.labor_cost, formData.labor_cost_type, productionCost);
-  const actualOverheadCost = calculateActualCost(formData.overhead_cost, formData.overhead_cost_type, productionCost);
-  const actualMarketingCost = calculateActualCost(formData.marketing_cost, formData.marketing_cost_type, productionCost);
-  const actualDeliveryCost = calculateActualCost(formData.delivery_cost, formData.delivery_cost_type, productionCost);
-  const actualOtherCosts = calculateActualCost(formData.other_costs, formData.other_cost_type, productionCost);
+  const productionCost = (typeof formData.base_cost === 'number' ? formData.base_cost : 0) + (typeof formData.packaging_cost === 'number' ? formData.packaging_cost : 0);
+  const actualLaborCost = calculateActualCost(typeof formData.labor_cost === 'number' ? formData.labor_cost : 0, formData.labor_cost_type, productionCost);
+  const actualOverheadCost = calculateActualCost(typeof formData.overhead_cost === 'number' ? formData.overhead_cost : 0, formData.overhead_cost_type, productionCost);
+  const actualMarketingCost = calculateActualCost(typeof formData.marketing_cost === 'number' ? formData.marketing_cost : 0, formData.marketing_cost_type, productionCost);
+  const actualDeliveryCost = calculateActualCost(typeof formData.delivery_cost === 'number' ? formData.delivery_cost : 0, formData.delivery_cost_type, productionCost);
+  const actualOtherCosts = calculateActualCost(typeof formData.other_costs === 'number' ? formData.other_costs : 0, formData.other_cost_type, productionCost);
   
   const totalIndirectCosts = actualLaborCost + actualOverheadCost + actualMarketingCost + actualDeliveryCost + actualOtherCosts;
-  const costWithWastage = (productionCost + totalIndirectCosts) * (1 + formData.wastage_percentage / 100);
-  const idealPrice = costWithWastage * (1 + formData.margin_percentage / 100);
-  const priceWithPlatformFee = idealPrice * (1 + formData.platform_fee_percentage / 100);
-  const finalPrice = priceWithPlatformFee * (1 + formData.tax_percentage / 100);
+  const costWithWastage = (productionCost + totalIndirectCosts) * (1 + (typeof formData.wastage_percentage === 'number' ? formData.wastage_percentage : 0) / 100);
+  const idealPrice = costWithWastage * (1 + (typeof formData.margin_percentage === 'number' ? formData.margin_percentage : 0) / 100);
+  const priceWithPlatformFee = idealPrice * (1 + (typeof formData.platform_fee_percentage === 'number' ? formData.platform_fee_percentage : 0) / 100);
+  const finalPrice = priceWithPlatformFee * (1 + (typeof formData.tax_percentage === 'number' ? formData.tax_percentage : 0) / 100);
   const profit = finalPrice - costWithWastage;
   const actualMargin = costWithWastage > 0 ? ((profit / costWithWastage) * 100) : 0;
 
@@ -138,12 +153,17 @@ export const AdvancedPricingForm: React.FC<AdvancedPricingFormProps> = ({
     };
 
     onSave(dataToSave);
+    toast({
+      title: "Sucesso!",
+      description: "Configuração de precificação salva com sucesso.",
+      action: <CheckCircle className="text-green-500" />,
+    });
   };
 
   const getMarginStatus = () => {
-    if (actualMargin >= formData.target_margin_percentage) {
+    if (actualMargin >= (typeof formData.target_margin_percentage === 'number' ? formData.target_margin_percentage : 0)) {
       return { status: 'success', icon: TrendingUp, text: 'Meta Atingida', color: 'text-green-600' };
-    } else if (actualMargin >= formData.target_margin_percentage * 0.8) {
+    } else if (actualMargin >= (typeof formData.target_margin_percentage === 'number' ? formData.target_margin_percentage : 0) * 0.8) {
       return { status: 'warning', icon: Target, text: 'Próximo da Meta', color: 'text-yellow-600' };
     } else {
       return { status: 'danger', icon: AlertTriangle, text: 'Abaixo da Meta', color: 'text-red-600' };
@@ -231,7 +251,7 @@ export const AdvancedPricingForm: React.FC<AdvancedPricingFormProps> = ({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-blue-600" />
+                <Package className="h-5 w-5" />
                 Identificação
               </CardTitle>
             </CardHeader>
@@ -567,3 +587,9 @@ export const AdvancedPricingForm: React.FC<AdvancedPricingFormProps> = ({
     </form>
   );
 };
+
+
+
+
+
+

@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, ShoppingCart, Users, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,15 +17,34 @@ const Resale = () => {
   const [isResellerDialogOpen, setIsResellerDialogOpen] = useState(false);
   const [selectedReseller, setSelectedReseller] = useState(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: resellers = [], isLoading: isLoadingResellers, refetch: refetchResellers } = useQuery({
-    queryKey: ['resellers'],
+    queryKey: ["resellers"],
     queryFn: resaleService.getResellers,
   });
 
   const { data: transactions = [], isLoading: isLoadingTransactions, refetch: refetchTransactions } = useQuery({
-    queryKey: ['resale-transactions'],
+    queryKey: ["resale-transactions"],
     queryFn: resaleService.getTransactions,
+  });
+
+  const deleteResellerMutation = useMutation({
+    mutationFn: resaleService.deleteReseller,
+    onSuccess: () => {
+      toast({
+        title: "Revendedor excluído",
+        description: "O revendedor foi excluído com sucesso.",
+      });
+      refetchResellers();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao excluir revendedor",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const handleTransactionSuccess = () => {
@@ -48,14 +67,14 @@ const Resale = () => {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    return new Date(dateString).toLocaleDateString("pt-BR");
   };
 
   if (isLoadingResellers || isLoadingTransactions) {
@@ -104,7 +123,7 @@ const Resale = () => {
             <CardTitle className="text-sm font-medium">Revendedores Ativos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{safeResellers.filter(r => r.status === 'active').length}</div>
+            <div className="text-2xl font-bold">{safeResellers.filter(r => r.status === "active").length}</div>
           </CardContent>
         </Card>
       </div>
@@ -122,7 +141,7 @@ const Resale = () => {
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Novo Revendedor</DialogTitle>
+                <DialogTitle>{selectedReseller ? "Editar Revendedor" : "Novo Revendedor"}</DialogTitle>
               </DialogHeader>
               <ResellerForm
                 reseller={selectedReseller}
@@ -149,8 +168,8 @@ const Resale = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between items-start">
                         <div className="font-medium">{reseller.name}</div>
-                        <Badge variant={reseller.status === 'active' ? 'default' : 'secondary'}>
-                          {reseller.status === 'active' ? 'Ativo' : 'Inativo'}
+                        <Badge variant={reseller.status === "active" ? "default" : "secondary"}>
+                          {reseller.status === "active" ? "Ativo" : "Inativo"}
                         </Badge>
                       </div>
                       {reseller.email && (
@@ -178,6 +197,18 @@ const Resale = () => {
                         >
                           <Edit className="h-3 w-3 mr-1" />
                           Editar
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => {
+                            if (confirm("Tem certeza que deseja excluir este revendedor?")) {
+                              deleteResellerMutation.mutate(reseller.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Excluir
                         </Button>
                       </div>
                     </div>
@@ -229,7 +260,7 @@ const Resale = () => {
                   <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="space-y-1">
                       <div className="font-medium">
-                        {safeResellers.find(r => r.id === transaction.reseller_id)?.name || 'Revendedor não encontrado'}
+                        {safeResellers.find(r => r.id === transaction.reseller_id)?.name || "Revendedor não encontrado"}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {formatDate(transaction.transaction_date)} • Status: {transaction.status}
@@ -253,3 +284,5 @@ const Resale = () => {
 };
 
 export default Resale;
+
+
