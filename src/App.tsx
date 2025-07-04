@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from "next-themes";
 import { SecurityProvider } from "./components/SecurityProvider";
-import ErrorBoundary from "./components/ErrorBoundary";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import PerformanceMonitor from "./components/PerformanceMonitor";
 import PerformanceOptimizer from "./components/PerformanceOptimizer";
 import AppLayout from "./components/AppLayout";
@@ -32,43 +33,41 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <ErrorBoundary>
-      <PerformanceMonitor>
-        <PerformanceOptimizer>
-          <HelmetProvider>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-              <SecurityProvider>
-                <QueryClientProvider client={queryClient}>
-                  <TooltipProvider>
-                    <BrowserRouter>
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/auth" element={<Auth />} />
-                        <Route path="/secure-auth" element={<SecureAuth />} />
-                        <Route path="/app" element={<AppLayout />}>
-                          <Route index element={<Dashboard />} />
-                          <Route path="ingredients" element={<Ingredients />} />
-                          <Route path="recipes" element={<Recipes />} />
-                          <Route path="products" element={<Products />} />
-                          <Route path="pricing" element={<Pricing />} />
-                          <Route path="orders" element={<Orders />} />
-                          <Route path="sales" element={<Sales />} />
-                          <Route path="financeiro" element={<Financeiro />} />
-                          <Route path="accounts-payable" element={<AccountsPayable />} />
-                          <Route path="customers" element={<Customers />} />
-                          <Route path="resale" element={<Resale />} />
-                          <Route path="relatorios" element={<Relatorios />} />
-                        </Route>
-                      </Routes>
-                    </BrowserRouter>
-                    <Toaster />
-                    <Sonner />
-                  </TooltipProvider>
-                </QueryClientProvider>
-              </SecurityProvider>
-            </ThemeProvider>
-          </HelmetProvider>
-        </PerformanceOptimizer>
-      </PerformanceMonitor>
+      <PerformanceMonitor />
+      <PerformanceOptimizer />
+      <HelmetProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <SecurityProvider>
+            <QueryClientProvider client={queryClient}>
+              <TooltipProvider>
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/secure-auth" element={<SecureAuth />} />
+                    <Route path="/app" element={<AppLayout />}>
+                      <Route index element={<Dashboard />} />
+                      <Route path="ingredients" element={<Ingredients />} />
+                      <Route path="recipes" element={<Recipes />} />
+                      <Route path="products" element={<Products />} />
+                      <Route path="pricing" element={<Pricing />} />
+                      <Route path="orders" element={<Orders />} />
+                      <Route path="sales" element={<Sales />} />
+                      <Route path="financeiro" element={<Financeiro />} />
+                      <Route path="accounts-payable" element={<AccountsPayable />} />
+                      <Route path="customers" element={<Customers />} />
+                      <Route path="resale" element={<Resale />} />
+                      <Route path="relatorios" element={<Relatorios />} />
+                    </Route>
+                  </Routes>
+                </BrowserRouter>
+                <Toaster />
+                <Sonner />
+              </TooltipProvider>
+            </QueryClientProvider>
+          </SecurityProvider>
+        </ThemeProvider>
+      </HelmetProvider>
     </ErrorBoundary>
   );
 }

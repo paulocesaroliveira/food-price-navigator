@@ -1,7 +1,6 @@
-
 import React, { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
+import AppSidebar from "@/components/AppSidebar";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Bell, User, HelpCircle, LogOut } from "lucide-react";
 import { 
