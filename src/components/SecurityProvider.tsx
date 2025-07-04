@@ -50,7 +50,11 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
   };
 
   const logSecurityEvent = async (event: string, data?: any) => {
-    if (!user) return;
+    // Skip logging if no user (prevents RLS violations)
+    if (!user) {
+      console.log('Security event (no user):', event, data);
+      return;
+    }
 
     try {
       const clientIP = await getClientIP();
@@ -71,11 +75,11 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
         .insert(eventData);
 
       if (error) {
-        console.error('Failed to log security event:', error);
-        // Don't block user actions if audit logging fails
+        // Log error but don't block user actions
+        console.warn('Failed to log security event:', error.message);
       }
     } catch (error) {
-      console.error('Security logging error:', error);
+      console.warn('Security logging error:', error);
       // Continue execution even if logging fails
     }
   };
@@ -155,10 +159,13 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
     };
   }, [user]);
 
-  // Log login/logout events
+  // Log login/logout events with delay to ensure user context is available
   useEffect(() => {
     if (user) {
-      logSecurityEvent('USER_LOGIN');
+      // Delay the logging to ensure all auth states are properly set
+      setTimeout(() => {
+        logSecurityEvent('USER_LOGIN');
+      }, 1000);
     }
 
     return () => {

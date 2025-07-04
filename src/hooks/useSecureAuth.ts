@@ -89,7 +89,7 @@ export const useSecureAuth = () => {
 
     initializeAuth();
 
-    // Listen for auth changes with enhanced logging
+    // Listen for auth changes with simplified session validation
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Secure auth state changed:', event);
@@ -100,13 +100,15 @@ export const useSecureAuth = () => {
           loading: false,
         });
 
-        // Enhanced session validation
+        // Only validate session expiry if we have a session and it's a sign-in event
         if (session && event === 'SIGNED_IN') {
-          // Validate session integrity
           const now = new Date().getTime();
           const sessionExpiry = new Date(session.expires_at || 0).getTime();
           
-          if (sessionExpiry <= now) {
+          // Give a 5-minute buffer to account for clock differences
+          const bufferTime = 5 * 60 * 1000;
+          
+          if (sessionExpiry <= (now - bufferTime)) {
             console.warn('Received expired session, signing out');
             await supabase.auth.signOut();
           }
