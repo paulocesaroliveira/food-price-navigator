@@ -19,15 +19,9 @@ export const useSecureAuth = () => {
 
   const signInWithPassword = useCallback(async (email: string, password: string) => {
     try {
-      // Enhanced sign-in with proper redirect URL
-      const redirectUrl = `${window.location.origin}/app`;
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
       });
 
       if (error) {
@@ -48,7 +42,6 @@ export const useSecureAuth = () => {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, options?: any) => {
-    // CRITICAL: Always set emailRedirectTo for proper authentication flow
     const redirectUrl = `${window.location.origin}/app`;
     
     return await supabase.auth.signUp({
