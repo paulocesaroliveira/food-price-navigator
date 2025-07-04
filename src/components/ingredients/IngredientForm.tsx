@@ -30,6 +30,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 const ingredientSchema = z.object({
   name: z.string().min(2, { message: "Nome é obrigatório" }),
@@ -55,6 +56,7 @@ export const IngredientForm = ({
   ingredient,
 }: IngredientFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const { data: categories = [] } = useQuery({
     queryKey: ['ingredient-categories'],
@@ -84,6 +86,7 @@ export const IngredientForm = ({
       packagePrice: 0,
       supplier: "",
     },
+    mode: "onChange", // Validação em tempo real
   });
 
   // Carregar dados do ingrediente para edição
@@ -113,12 +116,20 @@ export const IngredientForm = ({
     }
   }, [ingredient, open, form]);
 
+  // Cálculo em tempo real do custo unitário
   const packageQuantity = form.watch("packageQuantity");
   const packagePrice = form.watch("packagePrice");
   const unitCost = packageQuantity && packagePrice && packageQuantity > 0 ? packagePrice / packageQuantity : 0;
 
+  // Validação em tempo real
+  const watchedName = form.watch("name");
+  const watchedBrand = form.watch("brand");
+  const isFormValid = form.formState.isValid;
+
   const handleSubmit = async (values: z.infer<typeof ingredientSchema>) => {
     setIsLoading(true);
+    setSaveSuccess(false);
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
@@ -143,8 +154,10 @@ export const IngredientForm = ({
 
         if (error) throw error;
 
+        // Feedback visual de sucesso
+        setSaveSuccess(true);
         toast({
-          title: "Ingrediente atualizado",
+          title: "✅ Ingrediente atualizado",
           description: "O ingrediente foi atualizado com sucesso.",
         });
       } else {
@@ -154,18 +167,25 @@ export const IngredientForm = ({
 
         if (error) throw error;
 
+        // Feedback visual de sucesso
+        setSaveSuccess(true);
         toast({
-          title: "Ingrediente criado",
+          title: "✅ Ingrediente criado",
           description: "O ingrediente foi criado com sucesso.",
         });
       }
 
-      onSuccess();
-      onOpenChange(false);
+      // Aguardar um pouco para mostrar o feedback
+      setTimeout(() => {
+        onSuccess();
+        onOpenChange(false);
+        setSaveSuccess(false);
+      }, 1000);
+
     } catch (error: any) {
       console.error('Erro ao salvar ingrediente:', error);
       toast({
-        title: "Erro",
+        title: "❌ Erro",
         description: error.message || "Erro ao salvar ingrediente",
         variant: "destructive",
       });
@@ -178,8 +198,9 @@ export const IngredientForm = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
             {ingredient ? 'Editar Ingrediente' : 'Novo Ingrediente'}
+            {saveSuccess && <CheckCircle className="h-5 w-5 text-green-500" />}
           </DialogTitle>
         </DialogHeader>
 
@@ -191,9 +212,18 @@ export const IngredientForm = ({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Nome
+                      {watchedName && watchedName.length >= 2 && (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      )}
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Farinha de Trigo" {...field} />
+                      <Input 
+                        placeholder="Ex: Farinha de Trigo" 
+                        {...field}
+                        className={watchedName && watchedName.length >= 2 ? "border-green-500" : ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -205,9 +235,18 @@ export const IngredientForm = ({
                 name="brand"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Marca</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Marca
+                      {watchedBrand && watchedBrand.length >= 1 && (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      )}
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Dona Benta" {...field} />
+                      <Input 
+                        placeholder="Ex: Dona Benta" 
+                        {...field}
+                        className={watchedBrand && watchedBrand.length >= 1 ? "border-green-500" : ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -306,9 +345,13 @@ export const IngredientForm = ({
               />
             </div>
 
-            <div className="p-4 border rounded-md bg-muted/50">
-              <p className="text-sm font-medium">Custo Unitário (calculado)</p>
-              <p className="text-xl font-bold mt-1">
+            {/* Custo unitário calculado em tempo real */}
+            <div className="p-4 border rounded-md bg-gradient-to-r from-blue-50 to-green-50">
+              <p className="text-sm font-medium flex items-center gap-2">
+                Custo Unitário (calculado em tempo real)
+                {unitCost > 0 && <CheckCircle className="h-4 w-4 text-green-500" />}
+              </p>
+              <p className="text-xl font-bold mt-1 text-blue-600">
                 {new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL',
@@ -330,7 +373,7 @@ export const IngredientForm = ({
               )}
             />
 
-            <div className="flex flex-col sm:flex-row justify-end gap-2">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
               <Button 
                 type="button" 
                 variant="outline" 
@@ -339,8 +382,26 @@ export const IngredientForm = ({
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-                {isLoading ? "Salvando..." : ingredient ? "Atualizar" : "Criar"} Ingrediente
+              <Button 
+                type="submit" 
+                disabled={isLoading || !isFormValid}
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : saveSuccess ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Salvo!
+                  </>
+                ) : (
+                  <>
+                    {ingredient ? "Atualizar" : "Criar"} Ingrediente
+                  </>
+                )}
               </Button>
             </div>
           </form>

@@ -26,7 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { Calculator, Package, DollarSign, TrendingUp, Target } from "lucide-react";
+import { Calculator, Package, DollarSign, TrendingUp, Target, CheckCircle, Loader2 } from "lucide-react";
 
 const pricingSchema = z.object({
   productId: z.string().min(1, { message: "Produto é obrigatório" }),
@@ -51,6 +51,7 @@ interface PricingFormProps {
 export const PricingForm = ({ onSuccess }: PricingFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const { data: products = [] } = useQuery({
     queryKey: ['products-for-pricing'],
@@ -86,6 +87,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
       marginPercentage: 30,
       sellingPrice: 0,
     },
+    mode: "onChange", // Validação em tempo real
   });
 
   const watchedValues = form.watch();
@@ -97,7 +99,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
     }
   }, [watchedValues.productId, products]);
 
-  // Cálculos dinâmicos
+  // Cálculos dinâmicos em tempo real
   const baseCost = selectedProduct?.total_cost || 0;
   
   const laborCostValue = watchedValues.laborCostType === "percentage" 
@@ -131,6 +133,8 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
 
   const handleSubmit = async (values: z.infer<typeof pricingSchema>) => {
     setIsLoading(true);
+    setSaveSuccess(false);
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
@@ -163,18 +167,25 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
 
       if (error) throw error;
 
+      // Feedback visual de sucesso
+      setSaveSuccess(true);
       toast({
-        title: "Precificação salva",
+        title: "✅ Precificação salva",
         description: "A configuração de precificação foi salva com sucesso.",
       });
 
-      if (onSuccess) {
-        onSuccess();
-      }
+      // Aguardar um pouco para mostrar o feedback
+      setTimeout(() => {
+        if (onSuccess) {
+          onSuccess();
+        }
+        setSaveSuccess(false);
+      }, 2000);
+
     } catch (error: any) {
       console.error('Erro ao salvar precificação:', error);
       toast({
-        title: "Erro",
+        title: "❌ Erro",
         description: error.message || "Erro ao salvar precificação",
         variant: "destructive",
       });
@@ -193,21 +204,24 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Precificação Inteligente</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
+          Precificação Inteligente
+          {saveSuccess && <CheckCircle className="h-6 w-6 text-green-500" />}
+        </h1>
         <p className="text-gray-600">Configure sua precificação de forma inteligente e precisa</p>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           {/* Seção 1: Seleção do Produto */}
-          <Card>
-            <CardHeader>
+          <Card className="border-2 border-blue-200 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100">
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
                 Produto
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <FormField
                 control={form.control}
                 name="productId"
@@ -216,7 +230,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                     <FormLabel>Selecione o Produto</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-12">
                           <SelectValue placeholder="Escolha um produto para precificar" />
                         </SelectTrigger>
                       </FormControl>
@@ -237,17 +251,17 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
 
           {/* Seção 2: Custo do Produto */}
           {selectedProduct && (
-            <Card>
-              <CardHeader>
+            <Card className="border-2 border-green-200 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-green-100">
                 <CardTitle className="flex items-center gap-2">
                   <Calculator className="h-5 w-5" />
                   Custo do Produto
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="bg-blue-50 p-4 rounded-lg">
+              <CardContent className="pt-6">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg border">
                   <p className="text-sm text-gray-600 mb-2">Custo calculado automaticamente baseado nas receitas e embalagens</p>
-                  <p className="text-2xl font-bold text-blue-600">
+                  <p className="text-3xl font-bold text-blue-600">
                     {formatCurrency(baseCost)}
                   </p>
                 </div>
@@ -257,14 +271,15 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
 
           {/* Seção 3: Custos Indiretos e Taxas */}
           {selectedProduct && (
-            <Card>
-              <CardHeader>
+            <Card className="border-2 border-orange-200 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100">
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5" />
                   Custos Indiretos e Taxas
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-6 space-y-6">
+                {/* Mão de obra */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -290,6 +305,9 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                             />
                           )}
                         </FormControl>
+                        <p className="text-xs text-gray-500">
+                          Valor calculado: {formatCurrency(laborCostValue)}
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -317,6 +335,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                   />
                 </div>
 
+                {/* Custos gerais */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -342,6 +361,9 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                             />
                           )}
                         </FormControl>
+                        <p className="text-xs text-gray-500">
+                          Valor calculado: {formatCurrency(overheadCostValue)}
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -369,6 +391,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                   />
                 </div>
 
+                {/* Marketing */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -394,6 +417,9 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                             />
                           )}
                         </FormControl>
+                        <p className="text-xs text-gray-500">
+                          Valor calculado: {formatCurrency(marketingCostValue)}
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -421,6 +447,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                   />
                 </div>
 
+                {/* Entrega */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -446,6 +473,9 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                             />
                           )}
                         </FormControl>
+                        <p className="text-xs text-gray-500">
+                          Valor calculado: {formatCurrency(deliveryCostValue)}
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -521,9 +551,9 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                   />
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm font-medium mb-2">Total de Custos Indiretos</p>
-                  <p className="text-xl font-bold text-orange-600">
+                <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-lg border">
+                  <p className="text-sm font-medium mb-2">Total de Custos Indiretos (calculado em tempo real)</p>
+                  <p className="text-2xl font-bold text-orange-600">
                     {formatCurrency(totalIndirectCosts)}
                   </p>
                 </div>
@@ -533,14 +563,14 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
 
           {/* Seção 4: Margem de Lucro */}
           {selectedProduct && (
-            <Card>
-              <CardHeader>
+            <Card className="border-2 border-purple-200 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100">
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5" />
                   Margem de Lucro ou Preço de Venda
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -560,6 +590,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                               field.onChange(margin);
                               form.setValue('sellingPrice', 0);
                             }}
+                            className="text-lg font-semibold"
                           />
                         </FormControl>
                         <FormMessage />
@@ -584,6 +615,7 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                               }
                             }}
                             placeholder="R$ 0,00"
+                            className="text-lg font-semibold"
                           />
                         </FormControl>
                         <FormMessage />
@@ -591,8 +623,8 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                     )}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Os campos são dinâmicos - altere qualquer um e o outro será calculado automaticamente
+                <p className="text-xs text-gray-500 mt-2 bg-yellow-50 p-2 rounded">
+                  💡 Os campos são dinâmicos - altere qualquer um e o outro será calculado automaticamente
                 </p>
               </CardContent>
             </Card>
@@ -600,34 +632,34 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
 
           {/* Seção 5: Resumo */}
           {selectedProduct && (
-            <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-              <CardHeader>
+            <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 shadow-xl">
+              <CardHeader className="bg-gradient-to-r from-green-100 to-blue-100">
                 <CardTitle className="flex items-center gap-2 text-green-700">
                   <TrendingUp className="h-5 w-5" />
                   Resumo dos Custos, Margem, Lucro e Valor de Venda
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div className="text-center">
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center p-3 bg-white rounded-lg shadow">
                     <p className="text-sm text-gray-600">Custo Base</p>
                     <p className="text-lg font-semibold">
                       {formatCurrency(baseCost)}
                     </p>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center p-3 bg-white rounded-lg shadow">
                     <p className="text-sm text-gray-600">Custos Indiretos</p>
                     <p className="text-lg font-semibold">
                       {formatCurrency(totalIndirectCosts)}
                     </p>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center p-3 bg-white rounded-lg shadow">
                     <p className="text-sm text-gray-600">Custo Total</p>
                     <p className="text-lg font-semibold text-orange-600">
                       {formatCurrency(totalCost)}
                     </p>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center p-3 bg-white rounded-lg shadow">
                     <p className="text-sm text-gray-600">Margem</p>
                     <p className="text-lg font-semibold text-blue-600">
                       {finalMargin.toFixed(1)}%
@@ -635,18 +667,18 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
                   </div>
                 </div>
                 
-                <Separator className="my-4" />
+                <Separator className="my-6" />
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-white rounded-lg border">
-                    <p className="text-sm text-gray-600 mb-1">Preço de Venda</p>
-                    <p className="text-2xl font-bold text-green-600">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="text-center p-6 bg-gradient-to-r from-green-100 to-green-200 rounded-lg border-2 border-green-300">
+                    <p className="text-sm text-gray-700 mb-2">Preço de Venda Final</p>
+                    <p className="text-3xl font-bold text-green-700">
                       {formatCurrency(finalSellingPrice)}
                     </p>
                   </div>
-                  <div className="text-center p-4 bg-white rounded-lg border">
-                    <p className="text-sm text-gray-600 mb-1">Lucro por Unidade</p>
-                    <p className="text-2xl font-bold text-green-600">
+                  <div className="text-center p-6 bg-gradient-to-r from-blue-100 to-blue-200 rounded-lg border-2 border-blue-300">
+                    <p className="text-sm text-gray-700 mb-2">Lucro por Unidade</p>
+                    <p className="text-3xl font-bold text-blue-700">
                       {formatCurrency(profit)}
                     </p>
                   </div>
@@ -655,13 +687,25 @@ export const PricingForm = ({ onSuccess }: PricingFormProps) => {
             </Card>
           )}
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-4 pt-6">
             <Button 
               type="submit" 
               disabled={isLoading || !selectedProduct}
-              className="px-8"
+              className="px-8 h-12 text-lg bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
             >
-              {isLoading ? "Salvando..." : "Salvar Precificação"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Salvando Precificação...
+                </>
+              ) : saveSuccess ? (
+                <>
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  Precificação Salva!
+                </>
+              ) : (
+                "Salvar Precificação"
+              )}
             </Button>
           </div>
         </form>
