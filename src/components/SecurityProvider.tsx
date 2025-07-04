@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,10 +33,28 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
     suspiciousActivity: false
   });
 
+  const getClientIP = async (): Promise<string> => {
+    try {
+      // Try to get IP from various sources
+      const response = await fetch('https://api.ipify.org?format=json');
+      if (response.ok) {
+        const data = await response.json();
+        return data.ip || 'unknown';
+      }
+    } catch (error) {
+      console.warn('Failed to get client IP:', error);
+    }
+    
+    // Fallback to a placeholder that won't cause DB errors
+    return '0.0.0.0';
+  };
+
   const logSecurityEvent = async (event: string, data?: any) => {
     if (!user) return;
 
     try {
+      const clientIP = await getClientIP();
+      
       const eventData = {
         user_id: user.id,
         action: event,
@@ -43,7 +62,7 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
         record_id: data?.recordId || null,
         old_values: data?.oldValues || null,
         new_values: data?.newValues || null,
-        ip_address: await getClientIP(),
+        ip_address: clientIP,
         user_agent: navigator.userAgent
       };
 
@@ -53,18 +72,11 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
 
       if (error) {
         console.error('Failed to log security event:', error);
+        // Don't block user actions if audit logging fails
       }
     } catch (error) {
       console.error('Security logging error:', error);
-    }
-  };
-
-  const getClientIP = async (): Promise<string> => {
-    try {
-      // In production, this should get real IP from headers
-      return 'client-ip';
-    } catch {
-      return 'unknown';
+      // Continue execution even if logging fails
     }
   };
 
@@ -126,7 +138,7 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
     // Track user activity
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
     events.forEach(event => {
-      document.addEventListener(event, updateActivity);
+      document.addEventListener(event, updateActivity, { passive: true });
     });
 
     // Session monitoring interval

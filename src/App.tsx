@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +9,7 @@ import { SecurityProvider } from "./components/SecurityProvider";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import PerformanceMonitor from "./components/PerformanceMonitor";
 import PerformanceOptimizer from "./components/PerformanceOptimizer";
+import SecurityMonitor from "./components/security/SecurityMonitor";
 import AppLayout from "./components/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -33,41 +33,44 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <ErrorBoundary>
-      <PerformanceMonitor />
-      <PerformanceOptimizer />
-      <HelmetProvider>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <SecurityProvider>
-            <QueryClientProvider client={queryClient}>
-              <TooltipProvider>
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/secure-auth" element={<SecureAuth />} />
-                    <Route path="/app" element={<AppLayout />}>
-                      <Route index element={<Dashboard />} />
-                      <Route path="ingredients" element={<Ingredients />} />
-                      <Route path="recipes" element={<Recipes />} />
-                      <Route path="products" element={<Products />} />
-                      <Route path="pricing" element={<Pricing />} />
-                      <Route path="orders" element={<Orders />} />
-                      <Route path="sales" element={<Sales />} />
-                      <Route path="financeiro" element={<Financeiro />} />
-                      <Route path="accounts-payable" element={<AccountsPayable />} />
-                      <Route path="customers" element={<Customers />} />
-                      <Route path="resale" element={<Resale />} />
-                      <Route path="relatorios" element={<Relatorios />} />
-                    </Route>
-                  </Routes>
-                </BrowserRouter>
-                <Toaster />
-                <Sonner />
-              </TooltipProvider>
-            </QueryClientProvider>
-          </SecurityProvider>
-        </ThemeProvider>
-      </HelmetProvider>
+      <PerformanceMonitor>
+        <PerformanceOptimizer>
+          <HelmetProvider>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              <SecurityProvider>
+                <SecurityMonitor />
+                <QueryClientProvider client={queryClient}>
+                  <TooltipProvider>
+                    <BrowserRouter>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/secure-auth" element={<SecureAuth />} />
+                        <Route path="/app" element={<AppLayout />}>
+                          <Route index element={<Dashboard />} />
+                          <Route path="ingredients" element={<Ingredients />} />
+                          <Route path="recipes" element={<Recipes />} />
+                          <Route path="products" element={<Products />} />
+                          <Route path="pricing" element={<Pricing />} />
+                          <Route path="orders" element={<Orders />} />
+                          <Route path="sales" element={<Sales />} />
+                          <Route path="financeiro" element={<Financeiro />} />
+                          <Route path="accounts-payable" element={<AccountsPayable />} />
+                          <Route path="customers" element={<Customers />} />
+                          <Route path="resale" element={<Resale />} />
+                          <Route path="relatorios" element={<Relatorios />} />
+                        </Route>
+                      </Routes>
+                    </BrowserRouter>
+                    <Toaster />
+                    <Sonner />
+                  </TooltipProvider>
+                </QueryClientProvider>
+              </SecurityProvider>
+            </ThemeProvider>
+          </HelmetProvider>
+        </PerformanceOptimizer>
+      </PerformanceMonitor>
     </ErrorBoundary>
   );
 }

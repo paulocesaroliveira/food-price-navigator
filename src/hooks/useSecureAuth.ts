@@ -19,12 +19,24 @@ export const useSecureAuth = () => {
 
   const signInWithPassword = useCallback(async (email: string, password: string) => {
     try {
+      // Enhanced sign-in with proper redirect URL
+      const redirectUrl = `${window.location.origin}/app`;
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
       });
 
       if (error) {
+        // Log failed login attempt for security monitoring
+        try {
+          await supabase.rpc('track_failed_login', { user_email: email });
+        } catch (logError) {
+          console.warn('Failed to log security event:', logError);
+        }
         return { data: null, error };
       }
 
@@ -36,18 +48,32 @@ export const useSecureAuth = () => {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, options?: any) => {
+    // CRITICAL: Always set emailRedirectTo for proper authentication flow
+    const redirectUrl = `${window.location.origin}/app`;
+    
     return await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
-      options,
+      options: {
+        emailRedirectTo: redirectUrl,
+        ...options
+      },
     });
   }, []);
 
   const signOut = useCallback(async () => {
-    return await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      setAuthState({
+        user: null,
+        session: null,
+        loading: false,
+      });
+    }
+    return { error };
   }, []);
 
-  // Initialize auth state
+  // Initialize auth state with proper session handling
   useEffect(() => {
     const initializeAuth = async () => {
       try {
@@ -70,16 +96,28 @@ export const useSecureAuth = () => {
 
     initializeAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes with enhanced logging
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event);
+        console.log('Secure auth state changed:', event);
         
         setAuthState({
           user: session?.user ?? null,
           session,
           loading: false,
         });
+
+        // Enhanced session validation
+        if (session && event === 'SIGNED_IN') {
+          // Validate session integrity
+          const now = new Date().getTime();
+          const sessionExpiry = new Date(session.expires_at || 0).getTime();
+          
+          if (sessionExpiry <= now) {
+            console.warn('Received expired session, signing out');
+            await supabase.auth.signOut();
+          }
+        }
       }
     );
 
