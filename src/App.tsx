@@ -33,44 +33,43 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <ErrorBoundary>
-      <PerformanceMonitor showMetrics={false}>
-        <PerformanceOptimizer>
-          <HelmetProvider>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-              <SecurityProvider>
-                <SecurityMonitor />
-                <QueryClientProvider client={queryClient}>
-                  <TooltipProvider>
-                    <BrowserRouter>
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/auth" element={<Auth />} />
-                        <Route path="/secure-auth" element={<SecureAuth />} />
-                        <Route path="/app" element={<AppLayout />}>
-                          <Route index element={<Dashboard />} />
-                          <Route path="ingredients" element={<Ingredients />} />
-                          <Route path="recipes" element={<Recipes />} />
-                          <Route path="products" element={<Products />} />
-                          <Route path="pricing" element={<Pricing />} />
-                          <Route path="orders" element={<Orders />} />
-                          <Route path="sales" element={<Sales />} />
-                          <Route path="financeiro" element={<Financeiro />} />
-                          <Route path="accounts-payable" element={<AccountsPayable />} />
-                          <Route path="customers" element={<Customers />} />
-                          <Route path="resale" element={<Resale />} />
-                          <Route path="relatorios" element={<Relatorios />} />
-                        </Route>
-                      </Routes>
-                    </BrowserRouter>
-                    <Toaster />
-                    <Sonner />
-                  </TooltipProvider>
-                </QueryClientProvider>
-              </SecurityProvider>
-            </ThemeProvider>
-          </HelmetProvider>
-        </PerformanceOptimizer>
-      </PerformanceMonitor>
+      <PerformanceOptimizer>
+        <HelmetProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <SecurityProvider>
+              <SecurityMonitor />
+              <PerformanceMonitor showMetrics={false} />
+              <QueryClientProvider client={queryClient}>
+                <TooltipProvider>
+                  <BrowserRouter>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/secure-auth" element={<SecureAuth />} />
+                      <Route path="/app" element={<AppLayout />}>
+                        <Route index element={<Dashboard />} />
+                        <Route path="ingredients" element={<Ingredients />} />
+                        <Route path="recipes" element={<Recipes />} />
+                        <Route path="products" element={<Products />} />
+                        <Route path="pricing" element={<Pricing />} />
+                        <Route path="orders" element={<Orders />} />
+                        <Route path="sales" element={<Sales />} />
+                        <Route path="financeiro" element={<Financeiro />} />
+                        <Route path="accounts-payable" element={<AccountsPayable />} />
+                        <Route path="customers" element={<Customers />} />
+                        <Route path="resale" element={<Resale />} />
+                        <Route path="relatorios" element={<Relatorios />} />
+                      </Route>
+                    </Routes>
+                  </BrowserRouter>
+                  <Toaster />
+                  <Sonner />
+                </TooltipProvider>
+              </QueryClientProvider>
+            </SecurityProvider>
+          </ThemeProvider>
+        </HelmetProvider>
+      </PerformanceOptimizer>
     </ErrorBoundary>
   );
 }
